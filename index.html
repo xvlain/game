@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="未定之旅 - 庸人工作室出品的网页二次元回合制RPG">
+  <meta name="theme-color" content="#0a0a14">
+  <title>未定之旅</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #0a0a14;
+      font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+    }
+    #game-container {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #gameCanvas {
+      display: block; background: #0a0a14; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none; user-select: none;
+    }
+    #loading {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #0a0a14; z-index: 100; transition: opacity 0.5s;
+    }
+    #loading.hidden { opacity: 0; pointer-events: none; }
+    #loading h1 {
+      color: #d4b8ff; font-size: 28px; margin-bottom: 8px;
+      font-family: "Noto Serif SC", serif;
+    }
+    #loading .studio {
+      color: #606080; font-size: 13px; margin-bottom: 20px;
+    }
+    #loading .bar {
+      width: 200px; height: 4px; background: #1a1a3a;
+      border-radius: 2px; overflow: hidden;
+    }
+    #loading .bar-fill {
+      width: 60%; height: 100%;
+      background: linear-gradient(90deg, #7c5cbf, #5c8abf);
+      border-radius: 2px;
+      animation: loading 1.5s ease-in-out infinite;
+    }
+    @keyframes loading {
+      0% { width: 20%; margin-left: 0; }
+      50% { width: 60%; margin-left: 20%; }
+      100% { width: 20%; margin-left: 80%; }
+    }
+    #fullscreen-hint {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      color: #505070; font-size: 12px; z-index: 10; opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <h1>未定之旅</h1>
+    <div class="studio">庸人工作室</div>
+    <div class="bar"><div class="bar-fill"></div></div>
+  </div>
+
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <div id="fullscreen-hint">横屏体验更佳 · 点击/触屏操作</div>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase-js.min.js"></script>
+
+  <!-- 游戏脚本（按依赖顺序加载） -->
+  <script src="js/engine.js"></script>
+  <script src="js/battle.js"></script>
+  <script src="js/story.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/gacha.js"></script>
+  <script src="js/characters.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('loading').classList.add('hidden');
+      }, 800);
+    });
+
+    document.addEventListener('dblclick', (e) => e.preventDefault());
+
+    if (window.innerWidth < window.innerHeight) {
+      document.getElementById('fullscreen-hint').textContent = '建议横屏游玩 · 点击/触屏操作';
+    }
+  </script>
+</body>
+</html>
