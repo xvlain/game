@@ -17,6 +17,10 @@ class TitleScene {
     this.titleAlpha = 0;
     this.elapsed = 0;
     this._initParticles();
+
+    // 检测本地是否有存档，决定是否显示"继续游戏"
+    const hasSave = !!localStorage.getItem('game_offline_main');
+    this.hasContinue = hasSave;
   }
 
   onExit() {}
@@ -94,11 +98,15 @@ class TitleScene {
       const btnW = 220, btnH = 48;
       const btnX = W / 2 - btnW / 2;
 
-      // 开始游戏
+      // 按钮列表（"继续游戏"仅在检测到本地存档时显示）
       this.buttons = [
-        { x: btnX, y: H / 2 + 60, w: btnW, h: btnH, text: '开始游戏', action: 'start' },
-        { x: btnX, y: H / 2 + 130, w: btnW, h: btnH, text: '继续游戏', action: 'continue' }
+        { x: btnX, y: H / 2 + 60, w: btnW, h: btnH, text: '开始游戏', action: 'start' }
       ];
+      if (this.hasContinue) {
+        this.buttons.push(
+          { x: btnX, y: H / 2 + 130, w: btnW, h: btnH, text: '继续游戏', action: 'continue' }
+        );
+      }
 
       for (const btn of this.buttons) {
         Renderer.drawButton(ctx, btn.x, btn.y, btn.w, btn.h, btn.text, {
@@ -110,7 +118,7 @@ class TitleScene {
     }
 
     // 底部信息
-    Renderer.drawText(ctx, 'v0.3.0 · 庸人工作室', W / 2, H - 30, {
+    Renderer.drawText(ctx, 'v0.4.0 · 庸人工作室', W / 2, H - 30, {
       fontSize: 12,
       color: '#505070',
       align: 'center'
@@ -121,7 +129,12 @@ class TitleScene {
     for (const btn of this.buttons) {
       if (Renderer.hitTest(x, y, btn)) {
         if (btn.action === 'start' || btn.action === 'continue') {
-          this.sceneManager.switchTo('main_menu');
+          // 触发登录覆盖层
+          if (window.authController) {
+            window.authController.open(btn.action);
+          } else {
+            this.sceneManager.switchTo('main_menu');
+          }
         }
       }
     }

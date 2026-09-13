@@ -56,6 +56,84 @@
       transform: translateX(-50%);
       color: #505070; font-size: 12px; z-index: 10; opacity: 0.7;
     }
+
+    /* 登录/注册覆盖层 */
+    .auth-overlay {
+      position: fixed; inset: 0;
+      background: rgba(5, 5, 15, 0.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .auth-overlay.hidden { display: none; }
+    .auth-card {
+      width: 340px; max-width: 90vw;
+      background: linear-gradient(160deg, #1a1030, #0a0a1a);
+      border: 1px solid #3a2a5a;
+      border-radius: 12px;
+      padding: 28px 26px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      color: #d4b8ff;
+      font-family: "Noto Sans SC", sans-serif;
+    }
+    .auth-card h2 {
+      margin: 0 0 18px;
+      font-size: 22px;
+      font-weight: 500;
+      text-align: center;
+      color: #e4d0ff;
+      letter-spacing: 2px;
+    }
+    .auth-field { margin-bottom: 14px; }
+    .auth-field label {
+      display: block; font-size: 13px; color: #9090b0;
+      margin-bottom: 6px;
+    }
+    .auth-field input {
+      width: 100%; padding: 10px 12px;
+      background: #0a0a1a;
+      border: 1px solid #3a2a5a;
+      border-radius: 6px;
+      color: #e4d0ff;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .auth-field input:focus { border-color: #7c5cbf; }
+    .auth-actions {
+      display: flex; gap: 10px;
+      margin-top: 18px;
+    }
+    .auth-btn {
+      flex: 1;
+      padding: 10px;
+      background: #1a1a3a;
+      color: #d4b8ff;
+      border: 1px solid #7c5cbf;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .auth-btn.primary {
+      background: linear-gradient(135deg, #7c5cbf, #5c8abf);
+      color: #fff; border: none;
+    }
+    .auth-btn:hover { filter: brightness(1.15); }
+    .auth-btn.ghost {
+      display: block; width: 100%; margin-top: 10px;
+      background: transparent; border: none; color: #7070a0;
+      font-size: 13px;
+    }
+    .auth-btn.ghost:hover { color: #9090b0; }
+    .auth-error {
+      margin-top: 12px;
+      color: #ff7c8a;
+      font-size: 13px;
+      text-align: center;
+      min-height: 18px;
+    }
   </style>
 </head>
 <body>
@@ -67,6 +145,27 @@
 
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <!-- 登录/注册覆盖层 -->
+  <div id="auth-overlay" class="auth-overlay hidden">
+    <div class="auth-card">
+      <h2 id="auth-title">登录</h2>
+      <div class="auth-field">
+        <label for="auth-username">用户名</label>
+        <input id="auth-username" type="text" maxlength="20" placeholder="3-20 个字符" autocomplete="username">
+      </div>
+      <div class="auth-field">
+        <label for="auth-password">密码</label>
+        <input id="auth-password" type="password" maxlength="40" placeholder="至少 6 位" autocomplete="current-password">
+      </div>
+      <div class="auth-actions">
+        <button id="auth-primary" class="auth-btn primary">登录</button>
+        <button id="auth-secondary" class="auth-btn">注册</button>
+      </div>
+      <button id="auth-guest" class="auth-btn ghost">游客模式</button>
+      <div id="auth-error" class="auth-error"></div>
+    </div>
   </div>
 
   <div id="fullscreen-hint">横屏体验更佳 · 点击/触屏操作</div>

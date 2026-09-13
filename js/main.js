@@ -1,10 +1,11 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.3.0 - 新增角色/编队/设置/关卡场景
+ * v0.4.0 - 接入登录/注册覆盖层，云端存档随登录加载
  */
 
 let game = null;
+let authController = null;
 
 async function initGame() {
   game = new GameEngine('gameCanvas');
@@ -15,32 +16,8 @@ async function initGame() {
   game.saveManager = new SaveManager();
   game.gachaEngine = new GachaEngine();
 
-  // 初始化默认状态
-  game.state = {
-    player: { username: '旅者', level: 1 },
-    party: [
-      { id: 'warrior', level: 1 },
-      { id: 'healer', level: 1 },
-      { id: 'mage', level: 1 },
-      { id: 'tank', level: 1 }
-    ],
-    roster: [
-      { id: 'warrior', name: '示例·战士', level: 1, element: 'fire', role: '输出', rarity: 'sr',
-        skills: CharacterStats.templates.warrior.skills },
-      { id: 'healer', name: '示例·治疗', level: 1, element: 'wind', role: '治疗', rarity: 'sr',
-        skills: CharacterStats.templates.healer.skills },
-      { id: 'mage', name: '示例·法师', level: 1, element: 'ice', role: '输出', rarity: 'sr',
-        skills: CharacterStats.templates.mage.skills },
-      { id: 'tank', name: '示例·守护', level: 1, element: 'earth', role: '坦克', rarity: 'sr',
-        skills: CharacterStats.templates.tank.skills }
-    ],
-    storyProgress: {
-      completedNodes: [],
-      unlockedChapters: ['ch1']
-    },
-    inventory: {},
-    currency: { crystals: 3200, coins: 5000 }
-  };
+  // 初始化默认状态（游客/登录后会被覆盖）
+  game.state = buildDefaultState();
 
   // 注册场景
   const scenes = {
@@ -76,37 +53,168 @@ async function initGame() {
     }
   });
 
-  // 尝试连接 Supabase
+  // 尝试连接 Supabase（不加载存档，等登录后按需加载）
   const connected = await game.saveManager.init();
-  if (connected) {
-    console.log('[Game] 云端存档已连接');
-    const saveResult = await game.saveManager.loadGame();
-    if (saveResult.success) {
-      applySaveData(game.state, saveResult.data);
-      console.log('[Game] 存档已加载 (来源: ' + saveResult.source + ')');
-    }
-  } else {
-    console.log('[Game] 使用本地存档模式');
-    const localSave = new LocalSaveManager();
-    const localData = localSave.load('main');
-    if (localData) {
-      applySaveData(game.state, localData);
-    }
-  }
+  console.log(connected ? '[Game] 云端存档已连接' : '[Game] 使用本地存档模式');
 
-  // 加载剧情进度
-  if (game.state.storyProgress) {
-    game.storyManager.loadProgress(game.state.storyProgress);
-  }
+  // 初始化登录覆盖层
+  authController = new AuthController();
+  window.authController = authController;
 
   // 启动游戏
   game.sceneManager.switchTo('title');
   game.start();
 
-  // 自动存档（每 60 秒）
+  // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.3.0 初始化完成');
+  console.log('[Game] v0.4.0 初始化完成');
+}
+
+function buildDefaultState() {
+  return {
+    player: { username: '旅者', level: 1 },
+    party: [
+      { id: 'warrior', level: 1 },
+      { id: 'healer', level: 1 },
+      { id: 'mage', level: 1 },
+      { id: 'tank', level: 1 }
+    ],
+    roster: [
+      { id: 'warrior', name: '示例·战士', level: 1, element: 'fire', role: '输出', rarity: 'sr',
+        skills: CharacterStats.templates.warrior.skills },
+      { id: 'healer', name: '示例·治疗', level: 1, element: 'wind', role: '治疗', rarity: 'sr',
+        skills: CharacterStats.templates.healer.skills },
+      { id: 'mage', name: '示例·法师', level: 1, element: 'ice', role: '输出', rarity: 'sr',
+        skills: CharacterStats.templates.mage.skills },
+      { id: 'tank', name: '示例·守护', level: 1, element: 'earth', role: '坦克', rarity: 'sr',
+        skills: CharacterStats.templates.tank.skills }
+    ],
+    storyProgress: { completedNodes: [], unlockedChapters: ['ch1'] },
+    inventory: {},
+    currency: { crystals: 3200, coins: 5000 }
+  };
+}
+
+// ============ 登录/注册覆盖层控制器 ============
+class AuthController {
+  constructor() {
+    this.overlay = document.getElementById('auth-overlay');
+    this.title = document.getElementById('auth-title');
+    this.usernameInput = document.getElementById('auth-username');
+    this.passwordInput = document.getElementById('auth-password');
+    this.primaryBtn = document.getElementById('auth-primary');
+    this.secondaryBtn = document.getElementById('auth-secondary');
+    this.guestBtn = document.getElementById('auth-guest');
+    this.errorEl = document.getElementById('auth-error');
+    this.mode = 'login'; // 'login' | 'register'
+    this.pendingAction = null; // 'start' | 'continue'
+
+    this.primaryBtn.addEventListener('click', () => this._onPrimary());
+    this.secondaryBtn.addEventListener('click', () => this._toggleMode());
+    this.guestBtn.addEventListener('click', () => this._onGuest());
+    this.passwordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this._onPrimary();
+    });
+  }
+
+  open(action = 'start') {
+    this.pendingAction = action;
+    this.mode = action === 'continue' ? 'login' : 'login';
+    this._renderMode();
+    this.errorEl.textContent = '';
+    this.usernameInput.value = '';
+    this.passwordInput.value = '';
+    this.overlay.classList.remove('hidden');
+    setTimeout(() => this.usernameInput.focus(), 100);
+  }
+
+  close() {
+    this.overlay.classList.add('hidden');
+    this.pendingAction = null;
+  }
+
+  _renderMode() {
+    if (this.mode === 'login') {
+      this.title.textContent = '登录';
+      this.primaryBtn.textContent = '登录';
+      this.secondaryBtn.textContent = '注册';
+    } else {
+      this.title.textContent = '注册';
+      this.primaryBtn.textContent = '注册';
+      this.secondaryBtn.textContent = '返回登录';
+    }
+  }
+
+  _toggleMode() {
+    this.mode = this.mode === 'login' ? 'register' : 'login';
+    this.errorEl.textContent = '';
+    this._renderMode();
+  }
+
+  async _onPrimary() {
+    const username = this.usernameInput.value.trim();
+    const password = this.passwordInput.value;
+    this.errorEl.textContent = '';
+
+    if (username.length < 3 || username.length > 20) {
+      this.errorEl.textContent = '用户名需要 3-20 个字符';
+      return;
+    }
+    if (password.length < 6) {
+      this.errorEl.textContent = '密码至少 6 位';
+      return;
+    }
+
+    this.primaryBtn.disabled = true;
+    this.primaryBtn.textContent = '请稍候...';
+
+    try {
+      const result = this.mode === 'login'
+        ? await game.saveManager.login(username, password)
+        : await game.saveManager.register(username, password);
+
+      if (!result.success) {
+        this.errorEl.textContent = result.error || '操作失败';
+        return;
+      }
+
+      // 登录/注册成功
+      game.state.player.username = result.user.nickname || result.user.username;
+      game.state.player.level = result.user.level || 1;
+
+      if (this.pendingAction === 'continue') {
+        const loaded = await game.saveManager.loadGame();
+        if (loaded.success) {
+          applySaveData(game.state, loaded.data);
+          console.log('[Auth] 云端存档已加载');
+        } else {
+          this.errorEl.textContent = '未找到存档，将进入新游戏';
+        }
+      }
+
+      this.close();
+      this._enterMainMenu();
+    } catch (e) {
+      this.errorEl.textContent = e.message || '网络错误';
+    } finally {
+      this.primaryBtn.disabled = false;
+      this._renderMode();
+    }
+  }
+
+  _onGuest() {
+    this.close();
+    console.log('[Auth] 游客模式进入');
+    this._enterMainMenu();
+  }
+
+  _enterMainMenu() {
+    if (game.state.storyProgress) {
+      game.storyManager.loadProgress(game.state.storyProgress);
+    }
+    game.sceneManager.switchTo('main_menu');
+  }
 }
 
 function applySaveData(state, data) {
@@ -115,6 +223,7 @@ function applySaveData(state, data) {
   if (data.roster) state.roster = data.roster;
   if (data.inventory) state.inventory = data.inventory;
   if (data.currency) state.currency = data.currency;
+  if (data.player) state.player = { ...state.player, ...data.player };
 }
 
 async function autoSave() {
