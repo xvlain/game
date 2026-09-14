@@ -41,15 +41,15 @@ const GachaConfig = {
   // 角色稀有度池（占位角色，后期替换）
   characters: {
     ssr: [
-      { id: 'ssr_01', name: '星辰·莉莉丝', element: 'ice', role: '输出' },
+      { id: 'ssr_01', name: '星辰·莉莉丝', element: 'water', role: '输出' },
       { id: 'ssr_02', name: '炎帝·焰', element: 'fire', role: '输出' },
-      { id: 'ssr_03', name: '天罚·雷恩', element: 'lightning', role: '输出' }
+      { id: 'ssr_03', name: '天罚·雷恩', element: 'metal', role: '输出' }
     ],
     sr: [
-      { id: 'sr_01', name: '翠风·艾琳', element: 'wind', role: '治疗' },
+      { id: 'sr_01', name: '翠风·艾琳', element: 'wood', role: '治疗' },
       { id: 'sr_02', name: '岩壁·戈登', element: 'earth', role: '坦克' },
       { id: 'sr_03', name: '赤炎·马可', element: 'fire', role: '输出' },
-      { id: 'sr_04', name: '冰霜·安娜', element: 'ice', role: '辅助' }
+      { id: 'sr_04', name: '冰霜·安娜', element: 'water', role: '辅助' }
     ],
     r: [
       { id: 'r_01', name: '见习剑士', element: 'none', role: '输出' },

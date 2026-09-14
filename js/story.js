@@ -104,7 +104,7 @@ const StoryData = {
           description: '前方出现了强大的守卫者！',
           enemyConfig: [
             { id: 'guardian', name: '遗迹守卫', hp: 1500, atk: 120, def: 80, spd: 70, element: 'earth' },
-            { id: 'minion_1', name: '石像兵', hp: 600, atk: 70, def: 50, spd: 85, element: 'earth' }
+            { id: 'minion_1', name: '石像兵', hp: 600, atk: 70, def: 50, spd: 85, element: 'metal' }
           ],
           next: 'ch1_end',
           rewards: { items: { crystals: 200, coins: 500 } }

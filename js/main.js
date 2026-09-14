@@ -86,9 +86,9 @@ function buildDefaultState() {
     roster: [
       { id: 'warrior', name: '示例·战士', level: 1, element: 'fire', role: '输出', rarity: 'sr',
         skills: CharacterStats.templates.warrior.skills, growth: defaultGrowth() },
-      { id: 'healer', name: '示例·治疗', level: 1, element: 'wind', role: '治疗', rarity: 'sr',
+      { id: 'healer', name: '示例·治疗', level: 1, element: 'wood', role: '治疗', rarity: 'sr',
         skills: CharacterStats.templates.healer.skills, growth: defaultGrowth() },
-      { id: 'mage', name: '示例·法师', level: 1, element: 'ice', role: '输出', rarity: 'sr',
+      { id: 'mage', name: '示例·法师', level: 1, element: 'water', role: '输出', rarity: 'sr',
         skills: CharacterStats.templates.mage.skills, growth: defaultGrowth() },
       { id: 'tank', name: '示例·守护', level: 1, element: 'earth', role: '坦克', rarity: 'sr',
         skills: CharacterStats.templates.tank.skills, growth: defaultGrowth() }

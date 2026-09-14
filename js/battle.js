@@ -5,26 +5,26 @@
  * v0.3.0 - 修复共鸣增益计算 bug，添加共鸣技能消耗逻辑
  */
 
-// ============ 元素系统（五行） ============
+// ============ 元素系统（五行：金木水火土） ============
 const ElementSystem = {
-  types: ['fire', 'ice', 'wind', 'earth', 'lightning'],
-  names: { fire: '火', ice: '冰', wind: '风', earth: '土', lightning: '雷', none: '无' },
+  types: ['metal', 'wood', 'water', 'fire', 'earth'],
+  names: { metal: '金', wood: '木', water: '水', fire: '火', earth: '土', none: '无' },
   colors: {
+    metal: '#d4af37',
+    wood: '#4caf50',
+    water: '#2196f3',
     fire: '#ff6633',
-    ice: '#66ccff',
-    wind: '#66ff99',
-    earth: '#ccaa44',
-    lightning: '#ffcc00',
+    earth: '#c8a86e',
     none: '#999999'
   },
 
-  // 火→冰→雷→风→土→火 循环克制
+  // 金→木→土→水→火→金 循环克制
   advantage: {
-    fire: 'ice',
-    ice: 'lightning',
-    lightning: 'wind',
-    wind: 'earth',
-    earth: 'fire'
+    metal: 'wood',
+    wood: 'earth',
+    earth: 'water',
+    water: 'fire',
+    fire: 'metal'
   },
 
   getAdvantageMultiplier(atkElement, defElement) {
@@ -138,23 +138,23 @@ const CharacterStats = {
       }
     },
     mage: {
-      id: 'mage_01', name: '示例·法师', role: '输出', element: 'ice',
+      id: 'mage_01', name: '示例·法师', role: '输出', element: 'water',
       hp: 900, atk: 220, def: 60, spd: 95,
       crit_rate: 0.20, crit_dmg: 1.5,
       skills: {
-        normal: { name: '冰刺', type: 'single', multiplier: 1.0, desc: '对单体造成攻击力100%的冰属性伤害' },
-        skill: { name: '暴风雪', type: 'aoe', multiplier: 0.7, energyCost: 35, desc: '对全体造成攻击力70%的冰属性伤害' },
-        resonance: { name: '冰封共鸣', type: 'aoe', multiplier: 1.2, desc: '消耗元素力释放的共鸣技' },
-        ultimate: { name: '绝对零度', type: 'aoe', multiplier: 2.5, energyCost: 100, desc: '对全体造成攻击力250%的冰属性伤害' }
+        normal: { name: '水刺', type: 'single', multiplier: 1.0, desc: '对单体造成攻击力100%的水属性伤害' },
+        skill: { name: '洪流', type: 'aoe', multiplier: 0.7, energyCost: 35, desc: '对全体造成攻击力70%的水属性伤害' },
+        resonance: { name: '洪流共鸣', type: 'aoe', multiplier: 1.2, desc: '消耗元素力释放的共鸣技' },
+        ultimate: { name: '汪洋大海', type: 'aoe', multiplier: 2.5, energyCost: 100, desc: '对全体造成攻击力250%的水属性伤害' }
       }
     },
     healer: {
-      id: 'healer_01', name: '示例·治疗', role: '治疗', element: 'wind',
+      id: 'healer_01', name: '示例·治疗', role: '治疗', element: 'wood',
       hp: 1100, atk: 120, def: 100, spd: 105,
       crit_rate: 0.05, crit_dmg: 1.5,
       skills: {
-        normal: { name: '风刃', type: 'single', multiplier: 0.8, desc: '对单体造成攻击力80%的伤害' },
-        skill: { name: '生命之风', type: 'heal_ally', multiplier: 1.5, energyCost: 25, desc: '治疗全体友方，治疗量=攻击力×150%' },
+        normal: { name: '藤鞭', type: 'single', multiplier: 0.8, desc: '对单体造成攻击力80%的伤害' },
+        skill: { name: '生命之藤', type: 'heal_ally', multiplier: 1.5, energyCost: 25, desc: '治疗全体友方，治疗量=攻击力×150%' },
         resonance: { name: '复苏共鸣', type: 'heal_ally', multiplier: 2.0, desc: '消耗元素力释放的共鸣治疗' },
         ultimate: { name: '万物复苏', type: 'heal_ally', multiplier: 3.0, energyCost: 100, desc: '大量治疗全体友方并清除负面状态' }
       }
