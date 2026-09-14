@@ -1,7 +1,7 @@
 # 美术制作进度追踪
 
 > 庸人工作室 · 未定之旅 · 美术任务状态
-> 最后更新：2026-09-15 01:11
+> 最后更新：2026-09-15 07:31
 > 本文件与「游戏技术开发与网站落实」任务互通
 
 ---
@@ -18,10 +18,13 @@
 | 元素 | 文件 | 状态 | 日期 |
 |------|------|------|------|
 | 火 | `battle/elements/fire.png` | ✅ 已交付 | 2026-09-11 |
-| 冰 | `battle/elements/ice.png` | ✅ 已交付 | 2026-09-11 |
-| 风 | `battle/elements/wind.png` | ✅ 已交付 | 2026-09-11 |
-| 土 | `battle/elements/earth.png` | ✅ 已交付 | 2026-09-11 |
-| 雷 | `battle/elements/lightning.png` | ✅ 已交付 | 2026-09-15 |
+| 水 | `battle/elements/water.png` | ✅ 已交付 | 2026-09-14 |
+| 木 | `battle/elements/wood.png` | ✅ 已交付 | 2026-09-14 |
+| 土 | `battle/elements/earth.png` | ✅ 已交付 | 2026-09-15 |
+| 金 | `battle/elements/metal.png` | ✅ 已交付 | 2026-09-15 |
+| ~~冰~~ | ~~battle/elements/ice.png~~ | ❌ 废弃（元素体系改为五行） | - |
+| ~~风~~ | ~~battle/elements/wind.png~~ | ❌ 废弃（元素体系改为五行） | - |
+| ~~雷~~ | ~~battle/elements/lightning.png~~ | ❌ 废弃（元素体系改为五行） | - |
 
 ### 3. 技能图标交互（CSS/Canvas）
 | 项目 | 位置 | 状态 | 日期 |
