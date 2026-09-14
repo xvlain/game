@@ -1,7 +1,7 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.4.0 - 接入登录/注册覆盖层，云端存档随登录加载
+ * v0.5.0 - 新增角色养成场景、抽卡入图鉴、场景切换存档
  */
 
 let game = null;
@@ -28,6 +28,7 @@ async function initGame() {
     battle: new BattleScene(),
     gacha: new GachaScene(),
     characters: new CharacterRosterScene(),
+    growth: new GrowthScene(),
     party: new PartyScene(),
     stages: new StageScene(),
     settings: new SettingsScene()
@@ -72,6 +73,8 @@ async function initGame() {
 }
 
 function buildDefaultState() {
+  const defaultGrowth = () => CharacterGrowth.createGrowthData();
+
   return {
     player: { username: '旅者', level: 1 },
     party: [
@@ -82,16 +85,20 @@ function buildDefaultState() {
     ],
     roster: [
       { id: 'warrior', name: '示例·战士', level: 1, element: 'fire', role: '输出', rarity: 'sr',
-        skills: CharacterStats.templates.warrior.skills },
+        skills: CharacterStats.templates.warrior.skills, growth: defaultGrowth() },
       { id: 'healer', name: '示例·治疗', level: 1, element: 'wind', role: '治疗', rarity: 'sr',
-        skills: CharacterStats.templates.healer.skills },
+        skills: CharacterStats.templates.healer.skills, growth: defaultGrowth() },
       { id: 'mage', name: '示例·法师', level: 1, element: 'ice', role: '输出', rarity: 'sr',
-        skills: CharacterStats.templates.mage.skills },
+        skills: CharacterStats.templates.mage.skills, growth: defaultGrowth() },
       { id: 'tank', name: '示例·守护', level: 1, element: 'earth', role: '坦克', rarity: 'sr',
-        skills: CharacterStats.templates.tank.skills }
+        skills: CharacterStats.templates.tank.skills, growth: defaultGrowth() }
     ],
     storyProgress: { completedNodes: [], unlockedChapters: ['ch1'] },
-    inventory: {},
+    inventory: {
+      exp_book_1: 5,
+      exp_book_2: 2,
+      exp_book_3: 0
+    },
     currency: { crystals: 3200, coins: 5000 }
   };
 }
@@ -220,7 +227,17 @@ class AuthController {
 function applySaveData(state, data) {
   if (data.storyProgress) state.storyProgress = data.storyProgress;
   if (data.party) state.party = data.party;
-  if (data.roster) state.roster = data.roster;
+  if (data.roster) {
+    // 合并养成数据
+    state.roster = data.roster.map(saved => {
+      const existing = state.roster.find(r => r.id === saved.id);
+      return {
+        ...saved,
+        skills: saved.skills || (existing?.skills) || CharacterStats.templates[saved.id]?.skills,
+        growth: saved.growth || CharacterGrowth.createGrowthData(saved.id, saved.level)
+      };
+    });
+  }
   if (data.inventory) state.inventory = data.inventory;
   if (data.currency) state.currency = data.currency;
   if (data.player) state.player = { ...state.player, ...data.player };

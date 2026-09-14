@@ -482,7 +482,7 @@ class SettingsScene {
     }
 
     // 底部
-    Renderer.drawText(ctx, 'v0.3.0 · 庸人工作室', W / 2, H - 25, {
+    Renderer.drawText(ctx, 'v0.5.0 · 庸人工作室', W / 2, H - 25, {
       fontSize: 12, color: '#404060', align: 'center'
     });
   }

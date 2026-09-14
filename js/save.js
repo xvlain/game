@@ -166,12 +166,31 @@ class SaveManager {
     try {
       await this.supabase.rpc('game_gacha_record', {
         p_user_id: this.currentUser.id,
-        p_pulls: pulls,
+        p_pool_id: 'standard',
         p_results: JSON.stringify(results)
       });
     } catch (e) {
       console.warn('[SaveManager] 抽卡记录失败:', e);
     }
+  }
+
+  // ============ 图鉴同步 ============
+
+  async syncRoster() {
+    if (!this.connected || !this.currentUser) return;
+
+    try {
+      const { data, error } = await this.supabase.rpc('game_get_roster', {
+        p_user_id: this.currentUser.id
+      });
+
+      if (!error && data) {
+        return data;
+      }
+    } catch (e) {
+      console.warn('[SaveManager] 图鉴同步失败:', e);
+    }
+    return null;
   }
 }
 

@@ -28,6 +28,16 @@ class SceneManager {
     }
     this.transitioning = true;
 
+    // 从特定场景离开时触发自动存档
+    const saveTriggerScenes = ['growth', 'party', 'gacha', 'battle', 'story_map'];
+    if (saveTriggerScenes.includes(this.currentSceneName)) {
+      if (typeof autoSave === 'function') {
+        autoSave().then(() => {
+          console.log('[SceneManager] 场景切换存档完成');
+        }).catch(e => console.warn('[SceneManager] 场景切换存档失败:', e));
+      }
+    }
+
     const fadeOut = () => {
       this.transitionAlpha += 0.05;
       if (this.transitionAlpha >= 1) {

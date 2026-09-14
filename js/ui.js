@@ -118,7 +118,7 @@ class TitleScene {
     }
 
     // 底部信息
-    Renderer.drawText(ctx, 'v0.4.0 · 庸人工作室', W / 2, H - 30, {
+    Renderer.drawText(ctx, 'v0.5.0 · 庸人工作室', W / 2, H - 30, {
       fontSize: 12,
       color: '#505070',
       align: 'center'
@@ -154,9 +154,10 @@ class MainMenuScene {
     this.elapsed = 0;
     this.menuItems = [
       { text: '剧情模式', desc: '推进主线剧情', action: 'story', icon: '📖' },
-      { text: '角色', desc: '查看角色详情', action: 'characters', icon: '👤' },
+      { text: '角色养成', desc: '升级/突破/技能', action: 'growth', icon: '⬆️' },
       { text: '编队', desc: '调整战斗编队', action: 'party', icon: '⚔️' },
       { text: '召唤', desc: '抽取新角色', action: 'gacha', icon: '✨' },
+      { text: '角色', desc: '查看角色详情', action: 'characters', icon: '👤' },
       { text: '关卡', desc: '挑战独立关卡', action: 'stages', icon: '🏰' },
       { text: '设置', desc: '游戏设置', action: 'settings', icon: '⚙️' }
     ];
@@ -189,17 +190,24 @@ class MainMenuScene {
       Renderer.drawText(ctx, `🪙 ${state.currency?.coins || 0}`, W - 120, 40, { fontSize: 16, color: '#ffcc44', align: 'right' });
     }
 
-    // 菜单网格
-    const cols = 3;
-    const cardW = 280, cardH = 180;
-    const startX = (W - (cols * cardW + (cols - 1) * 30)) / 2;
-    const startY = 120;
+    // 菜单网格（4+3 布局）
+    const cardW = 240, cardH = 160;
+    const gapX = 25, gapY = 25;
 
     for (let i = 0; i < this.menuItems.length; i++) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const x = startX + col * (cardW + 30);
-      const y = startY + row * (cardH + 30);
+      let col, row, cols;
+      if (i < 4) {
+        col = i; row = 0; cols = 4;
+      } else {
+        col = i - 4; row = 1; cols = 3;
+      }
+
+      const totalW = cols * cardW + (cols - 1) * gapX;
+      const startX = (W - totalW) / 2;
+      const startY = 110;
+
+      const x = startX + col * (cardW + gapX);
+      const y = startY + row * (cardH + gapY);
 
       const item = this.menuItems[i];
 
@@ -211,20 +219,20 @@ class MainMenuScene {
       });
 
       // 图标
-      ctx.font = '48px serif';
+      ctx.font = '42px serif';
       ctx.textAlign = 'center';
-      ctx.fillText(item.icon, x + cardW / 2, y + 70);
+      ctx.fillText(item.icon, x + cardW / 2, y + 60);
 
       // 标题
-      Renderer.drawText(ctx, item.text, x + cardW / 2, y + 120, {
-        fontSize: 22,
+      Renderer.drawText(ctx, item.text, x + cardW / 2, y + 105, {
+        fontSize: 20,
         color: '#e0d0ff',
         align: 'center'
       });
 
       // 描述
-      Renderer.drawText(ctx, item.desc, x + cardW / 2, y + 150, {
-        fontSize: 13,
+      Renderer.drawText(ctx, item.desc, x + cardW / 2, y + 132, {
+        fontSize: 12,
         color: '#8080a0',
         align: 'center'
       });
@@ -253,6 +261,9 @@ class MainMenuScene {
             break;
           case 'characters':
             this.sceneManager.switchTo('characters');
+            break;
+          case 'growth':
+            this.sceneManager.switchTo('growth');
             break;
           case 'party':
             this.sceneManager.switchTo('party');
@@ -1204,9 +1215,49 @@ class GachaScene {
 
     if (this.phase === 'results') {
       if (this._confirmBtn && Renderer.hitTest(x, y, this._confirmBtn)) {
+        // 将抽卡结果注册到图鉴
+        this._registerResultsToRoster();
         this.phase = 'select';
         this.results = [];
       }
+    }
+  }
+
+  // 将抽到的角色注册到 game.state.roster（已有则加命座）
+  _registerResultsToRoster() {
+    const state = window.game?.state;
+    if (!state || !state.roster) return;
+
+    for (const result of this.results) {
+      const existing = state.roster.find(c => c.id === result.id);
+      if (existing) {
+        // 重复获得 → 命座 +1
+        existing.stars = (existing.stars || 0) + 1;
+      } else {
+        // 新角色 → 加入图鉴
+        const tpl = CharacterStats.templates[result.id];
+        state.roster.push({
+          id: result.id,
+          name: result.name,
+          level: 1,
+          element: result.element || 'none',
+          role: result.role || '输出',
+          rarity: result.rarity,
+          stars: 0,
+          skills: tpl?.skills || {
+            normal: { name: '攻击', type: 'single', multiplier: 1.0, desc: '普通攻击' },
+            skill: { name: '技能', type: 'single', multiplier: 1.2, energyCost: 25, desc: '元素技能' },
+            resonance: { name: '共鸣技', type: 'single', multiplier: 1.5, desc: '共鸣技' },
+            ultimate: { name: '大招', type: 'single', multiplier: 2.5, energyCost: 100, desc: '终结技' }
+          },
+          growth: CharacterGrowth.createGrowthData(result.id, 1)
+        });
+      }
+    }
+
+    // 同步抽卡记录到云端
+    if (window.game?.saveManager?.connected && window.game?.saveManager?.currentUser) {
+      window.game.saveManager.recordGacha(this.results.length, this.results);
     }
   }
 }
