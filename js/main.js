@@ -30,7 +30,8 @@ async function initGame() {
     characters: new CharacterRosterScene(),
     growth: new GrowthScene(),
     party: new PartyScene(),
-    stages: new StageScene(),
+    stages: new FarmStageScene(),
+    stage_result: new StageResultScene(),
     settings: new SettingsScene()
   };
 
@@ -69,7 +70,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.4.0 初始化完成');
+  console.log('[Game] v0.6.0 初始化完成');
 }
 
 function buildDefaultState() {
@@ -221,6 +222,21 @@ class AuthController {
       game.storyManager.loadProgress(game.state.storyProgress);
     }
     game.sceneManager.switchTo('main_menu');
+
+    // 每日签到
+    const checkInResult = DailyCheckIn.checkIn(game.state);
+    if (checkInResult) {
+      console.log(`[Game] 签到第 ${checkInResult.day} 天，获得: ${checkInResult.reward.label}`);
+      // 延迟显示签到提示（等主菜单渲染稳定）
+      setTimeout(() => {
+        game._checkInNotice = {
+          day: checkInResult.day,
+          label: checkInResult.reward.label,
+          totalDays: checkInResult.totalDays,
+          timer: 4.0
+        };
+      }, 500);
+    }
   }
 }
 

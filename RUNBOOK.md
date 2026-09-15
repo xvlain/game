@@ -34,6 +34,7 @@ game-project/
 │   ├── save.js          # Supabase 云端存档（SUPABASE_CONFIG 在此）
 │   ├── gacha.js         # 抽卡
 │   ├── growth.js        # 角色养成（升级/突破/技能升级）
+│   ├── stages.js        # 材料掉落关卡 / 每日挑战 / 体力系统 / 签到
 │   ├── characters.js    # 角色图鉴 & 编队
 │   ├── ui.js            # 所有场景 UI 渲染
 │   └── main.js          # 游戏入口
@@ -92,6 +93,7 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 | 时间       | 问题                                | 状态       |
 |------------|-------------------------------------|------------|
+| 2026-09-16 | stages.js 新增材料关卡 & 签到系统   | ✅ 已完成  |
 | 2026-09-15 | save.js recordGacha 参数名不匹配（p_pulls→p_pool_id） | ✅ 已修复 |
 | 2026-09-14 | save.js SUPABASE_CONFIG 缺少逗号    | ✅ 已修复   |
 | 2026-09-13 | 共鸣增益 energyRegen 属性名错误      | ✅ 已修复   |
@@ -101,8 +103,11 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 - [ ] 角色立绘资源加载（与美术任务联动）
 - [ ] Q 版战斗序列帧渲染（与美术任务联动）
 - [ ] 剧情内容填充（元首提供）
-- [ ] 材料掉落关卡（突破材料 + 经验书）
-- [ ] 独立关卡模式
+- [x] 材料掉落关卡（突破材料 + 经验书）→ stages.js
+- [x] 独立关卡模式（Farm 关卡 + 每日挑战）→ stages.js
+- [x] 每日签到奖励系统 → stages.js
+- [x] 体力系统（5分钟恢复1点，离线回复）→ stages.js
+- [x] 战斗胜利奖励结算（掉落自动入背包）→ stages.js + ui.js
 - [x] 抽卡系统接入 Supabase（抽卡记录同步 + 入图鉴）
 - [x] 登录/注册 UI 接入 SaveManager
 - [x] 云端存档（场景切换时自动同步 + 60 秒定时）

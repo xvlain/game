@@ -118,7 +118,7 @@ class TitleScene {
     }
 
     // 底部信息
-    Renderer.drawText(ctx, 'v0.5.0 · 庸人工作室', W / 2, H - 30, {
+    Renderer.drawText(ctx, 'v0.6.0 · 庸人工作室', W / 2, H - 30, {
       fontSize: 12,
       color: '#505070',
       align: 'center'
@@ -242,11 +242,31 @@ class MainMenuScene {
     }
 
     // 底部
-    Renderer.drawText(ctx, 'v0.3.0 · 庸人工作室', W / 2, H - 25, {
+    Renderer.drawText(ctx, 'v0.6.0 · 庸人工作室', W / 2, H - 25, {
       fontSize: 12,
       color: '#404060',
       align: 'center'
     });
+
+    // 签到通知
+    const notice = window.game?._checkInNotice;
+    if (notice && notice.timer > 0) {
+      const alpha = Math.min(1, notice.timer);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      Renderer.drawPanel(ctx, W / 2 - 180, 70, 360, 56, {
+        bg: 'rgba(20, 40, 20, 0.95)',
+        border: '#4a8a4a'
+      });
+      Renderer.drawText(ctx, `📅 签到第 ${notice.day} 天  获得: ${notice.label}`, W / 2, 90, {
+        fontSize: 14, color: '#88ff88', align: 'center'
+      });
+      Renderer.drawText(ctx, `累计签到 ${notice.totalDays} 天`, W / 2, 112, {
+        fontSize: 11, color: '#66aa66', align: 'center'
+      });
+      ctx.restore();
+      notice.timer -= 1 / 60; // 约每帧减少
+    }
   }
 
   handleClick(x, y) {
@@ -660,6 +680,9 @@ class BattleScene {
   onEnter(data) {
     this.chapterId = data.chapterId;
     this.nodeId = data.nodeId;
+    this.isFarm = data.isFarm || false;
+    this.farmStageConfig = data.stageConfig || null;
+    this.isDailyChallenge = data.isDaily || false;
 
     // 初始化战斗
     this.battle = new BattleEngine();
@@ -993,16 +1016,41 @@ class BattleScene {
     if (this.phase === 'result' && this._resultBtn) {
       if (Renderer.hitTest(x, y, this._resultBtn)) {
         if (this.battleResult === 'victory') {
-          // 完成剧情节点
-          if (this.chapterId && this.nodeId) {
-            const sm = window.game?.storyManager;
-            if (sm) {
-              sm.completeBattleNode();
+          if (this.isFarm) {
+            // Farm 关卡奖励结算
+            let rewards;
+            if (this.isDailyChallenge) {
+              rewards = RewardCalculator.calculateDailyRewards();
+            } else {
+              rewards = RewardCalculator.calculateDrops(this.farmStageConfig);
             }
+            RewardCalculator.applyToState(window.game?.state, rewards);
+
+            this.sceneManager.switchTo('stage_result', {
+              victory: true,
+              rewards,
+              stageName: this.farmStageConfig?.name || '每日挑战'
+            });
+          } else {
+            // 剧情战斗
+            if (this.chapterId && this.nodeId) {
+              const sm = window.game?.storyManager;
+              if (sm) {
+                sm.completeBattleNode();
+              }
+            }
+            this.sceneManager.switchTo('story_map');
           }
-          this.sceneManager.switchTo('story_map');
         } else {
-          this.sceneManager.switchTo('main_menu');
+          if (this.isFarm) {
+            this.sceneManager.switchTo('stage_result', {
+              victory: false,
+              rewards: null,
+              stageName: this.farmStageConfig?.name || '关卡'
+            });
+          } else {
+            this.sceneManager.switchTo('main_menu');
+          }
         }
       }
     }
