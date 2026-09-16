@@ -1,7 +1,7 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.5.0 - 新增角色养成场景、抽卡入图鉴、场景切换存档
+ * v0.7.0 - 集成美术素材预加载、完善设置场景
  */
 
 let game = null;
@@ -18,6 +18,9 @@ async function initGame() {
 
   // 初始化默认状态（游客/登录后会被覆盖）
   game.state = buildDefaultState();
+
+  // 预加载美术素材（背景图、元素图标、Logo）
+  await preloadAssets();
 
   // 注册场景
   const scenes = {
@@ -70,7 +73,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.6.0 初始化完成');
+  console.log('[Game] v0.7.0 初始化完成');
 }
 
 function buildDefaultState() {

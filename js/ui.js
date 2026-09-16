@@ -1,7 +1,74 @@
 /**
  * ui.js - 游戏场景与 UI 渲染
- * 包含：标题画面、主菜单、剧情地图、战斗界面、抽卡界面
+ * 包含：标题画面、主菜单、剧情地图、战斗界面、抽卡界面、设置
+ * v0.7.0 - 集成战斗背景图、元素图标、粒子特效、抽卡背景、完善设置场景
  */
+
+// ============ 素材管理器 ============
+const GameAssets = {
+  backgrounds: {},
+  ui: {},
+  icons: {}
+};
+
+async function preloadAssets() {
+  const loader = window.game?.assets;
+  if (!loader) return;
+
+  console.log('[Assets] 预加载美术素材...');
+
+  // 战斗背景（1920×1080，Canvas 会自动缩放至 1280×720）
+  await loader.loadImage('bg_arena', 'assets/maps/battle/arena_default.png').then(img => {
+    if (img) GameAssets.backgrounds.arena = img;
+  });
+  await loader.loadImage('bg_forest', 'assets/maps/battle/forest_dark.png').then(img => {
+    if (img) GameAssets.backgrounds.forest = img;
+  });
+  await loader.loadImage('bg_crystal', 'assets/maps/battle/crystal_cave.png').then(img => {
+    if (img) GameAssets.backgrounds.crystal = img;
+  });
+  await loader.loadImage('bg_training', 'assets/maps/battle/training_arena.png').then(img => {
+    if (img) GameAssets.backgrounds.training = img;
+  });
+  await loader.loadImage('bg_star_abyss', 'assets/maps/battle/star_abyss.png').then(img => {
+    if (img) GameAssets.backgrounds.star_abyss = img;
+  });
+
+  // 抽卡背景
+  await loader.loadImage('bg_gacha', 'assets/ui/backgrounds/gacha_summon.png').then(img => {
+    if (img) GameAssets.ui.gachaBg = img;
+  });
+
+  // Logo
+  await loader.loadImage('logo', 'assets/brand/logo/佣人工作室Logo.png').then(img => {
+    if (img) GameAssets.ui.logo = img;
+  });
+
+  // 五行元素图标（小尺寸渲染用）
+  const elements = ['metal', 'wood', 'water', 'fire', 'earth'];
+  for (const el of elements) {
+    await loader.loadImage(`elem_${el}`, `assets/battle/elements/${el}.png`).then(img => {
+      if (img) GameAssets.icons[el] = img;
+    });
+  }
+
+  const loaded = Object.keys(GameAssets.backgrounds).length +
+                 Object.keys(GameAssets.ui).length +
+                 Object.keys(GameAssets.icons).length;
+  console.log(`[Assets] 预加载完成，共 ${loaded} 个素材`);
+}
+
+// 战斗背景映射（stageId → 背景 key）
+const BATTLE_BG_MAP = {
+  'exp_easy': 'training',      // 修炼场初级 → 训练场
+  'exp_medium': 'training',    // 修炼场中级 → 训练场
+  'exp_hard': 'training',      // 修炼场高级 → 训练场
+  'mat_t1': 'crystal',         // 微光矿脉 → 水晶洞穴
+  'mat_t2': 'crystal',         // 辉光洞穴 → 水晶洞穴
+  'mat_t3': 'star_abyss',      // 星辉深渊 → 星辉深渊
+  'mat_t4': 'arena',           // 虹彩圣域 → 竞技场
+  'daily_boss': 'arena'        // 每日挑战 → 竞技场
+};
 
 // ============ 标题画面 ============
 class TitleScene {
@@ -118,7 +185,7 @@ class TitleScene {
     }
 
     // 底部信息
-    Renderer.drawText(ctx, 'v0.6.0 · 庸人工作室', W / 2, H - 30, {
+    Renderer.drawText(ctx, 'v0.7.0 · 庸人工作室', W / 2, H - 30, {
       fontSize: 12,
       color: '#505070',
       align: 'center'
@@ -242,7 +309,7 @@ class MainMenuScene {
     }
 
     // 底部
-    Renderer.drawText(ctx, 'v0.6.0 · 庸人工作室', W / 2, H - 25, {
+    Renderer.drawText(ctx, 'v0.7.0 · 庸人工作室', W / 2, H - 25, {
       fontSize: 12,
       color: '#404060',
       align: 'center'
@@ -683,6 +750,15 @@ class BattleScene {
     this.isFarm = data.isFarm || false;
     this.farmStageConfig = data.stageConfig || null;
     this.isDailyChallenge = data.isDaily || false;
+    this.stageId = data.stageId || null;
+
+    // 选择战斗背景
+    const bgKey = BATTLE_BG_MAP[this.stageId] || 'arena';
+    this.battleBg = GameAssets.backgrounds[bgKey] || GameAssets.backgrounds.arena || null;
+
+    // 清除粒子特效
+    if (typeof ElementEffects !== 'undefined') ElementEffects.clear();
+    if (typeof BattleEffects !== 'undefined') BattleEffects.clear();
 
     // 初始化战斗
     this.battle = new BattleEngine();
@@ -711,6 +787,8 @@ class BattleScene {
 
     this.battle.onActionComplete = (actor, skill, results) => {
       this.logDisplay = this.battle.battleLog.slice(-5);
+      // 触发粒子特效
+      this._triggerActionEffects(actor, skill, results);
     };
 
     this.battle.onBattleEnd = (result) => {
@@ -721,6 +799,48 @@ class BattleScene {
     this.phase = 'idle';
     this.logDisplay = [];
     this.battle.startBattle();
+  }
+
+  /** 根据战斗行动结果触发对应粒子特效 */
+  _triggerActionEffects(actor, skill, results) {
+    if (typeof BattleEffects === 'undefined' || typeof ElementEffects === 'undefined') return;
+
+    for (const r of results) {
+      if (r.damage !== undefined) {
+        // 攻击伤害 → 受击特效 + 元素特效
+        const targetIdx = this.battle.enemies.findIndex(e => e.name === r.target);
+        const partyIdx = this.battle.party.findIndex(c => c.name === r.target);
+        const isEnemy = targetIdx >= 0;
+        const idx = isEnemy ? targetIdx : partyIdx;
+        const count = isEnemy ? this.battle.enemies.filter(e => e.currentHp > 0).length : this.battle.party.length;
+        const spacing = 200;
+        const startX = 640 - (count * spacing) / 2 + spacing / 2;
+        const tx = startX + idx * spacing;
+        const ty = isEnemy ? 180 : 480;
+
+        BattleEffects.hit(tx, ty);
+        if (r.crit) {
+          setTimeout(() => BattleEffects.critical(tx, ty), 100);
+        }
+        // 元素特效
+        const element = actor.element;
+        if (element && element !== 'none' && ElementEffects[element]) {
+          const type = skill === actor.skills.ultimate ? 'ultimate' : (skill === actor.skills.skill ? 'skill' : 'attack');
+          ElementEffects.play(element, tx, ty, type);
+        }
+      }
+      if (r.heal !== undefined) {
+        const partyIdx = this.battle.party.findIndex(c => c.name === r.target);
+        if (partyIdx >= 0) {
+          const spacing = 200;
+          const startX = 640 - (this.battle.party.length * spacing) / 2 + spacing / 2;
+          BattleEffects.heal(startX + partyIdx * spacing, 480);
+        }
+      }
+      if (r.buff) {
+        // buff 类暂不播放特效
+      }
+    }
   }
 
   onExit() {}
@@ -758,21 +878,33 @@ class BattleScene {
     });
   }
 
-  update(dt) {}
+  update(dt) {
+    // 驱动粒子特效系统
+    if (typeof ElementEffects !== 'undefined') ElementEffects.update(dt);
+    if (typeof BattleEffects !== 'undefined') BattleEffects.update(dt);
+  }
 
   render(ctx) {
     const W = 1280, H = 720;
 
-    // 战斗背景
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#0a0a1a');
-    grad.addColorStop(0.6, '#151530');
-    grad.addColorStop(1, '#0a0a1a');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+    // 战斗背景（优先使用美术素材）
+    if (this.battleBg) {
+      ctx.drawImage(this.battleBg, 0, 0, W, H);
+      // 半透明遮罩确保 UI 可读
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      // 回退到渐变背景
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#0a0a1a');
+      grad.addColorStop(0.6, '#151530');
+      grad.addColorStop(1, '#0a0a1a');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
 
     // 战场分割线
-    ctx.strokeStyle = '#2a2050';
+    ctx.strokeStyle = 'rgba(42, 32, 80, 0.6)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, H / 2);
@@ -785,6 +917,10 @@ class BattleScene {
       this._renderParty(ctx);
       this._renderBattleUI(ctx);
       this._renderLog(ctx);
+
+      // 粒子特效层（覆盖在角色上方）
+      if (typeof ElementEffects !== 'undefined') ElementEffects.render(ctx);
+      if (typeof BattleEffects !== 'undefined') BattleEffects.render(ctx);
     }
 
     // 战斗结果
@@ -805,17 +941,22 @@ class BattleScene {
       const y = 180;
       const elemColor = ElementSystem.colors[enemy.element] || '#999';
 
-      // 敌人占位图（后期替换为 Q版动画帧）
+      // 敌人卡片（后期替换为 Q版动画帧）
       ctx.save();
       Renderer.drawPanel(ctx, x - 45, y - 60, 90, 120, {
-        bg: '#2a1515',
+        bg: 'rgba(42, 21, 21, 0.85)',
         border: enemy === this.battle.currentActor ? '#ff6666' : '#4a2020'
       });
 
-      // 元素标识
-      Renderer.drawText(ctx, ElementSystem.names[enemy.element] || '', x + 35, y - 50, {
-        fontSize: 11, color: elemColor, align: 'center'
-      });
+      // 元素图标（优先使用素材图，回退到文字）
+      const elemIcon = GameAssets.icons[enemy.element];
+      if (elemIcon) {
+        ctx.drawImage(elemIcon, x + 22, y - 62, 22, 22);
+      } else {
+        Renderer.drawText(ctx, ElementSystem.names[enemy.element] || '', x + 35, y - 50, {
+          fontSize: 11, color: elemColor, align: 'center'
+        });
+      }
 
       Renderer.drawText(ctx, enemy.name, x, y - 75, {
         fontSize: 14,
@@ -857,14 +998,19 @@ class BattleScene {
       const isActive = char === this.battle.currentActor;
 
       Renderer.drawPanel(ctx, x - 50, y - 65, 100, 130, {
-        bg: char.currentHp <= 0 ? '#1a1a1a' : (isActive ? '#1a2a3a' : '#15152a'),
+        bg: char.currentHp <= 0 ? 'rgba(26, 26, 26, 0.85)' : (isActive ? 'rgba(26, 42, 58, 0.85)' : 'rgba(21, 21, 42, 0.85)'),
         border: isActive ? '#5cb8ff' : '#303060'
       });
 
-      // 元素标识
-      Renderer.drawText(ctx, ElementSystem.names[char.element] || '', x + 38, y - 55, {
-        fontSize: 11, color: elemColor, align: 'center'
-      });
+      // 元素图标（优先使用素材图，回退到文字）
+      const elemIcon = GameAssets.icons[char.element];
+      if (elemIcon) {
+        ctx.drawImage(elemIcon, x + 26, y - 68, 22, 22);
+      } else {
+        Renderer.drawText(ctx, ElementSystem.names[char.element] || '', x + 38, y - 55, {
+          fontSize: 11, color: elemColor, align: 'center'
+        });
+      }
 
       // 角色名
       Renderer.drawText(ctx, char.name, x, y - 80, {
@@ -1086,12 +1232,19 @@ class GachaScene {
   render(ctx) {
     const W = 1280, H = 720;
 
-    // 背景
-    const grad = ctx.createRadialGradient(W / 2, H / 2, 100, W / 2, H / 2, 500);
-    grad.addColorStop(0, '#1a1030');
-    grad.addColorStop(1, '#0a0a14');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+    // 抽卡背景（优先使用美术素材）
+    if (GameAssets.ui.gachaBg) {
+      ctx.drawImage(GameAssets.ui.gachaBg, 0, 0, W, H);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      // 回退到渐变
+      const grad = ctx.createRadialGradient(W / 2, H / 2, 100, W / 2, H / 2, 500);
+      grad.addColorStop(0, '#1a1030');
+      grad.addColorStop(1, '#0a0a14');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
 
     // 标题
     Renderer.drawText(ctx, '命运召唤', W / 2, 60, {

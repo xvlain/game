@@ -434,62 +434,264 @@ class PartyScene {
 class SettingsScene {
   constructor() {
     this.sceneManager = null;
+    this._backBtn = null;
+    this._buttons = [];
+    this._message = null;
+    this._messageTimer = 0;
+    this._settings = this._loadSettings();
   }
 
-  onEnter() {}
-  onExit() {}
-  update(dt) {}
+  _loadSettings() {
+    try {
+      const raw = localStorage.getItem('game_settings_v1');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return {
+      quality: 'auto',    // auto, low, medium, high
+      autoSave: true,
+      showFps: false,
+      confirmBeforeGacha: true
+    };
+  }
+
+  _saveSettings() {
+    try {
+      localStorage.setItem('game_settings_v1', JSON.stringify(this._settings));
+    } catch {}
+  }
+
+  _showMessage(text, success = true) {
+    this._message = { text, success };
+    this._messageTimer = 2.5;
+  }
+
+  onEnter() {
+    this._settings = this._loadSettings();
+    this._message = null;
+    this._messageTimer = 0;
+  }
+
+  onExit() {
+    this._saveSettings();
+  }
+
+  update(dt) {
+    if (this._messageTimer > 0) {
+      this._messageTimer -= dt;
+      if (this._messageTimer <= 0) this._message = null;
+    }
+  }
 
   render(ctx) {
     const W = 1280, H = 720;
 
+    // 背景
     const grad = ctx.createLinearGradient(0, 0, 0, H);
     grad.addColorStop(0, '#0d0d1f');
     grad.addColorStop(1, '#1a1030');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
+    // 顶部栏
     Renderer.drawPanel(ctx, 20, 15, W - 40, 50, { bg: 'rgba(15, 15, 30, 0.8)', border: '#3a3060' });
     Renderer.drawText(ctx, '设置', 40, 40, { fontSize: 20, color: '#d4b8ff' });
     Renderer.drawButton(ctx, W - 120, 20, 90, 38, '返回', { fontSize: 14 });
     this._backBtn = { x: W - 120, y: 20, w: 90, h: 38 };
 
-    // 设置项
-    const centerX = W / 2;
-    let y = 120;
+    // 主面板
+    const panelX = W / 2 - 320;
+    const panelW = 640;
+    const panelY = 85;
+    const panelH = 540;
 
-    Renderer.drawPanel(ctx, centerX - 250, y, 500, 400, {
+    Renderer.drawPanel(ctx, panelX, panelY, panelW, panelH, {
       bg: 'rgba(20, 15, 40, 0.9)', border: '#4a3a8a'
     });
 
-    y += 40;
-    Renderer.drawText(ctx, '游戏设置', centerX, y, { fontSize: 22, color: '#d4b8ff', align: 'center' });
-    y += 50;
+    this._buttons = [];
+    const centerX = W / 2;
+    let y = panelY + 30;
 
-    const items = [
-      { label: '画质', value: '自动', note: '根据设备自动调整' },
-      { label: '帧率', value: '60 FPS', note: '高帧率模式' },
-      { label: '音频', value: '关闭', note: '音频系统开发中' },
-      { label: '自动存档', value: '开启', note: '每60秒自动保存' },
-      { label: '版本', value: 'v0.3.0', note: '庸人工作室' }
-    ];
+    // —— 画面设置 ——
+    Renderer.drawText(ctx, '画面', panelX + 30, y, { fontSize: 16, color: '#b090e0' });
+    y += 30;
 
-    for (const item of items) {
-      Renderer.drawText(ctx, item.label, centerX - 200, y, { fontSize: 16, color: '#c0c0e0' });
-      Renderer.drawText(ctx, item.value, centerX + 200, y, { fontSize: 16, color: '#88ccff', align: 'right' });
-      Renderer.drawText(ctx, item.note, centerX, y + 22, { fontSize: 11, color: '#606080', align: 'center' });
-      y += 60;
-    }
+    // 画质
+    const qualityLabels = { auto: '自动', low: '低', medium: '中', high: '高' };
+    this._renderSettingRow(ctx, panelX, y, panelW,
+      '画质', qualityLabels[this._settings.quality],
+      '根据设备性能自动调整画面效果',
+      () => {
+        const keys = ['auto', 'low', 'medium', 'high'];
+        const idx = keys.indexOf(this._settings.quality);
+        this._settings.quality = keys[(idx + 1) % keys.length];
+        this._saveSettings();
+        this._showMessage(`画质已切换为: ${qualityLabels[this._settings.quality]}`);
+      }
+    );
+    y += 58;
 
-    // 底部
-    Renderer.drawText(ctx, 'v0.6.0 · 庸人工作室', W / 2, H - 25, {
-      fontSize: 12, color: '#404060', align: 'center'
+    // 帧率显示
+    this._renderSettingRow(ctx, panelX, y, panelW,
+      '显示帧率', this._settings.showFps ? '开启' : '关闭',
+      '在画面角落显示实时帧率',
+      () => {
+        this._settings.showFps = !this._settings.showFps;
+        this._saveSettings();
+      }
+    );
+    y += 58;
+
+    // —— 游戏设置 ——
+    Renderer.drawText(ctx, '游戏', panelX + 30, y, { fontSize: 16, color: '#b090e0' });
+    y += 30;
+
+    // 自动存档
+    this._renderSettingRow(ctx, panelX, y, panelW,
+      '自动存档', this._settings.autoSave ? '开启（每60秒）' : '关闭',
+      '定时自动保存游戏进度到本地和云端',
+      () => {
+        this._settings.autoSave = !this._settings.autoSave;
+        this._saveSettings();
+        this._showMessage(this._settings.autoSave ? '自动存档已开启' : '自动存档已关闭');
+      }
+    );
+    y += 58;
+
+    // 抽卡确认
+    this._renderSettingRow(ctx, panelX, y, panelW,
+      '抽卡前确认', this._settings.confirmBeforeGacha ? '开启' : '关闭',
+      '抽卡前弹出二次确认对话框',
+      () => {
+        this._settings.confirmBeforeGacha = !this._settings.confirmBeforeGacha;
+        this._saveSettings();
+      }
+    );
+    y += 58;
+
+    // —— 音频（占位） ——
+    Renderer.drawText(ctx, '音频', panelX + 30, y, { fontSize: 16, color: '#b090e0' });
+    y += 30;
+
+    this._renderSettingRow(ctx, panelX, y, panelW,
+      'BGM', '关闭',
+      '音频系统开发中，暂未实装',
+      null, true
+    );
+    y += 58;
+
+    this._renderSettingRow(ctx, panelX, y, panelW,
+      '音效', '关闭',
+      '音频系统开发中，暂未实装',
+      null, true
+    );
+    y += 58;
+
+    // —— 数据管理 ——
+    Renderer.drawText(ctx, '数据', panelX + 30, y, { fontSize: 16, color: '#b090e0' });
+    y += 30;
+
+    // 清除本地数据
+    Renderer.drawButton(ctx, centerX - 130, y, 260, 42, '清除本地存档', {
+      fontSize: 15,
+      bgColor: '#2a1515',
+      borderColor: '#8a3a3a',
+      textColor: '#ff8888'
     });
+    this._buttons.push({
+      rect: { x: centerX - 130, y, w: 260, h: 42 },
+      action: 'clear_data'
+    });
+    y += 55;
+
+    // —— 版本 & Logo ——
+    if (GameAssets.ui.logo) {
+      ctx.drawImage(GameAssets.ui.logo, centerX - 25, panelY + panelH - 75, 50, 50);
+    }
+    Renderer.drawText(ctx, 'v0.7.0 · 庸人工作室', centerX, panelY + panelH - 15, {
+      fontSize: 12, color: '#505070', align: 'center'
+    });
+
+    // 消息提示
+    if (this._message) {
+      const msgBg = this._message.success ? 'rgba(20, 60, 20, 0.9)' : 'rgba(60, 20, 20, 0.9)';
+      const msgBorder = this._message.success ? '#4a8a4a' : '#8a4a4a';
+      const msgColor = this._message.success ? '#88ff88' : '#ff8888';
+      Renderer.drawPanel(ctx, W / 2 - 200, H - 50, 400, 36, { bg: msgBg, border: msgBorder });
+      Renderer.drawText(ctx, this._message.text, W / 2, H - 32, {
+        fontSize: 14, color: msgColor, align: 'center'
+      });
+    }
+  }
+
+  _renderSettingRow(ctx, panelX, y, panelW, label, value, note, onClick, disabled = false) {
+    const centerX = panelX + panelW / 2;
+
+    // 标签
+    Renderer.drawText(ctx, label, panelX + 40, y + 5, {
+      fontSize: 15, color: disabled ? '#606080' : '#c0c0e0'
+    });
+
+    // 值（可点击切换）
+    const valueColor = disabled ? '#505070' : '#88ccff';
+    Renderer.drawText(ctx, value, panelX + panelW - 40, y + 5, {
+      fontSize: 15, color: valueColor, align: 'right'
+    });
+
+    // 说明
+    Renderer.drawText(ctx, note, centerX, y + 28, {
+      fontSize: 11, color: '#606080', align: 'center'
+    });
+
+    // 可点击区域
+    if (onClick) {
+      this._buttons.push({
+        rect: { x: panelX + 20, y: y - 8, w: panelW - 40, h: 44 },
+        action: onClick
+      });
+    }
   }
 
   handleClick(x, y) {
+    // 返回
     if (this._backBtn && Renderer.hitTest(x, y, this._backBtn)) {
+      this._saveSettings();
       this.sceneManager.switchTo('main_menu');
+      return;
+    }
+
+    // 功能按钮
+    for (const btn of this._buttons) {
+      if (!Renderer.hitTest(x, y, btn.rect)) continue;
+
+      if (btn.action === 'clear_data') {
+        // 二次确认（简单实现：点击两次清除）
+        if (this._pendingClear) {
+          // 第二次点击确认清除
+          try {
+            localStorage.removeItem('game_offline_main');
+            localStorage.removeItem('game_save_local');
+            localStorage.removeItem('game_stamina_v1');
+            localStorage.removeItem('game_checkin_v1');
+            localStorage.removeItem('game_settings_v1');
+            this._showMessage('本地数据已清除', true);
+            this._pendingClear = false;
+          } catch (e) {
+            this._showMessage('清除失败: ' + e.message, false);
+          }
+        } else {
+          this._pendingClear = true;
+          this._showMessage('再次点击确认清除本地存档', false);
+          // 3秒后取消
+          setTimeout(() => { this._pendingClear = false; }, 3000);
+        }
+        return;
+      }
+
+      if (typeof btn.action === 'function') {
+        btn.action();
+        return;
+      }
     }
   }
 }
