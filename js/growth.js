@@ -311,8 +311,11 @@ class GrowthScene {
     // 资源显示
     const state = window.game?.state;
     if (state) {
-      Renderer.drawText(ctx, `🪙 ${state.currency?.coins || 0}`, W - 260, 40, {
-        fontSize: 14, color: '#ffcc44', align: 'right'
+      if (typeof drawItemIcon === 'function') {
+        drawItemIcon(ctx, 'coins', W - 275, 40, 18);
+      }
+      Renderer.drawText(ctx, `${state.currency?.coins || 0}`, W - 260, 40, {
+        fontSize: 14, color: '#ffcc44'
       });
     }
 
@@ -565,9 +568,9 @@ class GrowthScene {
     const inv = state?.inventory || {};
 
     const expItems = [
-      { key: 'exp_book_1', label: '初级经验书 (+500 EXP)', amount: 500 },
-      { key: 'exp_book_2', label: '中级经验书 (+2000 EXP)', amount: 2000 },
-      { key: 'exp_book_3', label: '高级经验书 (+10000 EXP)', amount: 10000 }
+      { key: 'exp_book_1', label: '初级经验书 (+500 EXP)', amount: 500, iconKey: 'exp_book_1' },
+      { key: 'exp_book_2', label: '中级经验书 (+2000 EXP)', amount: 2000, iconKey: 'exp_book_2' },
+      { key: 'exp_book_3', label: '高级经验书 (+10000 EXP)', amount: 10000, iconKey: 'exp_book_3' }
     ];
 
     for (const item of expItems) {
@@ -578,7 +581,12 @@ class GrowthScene {
         bg: 'rgba(20, 15, 40, 0.8)', border: '#3a2a6a'
       });
 
-      Renderer.drawText(ctx, item.label, x + 15, iy + 22, {
+      // 道具图标
+      if (typeof drawItemIcon === 'function') {
+        drawItemIcon(ctx, item.iconKey, x + 22, iy + 22, 28);
+      }
+
+      Renderer.drawText(ctx, item.label, x + 45, iy + 22, {
         fontSize: 13, color: canUse ? '#c0c0e0' : '#606080'
       });
 
@@ -672,7 +680,11 @@ class GrowthScene {
       const matName = GrowthConfig.materialNames[matKey] || matKey;
       const have = state?.inventory?.[matKey] || 0;
       const ready = have >= matCount;
-      Renderer.drawText(ctx, `${matName}: ${have}/${matCount}`, x + 10, iy, {
+      // 道具图标
+      if (typeof drawItemIcon === 'function') {
+        drawItemIcon(ctx, matKey, x + 22, iy, 18);
+      }
+      Renderer.drawText(ctx, `${matName}: ${have}/${matCount}`, x + 38, iy, {
         fontSize: 13, color: ready ? '#66cc66' : '#ff8866'
       });
       iy += 24;

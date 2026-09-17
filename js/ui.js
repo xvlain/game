@@ -1,7 +1,7 @@
 /**
  * ui.js - 游戏场景与 UI 渲染
  * 包含：标题画面、主菜单、剧情地图、战斗界面、抽卡界面、设置
- * v0.7.0 - 集成战斗背景图、元素图标、粒子特效、抽卡背景、完善设置场景
+ * v0.8.0 - 集成道具图标系统、抽卡结果优化、战斗背景映射补全
  */
 
 // ============ 素材管理器 ============
@@ -18,21 +18,25 @@ async function preloadAssets() {
   console.log('[Assets] 预加载美术素材...');
 
   // 战斗背景（1920×1080，Canvas 会自动缩放至 1280×720）
-  await loader.loadImage('bg_arena', 'assets/maps/battle/arena_default.png').then(img => {
-    if (img) GameAssets.backgrounds.arena = img;
-  });
-  await loader.loadImage('bg_forest', 'assets/maps/battle/forest_dark.png').then(img => {
-    if (img) GameAssets.backgrounds.forest = img;
-  });
-  await loader.loadImage('bg_crystal', 'assets/maps/battle/crystal_cave.png').then(img => {
-    if (img) GameAssets.backgrounds.crystal = img;
-  });
-  await loader.loadImage('bg_training', 'assets/maps/battle/training_arena.png').then(img => {
-    if (img) GameAssets.backgrounds.training = img;
-  });
-  await loader.loadImage('bg_star_abyss', 'assets/maps/battle/star_abyss.png').then(img => {
-    if (img) GameAssets.backgrounds.star_abyss = img;
-  });
+  const bgMap = {
+    bg_arena: 'assets/maps/battle/arena_default.png',
+    bg_forest: 'assets/maps/battle/forest_dark.png',
+    bg_crystal: 'assets/maps/battle/crystal_cave.png',
+    bg_training: 'assets/maps/battle/training_arena.png',
+    bg_star_abyss: 'assets/maps/battle/star_abyss.png',
+    bg_holy: 'assets/maps/battle/holy_sanctuary.png',
+    bg_chaos: 'assets/maps/battle/chaos_void.png'
+  };
+  const bgNameMap = {
+    bg_arena: 'arena', bg_forest: 'forest', bg_crystal: 'crystal',
+    bg_training: 'training', bg_star_abyss: 'star_abyss',
+    bg_holy: 'holy', bg_chaos: 'chaos'
+  };
+  for (const [key, src] of Object.entries(bgMap)) {
+    await loader.loadImage(key, src).then(img => {
+      if (img) GameAssets.backgrounds[bgNameMap[key]] = img;
+    });
+  }
 
   // 抽卡背景
   await loader.loadImage('bg_gacha', 'assets/ui/backgrounds/gacha_summon.png').then(img => {
@@ -52,10 +56,40 @@ async function preloadAssets() {
     });
   }
 
+  // 道具图标（经验书、突破材料、货币）
+  const itemIcons = [
+    'exp_book_1', 'exp_book_2', 'exp_book_3',
+    'asc_stone_1', 'asc_stone_2', 'asc_stone_3', 'asc_stone_4', 'asc_stone_5',
+    'coins', 'crystals'
+  ];
+  for (const item of itemIcons) {
+    await loader.loadImage(`item_${item}`, `assets/ui/icons/${item}.png`).then(img => {
+      if (img) GameAssets.icons[item] = img;
+    });
+  }
+
   const loaded = Object.keys(GameAssets.backgrounds).length +
                  Object.keys(GameAssets.ui).length +
                  Object.keys(GameAssets.icons).length;
   console.log(`[Assets] 预加载完成，共 ${loaded} 个素材`);
+}
+
+/**
+ * 绘制道具图标（统一工具函数）
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string} itemKey - 道具 ID（如 exp_book_1, coins, crystals）
+ * @param {number} x - 中心 X
+ * @param {number} y - 中心 Y
+ * @param {number} size - 绘制尺寸
+ * @param {string} [fallbackText] - 图标不存在时的回退文字
+ */
+function drawItemIcon(ctx, itemKey, x, y, size, fallbackText) {
+  const img = GameAssets.icons[itemKey];
+  if (img) {
+    ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
+  } else if (fallbackText) {
+    Renderer.drawText(ctx, fallbackText, x, y, { fontSize: size * 0.7, align: 'center' });
+  }
 }
 
 // 战斗背景映射（stageId → 背景 key）
@@ -66,9 +100,23 @@ const BATTLE_BG_MAP = {
   'mat_t1': 'crystal',         // 微光矿脉 → 水晶洞穴
   'mat_t2': 'crystal',         // 辉光洞穴 → 水晶洞穴
   'mat_t3': 'star_abyss',      // 星辉深渊 → 星辉深渊
-  'mat_t4': 'arena',           // 虹彩圣域 → 竞技场
-  'daily_boss': 'arena'        // 每日挑战 → 竞技场
+  'mat_t4': 'holy',            // 虹彩圣域 → 虹彩圣域
+  'daily_boss': 'arena'        // 每日挑战 → 竞技场（混沌之主自动匹配 chaos）
 };
+
+/**
+ * 获取战斗背景 key（支持每日 Boss 按元素动态匹配）
+ */
+function getBattleBgKey(stageId, isDaily) {
+  if (isDaily) {
+    const dayOfWeek = new Date().getDay();
+    // 周日 = 混沌之主 → 混沌虚空背景
+    if (dayOfWeek === 6) return 'chaos';
+    // 其他日子用竞技场
+    return 'arena';
+  }
+  return BATTLE_BG_MAP[stageId] || 'arena';
+}
 
 // ============ 标题画面 ============
 class TitleScene {
@@ -185,7 +233,7 @@ class TitleScene {
     }
 
     // 底部信息
-    Renderer.drawText(ctx, 'v0.7.0 · 庸人工作室', W / 2, H - 30, {
+    Renderer.drawText(ctx, 'v0.8.0 · 庸人工作室', W / 2, H - 30, {
       fontSize: 12,
       color: '#505070',
       align: 'center'
@@ -253,8 +301,12 @@ class MainMenuScene {
     // 资源显示
     const state = window.game?.state;
     if (state) {
-      Renderer.drawText(ctx, `💎 ${state.currency?.crystals || 0}`, W - 250, 40, { fontSize: 16, color: '#88ccff', align: 'right' });
-      Renderer.drawText(ctx, `🪙 ${state.currency?.coins || 0}`, W - 120, 40, { fontSize: 16, color: '#ffcc44', align: 'right' });
+      // 水晶图标 + 数量
+      drawItemIcon(ctx, 'crystals', W - 270, 40, 20, '💎');
+      Renderer.drawText(ctx, `${state.currency?.crystals || 0}`, W - 255, 40, { fontSize: 16, color: '#88ccff' });
+      // 金币图标 + 数量
+      drawItemIcon(ctx, 'coins', W - 145, 40, 20, '🪙');
+      Renderer.drawText(ctx, `${state.currency?.coins || 0}`, W - 130, 40, { fontSize: 16, color: '#ffcc44' });
     }
 
     // 菜单网格（4+3 布局）
@@ -309,7 +361,7 @@ class MainMenuScene {
     }
 
     // 底部
-    Renderer.drawText(ctx, 'v0.7.0 · 庸人工作室', W / 2, H - 25, {
+    Renderer.drawText(ctx, 'v0.8.0 · 庸人工作室', W / 2, H - 25, {
       fontSize: 12,
       color: '#404060',
       align: 'center'
@@ -325,7 +377,11 @@ class MainMenuScene {
         bg: 'rgba(20, 40, 20, 0.95)',
         border: '#4a8a4a'
       });
-      Renderer.drawText(ctx, `📅 签到第 ${notice.day} 天  获得: ${notice.label}`, W / 2, 90, {
+      // 签到图标
+      if (typeof drawItemIcon === 'function') {
+        drawItemIcon(ctx, 'crystals', W / 2 - 150, 90, 16);
+      }
+      Renderer.drawText(ctx, `签到第 ${notice.day} 天  获得: ${notice.label}`, W / 2 + 10, 90, {
         fontSize: 14, color: '#88ff88', align: 'center'
       });
       Renderer.drawText(ctx, `累计签到 ${notice.totalDays} 天`, W / 2, 112, {
@@ -753,7 +809,7 @@ class BattleScene {
     this.stageId = data.stageId || null;
 
     // 选择战斗背景
-    const bgKey = BATTLE_BG_MAP[this.stageId] || 'arena';
+    const bgKey = getBattleBgKey(this.stageId, this.isDailyChallenge);
     this.battleBg = GameAssets.backgrounds[bgKey] || GameAssets.backgrounds.arena || null;
 
     // 清除粒子特效
@@ -1335,50 +1391,66 @@ class GachaScene {
       const y = 120 + row * (cardH + 20);
 
       const rarityColors = {
-        ssr: { bg: '#3a2a0a', border: '#ffcc00', text: '#ffdd44' },
-        sr: { bg: '#2a1a3a', border: '#cc66ff', text: '#dd88ff' },
-        r: { bg: '#1a2a1a', border: '#66cc66', text: '#88dd88' }
+        ssr: { bg: '#3a2a0a', border: '#ffcc00', text: '#ffdd44', glow: 'rgba(255, 204, 0, 0.15)' },
+        sr: { bg: '#2a1a3a', border: '#cc66ff', text: '#dd88ff', glow: 'rgba(204, 102, 255, 0.1)' },
+        r: { bg: '#1a2a1a', border: '#66cc66', text: '#88dd88', glow: 'rgba(102, 204, 102, 0.08)' }
       };
       const colors = rarityColors[result.rarity];
 
-      Renderer.drawPanel(ctx, x, y, cardW, cardH, {
-        bg: colors.bg,
-        border: colors.border
-      });
+      // 卡片发光效果（SSR 特殊）
+      if (result.rarity === 'ssr') {
+        ctx.save();
+        ctx.shadowColor = '#ffcc00';
+        ctx.shadowBlur = 15;
+        Renderer.drawPanel(ctx, x, y, cardW, cardH, { bg: colors.bg, border: colors.border });
+        ctx.restore();
+      } else {
+        Renderer.drawPanel(ctx, x, y, cardW, cardH, { bg: colors.bg, border: colors.border });
+      }
+
+      // 元素图标（居中偏上）
+      const elemIcon = GameAssets.icons[result.element];
+      if (elemIcon) {
+        ctx.drawImage(elemIcon, x + cardW / 2 - 18, y + 18, 36, 36);
+      } else {
+        const elemName = ElementSystem.names[result.element] || '无';
+        const elemColor = ElementSystem.colors[result.element] || '#999';
+        Renderer.drawText(ctx, elemName, x + cardW / 2, y + 40, {
+          fontSize: 24, color: elemColor, align: 'center'
+        });
+      }
 
       // 角色名
-      Renderer.drawText(ctx, result.name, x + cardW / 2, y + 50, {
-        fontSize: 14,
+      Renderer.drawText(ctx, result.name, x + cardW / 2, y + 70, {
+        fontSize: 13,
         color: colors.text,
         align: 'center'
       });
 
       // 稀有度
       const rarityLabel = { ssr: '★★★★★', sr: '★★★★', r: '★★★' };
-      Renderer.drawText(ctx, rarityLabel[result.rarity], x + cardW / 2, y + 90, {
+      Renderer.drawText(ctx, rarityLabel[result.rarity], x + cardW / 2, y + 95, {
         fontSize: 12,
         color: colors.text,
         align: 'center'
       });
 
-      // 属性 & 角色
-      Renderer.drawText(ctx, result.element || '无', x + cardW / 2, y + 120, {
+      // 定位
+      Renderer.drawText(ctx, result.role || '', x + cardW / 2, y + 120, {
         fontSize: 12,
         color: '#8080a0',
         align: 'center'
       });
 
-      Renderer.drawText(ctx, result.role || '', x + cardW / 2, y + 145, {
-        fontSize: 12,
-        color: '#8080a0',
-        align: 'center'
-      });
-
+      // NEW 标记
       if (result.isNew) {
-        Renderer.drawText(ctx, 'NEW!', x + cardW - 10, y + 15, {
-          fontSize: 12,
-          color: '#ff4444',
-          align: 'right'
+        Renderer.drawPanel(ctx, x + cardW - 38, y + 4, 34, 18, {
+          bg: 'rgba(200, 30, 30, 0.9)', border: '#ff4444', radius: 4
+        });
+        Renderer.drawText(ctx, 'NEW', x + cardW - 21, y + 13, {
+          fontSize: 10,
+          color: '#fff',
+          align: 'center'
         });
       }
     });

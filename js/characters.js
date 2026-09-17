@@ -608,7 +608,7 @@ class SettingsScene {
     if (GameAssets.ui.logo) {
       ctx.drawImage(GameAssets.ui.logo, centerX - 25, panelY + panelH - 75, 50, 50);
     }
-    Renderer.drawText(ctx, 'v0.7.0 · 庸人工作室', centerX, panelY + panelH - 15, {
+    Renderer.drawText(ctx, 'v0.8.0 · 庸人工作室', centerX, panelY + panelH - 15, {
       fontSize: 12, color: '#505070', align: 'center'
     });
 

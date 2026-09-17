@@ -666,9 +666,30 @@ class StageResultScene {
         });
 
         this.rewards.summary.forEach((line, i) => {
-          Renderer.drawText(ctx, line, W / 2, centerY + 68 + i * 28, {
-            fontSize: 15, color: '#ccffcc', align: 'center'
-          });
+          // 尝试匹配道具图标
+          let iconKey = null;
+          if (line.includes('金币')) iconKey = 'coins';
+          else if (line.includes('水晶')) iconKey = 'crystals';
+          else if (line.includes('初级经验书')) iconKey = 'exp_book_1';
+          else if (line.includes('中级经验书')) iconKey = 'exp_book_2';
+          else if (line.includes('高级经验书')) iconKey = 'exp_book_3';
+          else if (line.includes('微光之石')) iconKey = 'asc_stone_1';
+          else if (line.includes('辉光晶石')) iconKey = 'asc_stone_2';
+          else if (line.includes('星辉核心')) iconKey = 'asc_stone_3';
+          else if (line.includes('虹彩精华')) iconKey = 'asc_stone_4';
+          else if (line.includes('命运之证')) iconKey = 'asc_stone_5';
+
+          const lineY = centerY + 68 + i * 28;
+          if (iconKey && typeof drawItemIcon === 'function') {
+            drawItemIcon(ctx, iconKey, W / 2 - 80, lineY, 20);
+            Renderer.drawText(ctx, line, W / 2 + 10, lineY, {
+              fontSize: 15, color: '#ccffcc', align: 'center'
+            });
+          } else {
+            Renderer.drawText(ctx, line, W / 2, lineY, {
+              fontSize: 15, color: '#ccffcc', align: 'center'
+            });
+          }
         });
       }
     } else {
