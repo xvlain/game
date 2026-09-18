@@ -1,7 +1,7 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.8.0 - 道具图标预加载、战斗背景动态匹配
+ * v0.9.0 - UI 边框素材集成 + 动画系统接入 + 音频管理器
  */
 
 let game = null;
@@ -73,7 +73,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.8.0 初始化完成');
+  console.log('[Game] v0.9.0 初始化完成');
 }
 
 function buildDefaultState() {

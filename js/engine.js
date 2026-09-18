@@ -405,15 +405,209 @@ const Easing = {
   }
 };
 
-// ============ 音频管理器（占位，后期填充） ============
+// ============ 音频管理器（Web Audio API） ============
 class AudioManager {
   constructor() {
-    this.enabled = false;
-    this.volume = 0.7;
+    this.enabled = true;
+    this.bgmVolume = 0.5;
+    this.sfxVolume = 0.7;
+    this.masterVolume = 0.8;
+    this._ctx = null;
+    this._bgmGain = null;
+    this._sfxGain = null;
+    this._masterGain = null;
+    this._currentBgm = null;
+    this._bgmName = '';
+    this._sfxBuffers = {};
+    this._initialized = false;
   }
-  play(name) { if (!this.enabled) return; }
-  stop(name) { if (!this.enabled) return; }
-  setVolume(v) { this.volume = v; }
+
+  /** 延迟初始化（需用户交互后才能创建 AudioContext） */
+  _ensureContext() {
+    if (this._initialized) return true;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      this._ctx = new AC();
+      this._masterGain = this._ctx.createGain();
+      this._masterGain.gain.value = this.masterVolume;
+      this._masterGain.connect(this._ctx.destination);
+
+      this._bgmGain = this._ctx.createGain();
+      this._bgmGain.gain.value = this.bgmVolume;
+      this._bgmGain.connect(this._masterGain);
+
+      this._sfxGain = this._ctx.createGain();
+      this._sfxGain.gain.value = this.sfxVolume;
+      this._sfxGain.connect(this._masterGain);
+
+      this._initialized = true;
+      return true;
+    } catch (e) {
+      console.warn('[Audio] 初始化失败:', e);
+      return false;
+    }
+  }
+
+  /** 播放 BGM（循环） */
+  playBgm(name, url) {
+    if (!this._ensureContext()) return;
+    if (this._bgmName === name && this._currentBgm) return;
+    this.stopBgm();
+
+    const audio = new Audio(url);
+    audio.loop = true;
+    audio.volume = 0;
+    const src = this._ctx.createMediaElementSource(audio);
+    src.connect(this._bgmGain);
+    audio.play().catch(() => {});
+    // 淡入
+    this._fadeIn(audio, 1.0);
+    this._currentBgm = audio;
+    this._bgmName = name;
+  }
+
+  /** 停止 BGM */
+  stopBgm() {
+    if (this._currentBgm) {
+      const audio = this._currentBgm;
+      this._fadeOut(audio, 0.5, () => {
+        audio.pause();
+        audio.src = '';
+      });
+      this._currentBgm = null;
+      this._bgmName = '';
+    }
+  }
+
+  /** 播放音效（合成，无需音频文件） */
+  playSfx(type) {
+    if (!this._ensureContext()) return;
+    const ctx = this._ctx;
+    const now = ctx.currentTime;
+
+    switch (type) {
+      case 'click':
+        this._tone(800, 0.05, 'sine', 0.3);
+        break;
+      case 'hit':
+        this._noise(0.08, 0.5);
+        break;
+      case 'crit':
+        this._tone(200, 0.15, 'sawtooth', 0.4);
+        setTimeout(() => this._tone(150, 0.1, 'sawtooth', 0.3), 50);
+        break;
+      case 'heal':
+        this._tone(523, 0.1, 'sine', 0.25);
+        setTimeout(() => this._tone(659, 0.1, 'sine', 0.25), 80);
+        setTimeout(() => this._tone(784, 0.15, 'sine', 0.2), 160);
+        break;
+      case 'gacha_roll':
+        this._tone(400, 0.08, 'triangle', 0.3);
+        break;
+      case 'gacha_ssr':
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => this._tone(500 + i * 100, 0.15, 'sine', 0.3), i * 100);
+        }
+        break;
+      case 'levelup':
+        this._tone(523, 0.12, 'sine', 0.3);
+        setTimeout(() => this._tone(659, 0.12, 'sine', 0.3), 120);
+        setTimeout(() => this._tone(784, 0.2, 'sine', 0.3), 240);
+        break;
+      case 'skill':
+        this._tone(300, 0.06, 'square', 0.2);
+        this._tone(600, 0.1, 'sine', 0.3);
+        break;
+      case 'ultimate':
+        this._noise(0.2, 0.6);
+        this._tone(200, 0.3, 'sawtooth', 0.4);
+        setTimeout(() => this._tone(400, 0.2, 'sine', 0.5), 100);
+        break;
+    }
+  }
+
+  /** 合成音调 */
+  _tone(freq, duration, type = 'sine', vol = 0.3) {
+    if (!this._ctx) return;
+    const osc = this._ctx.createOscillator();
+    const gain = this._ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, this._ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this._ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(this._sfxGain);
+    osc.start();
+    osc.stop(this._ctx.currentTime + duration + 0.05);
+  }
+
+  /** 合成噪声（打击音效） */
+  _noise(duration, vol) {
+    if (!this._ctx) return;
+    const bufSize = this._ctx.sampleRate * duration;
+    const buf = this._ctx.createBuffer(1, bufSize, this._ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.3));
+    }
+    const src = this._ctx.createBufferSource();
+    src.buffer = buf;
+    const gain = this._ctx.createGain();
+    gain.gain.value = vol;
+    src.connect(gain);
+    gain.connect(this._sfxGain);
+    src.start();
+  }
+
+  /** 淡入 */
+  _fadeIn(audio, duration) {
+    let vol = 0;
+    const step = 1 / (duration * 60);
+    const tick = () => {
+      if (!this._currentBgm || this._currentBgm !== audio) return;
+      vol = Math.min(1, vol + step);
+      audio.volume = vol;
+      if (vol < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  /** 淡出 */
+  _fadeOut(audio, duration, onDone) {
+    let vol = audio.volume;
+    const step = vol / (duration * 60);
+    const tick = () => {
+      vol = Math.max(0, vol - step);
+      audio.volume = vol;
+      if (vol > 0) {
+        requestAnimationFrame(tick);
+      } else if (onDone) {
+        onDone();
+      }
+    };
+    requestAnimationFrame(tick);
+  }
+
+  setBgmVolume(v) {
+    this.bgmVolume = v;
+    if (this._bgmGain) this._bgmGain.gain.value = v;
+  }
+
+  setSfxVolume(v) {
+    this.sfxVolume = v;
+    if (this._sfxGain) this._sfxGain.gain.value = v;
+  }
+
+  setMasterVolume(v) {
+    this.masterVolume = v;
+    if (this._masterGain) this._masterGain.gain.value = v;
+  }
+
+  // 保持向后兼容
+  play(name) { this.playSfx(name); }
+  stop() { this.stopBgm(); }
+  setVolume(v) { this.setMasterVolume(v); }
 }
 
 // ============ 资源加载器 ============
@@ -535,13 +729,28 @@ class GameEngine {
   update(dt) {
     this.sceneManager.update(dt);
     this.animations.update(dt);
+    // 驱动 UI 动画系统
+    if (typeof UIAnimations !== 'undefined') UIAnimations.update(dt * 1000);
   }
 
   render() {
     const ctx = this.ctx;
+
+    // 屏幕震动偏移
+    let shakeX = 0, shakeY = 0;
+    if (typeof window !== 'undefined' && window._screenShake) {
+      shakeX = window._screenShake.offsetX || 0;
+      shakeY = window._screenShake.offsetY || 0;
+    }
+
+    ctx.save();
+    if (shakeX || shakeY) ctx.translate(shakeX, shakeY);
+
     ctx.fillStyle = '#0a0a14';
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillRect(-10, -10, this.canvas.width + 20, this.canvas.height + 20);
     this.sceneManager.render(ctx);
+
+    ctx.restore();
   }
 }
 

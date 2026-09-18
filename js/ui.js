@@ -1,14 +1,15 @@
 /**
  * ui.js - 游戏场景与 UI 渲染
  * 包含：标题画面、主菜单、剧情地图、战斗界面、抽卡界面、设置
- * v0.8.0 - 集成道具图标系统、抽卡结果优化、战斗背景映射补全
+ * v0.9.0 - UI 边框素材集成 + 动画系统接入 + 音频管理器
  */
 
 // ============ 素材管理器 ============
 const GameAssets = {
   backgrounds: {},
   ui: {},
-  icons: {}
+  icons: {},
+  frames: {}   // UI 边框素材
 };
 
 async function preloadAssets() {
@@ -68,10 +69,107 @@ async function preloadAssets() {
     });
   }
 
+  // UI 边框素材（对话框、面板、按钮、HP条、能量条）
+  const frameMap = {
+    frame_dialog: 'assets/ui/frames/dialog_box.png',
+    frame_panel: 'assets/ui/frames/panel_frame.png',
+    frame_button: 'assets/ui/frames/button_frame.png',
+    frame_hp: 'assets/ui/frames/hp_bar_frame.png',
+    frame_energy: 'assets/ui/frames/energy_bar_frame.png'
+  };
+  const frameNameMap = {
+    frame_dialog: 'dialog',
+    frame_panel: 'panel',
+    frame_button: 'button',
+    frame_hp: 'hp',
+    frame_energy: 'energy'
+  };
+  for (const [key, src] of Object.entries(frameMap)) {
+    await loader.loadImage(key, src).then(img => {
+      if (img) GameAssets.frames[frameNameMap[key]] = img;
+    });
+  }
+
   const loaded = Object.keys(GameAssets.backgrounds).length +
                  Object.keys(GameAssets.ui).length +
-                 Object.keys(GameAssets.icons).length;
+                 Object.keys(GameAssets.icons).length +
+                 Object.keys(GameAssets.frames).length;
   console.log(`[Assets] 预加载完成，共 ${loaded} 个素材`);
+}
+
+// ============ UI 边框绘制工具 ============
+
+/**
+ * 绘制九宫格边框（Nine-slice）
+ * 将素材分成 9 个区域来缩放，保持边角不变形
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {HTMLImageElement} img - 边框素材
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w - 目标宽度
+ * @param {number} h - 目标高度
+ * @param {number} slice - 边角切片尺寸（源图像素）
+ */
+function drawNineSlice(ctx, img, x, y, w, h, slice = 40) {
+  if (!img) return false;
+  const sw = img.naturalWidth || img.width;
+  const sh = img.naturalHeight || img.height;
+  const s = Math.min(slice, sw / 3, sh / 3);
+  const ds = Math.min(slice, w / 3, h / 3);
+
+  // 四角
+  ctx.drawImage(img, 0, 0, s, s, x, y, ds, ds);                          // 左上
+  ctx.drawImage(img, sw - s, 0, s, s, x + w - ds, y, ds, ds);            // 右上
+  ctx.drawImage(img, 0, sh - s, s, s, x, y + h - ds, ds, ds);            // 左下
+  ctx.drawImage(img, sw - s, sh - s, s, s, x + w - ds, y + h - ds, ds, ds); // 右下
+
+  // 四边
+  ctx.drawImage(img, s, 0, sw - 2 * s, s, x + ds, y, w - 2 * ds, ds);             // 上
+  ctx.drawImage(img, s, sh - s, sw - 2 * s, s, x + ds, y + h - ds, w - 2 * ds, ds); // 下
+  ctx.drawImage(img, 0, s, s, sh - 2 * s, x, y + ds, ds, h - 2 * ds);             // 左
+  ctx.drawImage(img, sw - s, s, s, sh - 2 * s, x + w - ds, y + ds, ds, h - 2 * ds); // 右
+
+  // 中心
+  ctx.drawImage(img, s, s, sw - 2 * s, sh - 2 * s, x + ds, y + ds, w - 2 * ds, h - 2 * ds);
+
+  return true;
+}
+
+/**
+ * 绘制带边框素材的面板（优先使用九宫格素材，回退到 Renderer.drawPanel）
+ */
+function drawFramedPanel(ctx, x, y, w, h, frameKey, options = {}) {
+  const img = GameAssets.frames[frameKey];
+  const { slice = 40, fallbackBg = 'rgba(15, 15, 30, 0.9)', fallbackBorder = '#5c4d9a' } = options;
+  if (img) {
+    drawNineSlice(ctx, img, x, y, w, h, slice);
+  } else {
+    Renderer.drawPanel(ctx, x, y, w, h, { bg: fallbackBg, border: fallbackBorder });
+  }
+}
+
+/**
+ * 绘制带边框素材的按钮（优先使用素材，回退到 Renderer.drawButton）
+ */
+function drawFramedButton(ctx, x, y, w, h, text, options = {}) {
+  const img = GameAssets.frames.button;
+  const { fontSize = 18, textColor = '#e0e0e0', disabled = false, fallbackBg, fallbackBorder } = options;
+  if (img && !disabled) {
+    drawNineSlice(ctx, img, x, y, w, h, 15);
+    ctx.save();
+    ctx.fillStyle = textColor;
+    ctx.font = `${fontSize}px "Noto Sans SC", "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x + w / 2, y + h / 2);
+    ctx.restore();
+  } else {
+    Renderer.drawButton(ctx, x, y, w, h, text, {
+      fontSize, textColor, disabled,
+      bgColor: fallbackBg || '#2a2a3e',
+      borderColor: fallbackBorder || '#5c4d9a'
+    });
+  }
 }
 
 /**
@@ -224,16 +322,14 @@ class TitleScene {
       }
 
       for (const btn of this.buttons) {
-        Renderer.drawButton(ctx, btn.x, btn.y, btn.w, btn.h, btn.text, {
-          fontSize: 20,
-          bgColor: '#1a1a3a',
-          borderColor: '#7c5cbf'
+        drawFramedButton(ctx, btn.x, btn.y, btn.w, btn.h, btn.text, {
+          fontSize: 20
         });
       }
     }
 
     // 底部信息
-    Renderer.drawText(ctx, 'v0.8.0 · 庸人工作室', W / 2, H - 30, {
+    Renderer.drawText(ctx, 'v0.9.0 · 庸人工作室', W / 2, H - 30, {
       fontSize: 12,
       color: '#505070',
       align: 'center'
@@ -295,7 +391,11 @@ class MainMenuScene {
     ctx.fillRect(0, 0, W, H);
 
     // 顶部栏
-    Renderer.drawPanel(ctx, 20, 15, W - 40, 50, { bg: 'rgba(15, 15, 30, 0.8)', border: '#3a3060' });
+    drawFramedPanel(ctx, 20, 15, W - 40, 50, 'panel', {
+      slice: 15,
+      fallbackBg: 'rgba(15, 15, 30, 0.8)',
+      fallbackBorder: '#3a3060'
+    });
     Renderer.drawText(ctx, '未定之旅', 40, 40, { fontSize: 20, color: '#d4b8ff' });
 
     // 资源显示
@@ -332,9 +432,10 @@ class MainMenuScene {
 
       // 卡片
       const hover = Math.sin(this.elapsed * 2 + i) * 0.02 + 1;
-      Renderer.drawPanel(ctx, x, y, cardW, cardH, {
-        bg: 'rgba(25, 20, 45, 0.85)',
-        border: '#4a3a8a'
+      drawFramedPanel(ctx, x, y, cardW, cardH, 'panel', {
+        slice: 25,
+        fallbackBg: 'rgba(25, 20, 45, 0.85)',
+        fallbackBorder: '#4a3a8a'
       });
 
       // 图标
@@ -361,7 +462,7 @@ class MainMenuScene {
     }
 
     // 底部
-    Renderer.drawText(ctx, 'v0.8.0 · 庸人工作室', W / 2, H - 25, {
+    Renderer.drawText(ctx, 'v0.9.0 · 庸人工作室', W / 2, H - 25, {
       fontSize: 12,
       color: '#404060',
       align: 'center'
@@ -373,9 +474,10 @@ class MainMenuScene {
       const alpha = Math.min(1, notice.timer);
       ctx.save();
       ctx.globalAlpha = alpha;
-      Renderer.drawPanel(ctx, W / 2 - 180, 70, 360, 56, {
-        bg: 'rgba(20, 40, 20, 0.95)',
-        border: '#4a8a4a'
+      drawFramedPanel(ctx, W / 2 - 180, 70, 360, 56, 'panel', {
+        slice: 15,
+        fallbackBg: 'rgba(20, 40, 20, 0.95)',
+        fallbackBorder: '#4a8a4a'
       });
       // 签到图标
       if (typeof drawItemIcon === 'function') {
@@ -460,11 +562,14 @@ class StoryMapScene {
     ctx.fillRect(0, 0, W, H);
 
     // 标题
-    Renderer.drawPanel(ctx, 20, 15, W - 40, 50, { bg: 'rgba(15, 15, 30, 0.9)' });
+    drawFramedPanel(ctx, 20, 15, W - 40, 50, 'panel', {
+      slice: 15,
+      fallbackBg: 'rgba(15, 15, 30, 0.9)'
+    });
     Renderer.drawText(ctx, this.chapter?.name || '章节', 40, 40, { fontSize: 20, color: '#d4b8ff' });
 
     // 返回按钮
-    Renderer.drawButton(ctx, W - 120, 20, 90, 38, '返回', { fontSize: 14 });
+    drawFramedButton(ctx, W - 120, 20, 90, 38, '返回', { fontSize: 14 });
     this._backBtn = { x: W - 120, y: 20, w: 90, h: 38 };
 
     if (!this.chapter) return;
@@ -641,19 +746,21 @@ class DialogueScene {
       align: 'center'
     });
 
-    // 对话框
+    // 对话框（优先使用边框素材）
     const boxY = H - 200;
     const boxH = 170;
-    Renderer.drawPanel(ctx, 40, boxY, W - 80, boxH, {
-      bg: 'rgba(10, 10, 25, 0.95)',
-      border: '#5c4d9a'
+    drawFramedPanel(ctx, 40, boxY, W - 80, boxH, 'dialog', {
+      slice: 50,
+      fallbackBg: 'rgba(10, 10, 25, 0.95)',
+      fallbackBorder: '#5c4d9a'
     });
 
     // 说话人
     if (this.speaker) {
-      Renderer.drawPanel(ctx, 50, boxY - 35, 160, 32, {
-        bg: '#2a1a4a',
-        border: '#7c5cbf'
+      drawFramedPanel(ctx, 50, boxY - 35, 160, 32, 'button', {
+        slice: 10,
+        fallbackBg: '#2a1a4a',
+        fallbackBorder: '#7c5cbf'
       });
       Renderer.drawText(ctx, this.speaker, 130, boxY - 19, {
         fontSize: 16,
@@ -689,10 +796,8 @@ class DialogueScene {
 
       for (let i = 0; i < this.choices.length; i++) {
         const cx = startX + i * (choiceW + 40);
-        Renderer.drawButton(ctx, cx, startY, choiceW, choiceH, this.choices[i].text, {
-          fontSize: 18,
-          bgColor: '#2a1a4a',
-          borderColor: '#9a7cbf'
+        drawFramedButton(ctx, cx, startY, choiceW, choiceH, this.choices[i].text, {
+          fontSize: 18
         });
         this.choices[i]._rect = { x: cx, y: startY, w: choiceW, h: choiceH };
       }
@@ -829,6 +934,31 @@ class BattleScene {
 
     this.battle.init(partyTemplates, data.enemies);
 
+    // 初始化 HP/能量条渲染器
+    this._partyHpBars = [];
+    this._partyEnergyBars = [];
+    this._partyForceBars = [];
+    this._enemyHpBars = [];
+    this._damagePopups = [];
+
+    const partySpacing = 200;
+    const partyStartX = 640 - (this.battle.party.length * partySpacing) / 2 + partySpacing / 2;
+    this.battle.party.forEach((char, i) => {
+      const cx = partyStartX + i * partySpacing;
+      const cy = 480;
+      this._partyHpBars.push(new HPBarRenderer(cx - 40, cy + 70, 80, 8));
+      this._partyEnergyBars.push(new EnergyBarRenderer(cx - 40, cy + 83, 80, 5, char.element));
+      this._partyForceBars.push(new EnergyBarRenderer(cx - 40, cy + 92, 80, 5, char.element));
+    });
+
+    const enemyAlive = this.battle.enemies.filter(e => e.currentHp > 0);
+    const enemySpacing = 200;
+    const enemyStartX = 640 - (enemyAlive.length * enemySpacing) / 2 + enemySpacing / 2;
+    enemyAlive.forEach((enemy, i) => {
+      const cx = enemyStartX + i * enemySpacing;
+      this._enemyHpBars.push(new HPBarRenderer(cx - 40, 180 + 70, 80, 8, '#cc3333'));
+    });
+
     // 设置回调
     this.battle.onStateChange = (state, actor) => {
       if (state === 'player_turn') {
@@ -843,13 +973,17 @@ class BattleScene {
 
     this.battle.onActionComplete = (actor, skill, results) => {
       this.logDisplay = this.battle.battleLog.slice(-5);
-      // 触发粒子特效
+      // 触发粒子特效 + 伤害弹出 + 音效
       this._triggerActionEffects(actor, skill, results);
     };
 
     this.battle.onBattleEnd = (result) => {
       this.phase = 'result';
       this.battleResult = result;
+      // 战斗结束音效
+      if (window.game?.audio) {
+        window.game.audio.playSfx(result === 'victory' ? 'levelup' : 'hit');
+      }
     };
 
     this.phase = 'idle';
@@ -857,13 +991,14 @@ class BattleScene {
     this.battle.startBattle();
   }
 
-  /** 根据战斗行动结果触发对应粒子特效 */
+  /** 根据战斗行动结果触发对应粒子特效 + 伤害弹出 + 屏幕震动 */
   _triggerActionEffects(actor, skill, results) {
-    if (typeof BattleEffects === 'undefined' || typeof ElementEffects === 'undefined') return;
+    const hasEffects = typeof BattleEffects !== 'undefined' && typeof ElementEffects !== 'undefined';
+    const audio = window.game?.audio;
 
     for (const r of results) {
       if (r.damage !== undefined) {
-        // 攻击伤害 → 受击特效 + 元素特效
+        // 攻击伤害 → 受击特效 + 元素特效 + 伤害弹出
         const targetIdx = this.battle.enemies.findIndex(e => e.name === r.target);
         const partyIdx = this.battle.party.findIndex(c => c.name === r.target);
         const isEnemy = targetIdx >= 0;
@@ -874,15 +1009,34 @@ class BattleScene {
         const tx = startX + idx * spacing;
         const ty = isEnemy ? 180 : 480;
 
-        BattleEffects.hit(tx, ty);
-        if (r.crit) {
-          setTimeout(() => BattleEffects.critical(tx, ty), 100);
+        if (hasEffects) BattleEffects.hit(tx, ty);
+
+        // HP 条闪烁
+        if (isEnemy && this._enemyHpBars[idx]) {
+          this._enemyHpBars[idx].flash();
+        } else if (!isEnemy && this._partyHpBars[idx]) {
+          this._partyHpBars[idx].flash();
         }
+
+        // 伤害弹出数字
+        const dmgPopup = animatePopupNumber(tx, ty - 50, r.damage, r.crit ? '#ffcc00' : '#ff4444');
+        this._damagePopups.push(dmgPopup);
+
+        if (r.crit) {
+          if (hasEffects) setTimeout(() => BattleEffects.critical(tx, ty), 100);
+          // 暴击 → 屏幕震动
+          window._screenShake = animateScreenShake(6, 300);
+          if (audio) audio.playSfx('crit');
+        } else {
+          if (audio) audio.playSfx('hit');
+        }
+
         // 元素特效
         const element = actor.element;
-        if (element && element !== 'none' && ElementEffects[element]) {
+        if (element && element !== 'none' && typeof ElementEffects !== 'undefined' && ElementEffects[element]) {
           const type = skill === actor.skills.ultimate ? 'ultimate' : (skill === actor.skills.skill ? 'skill' : 'attack');
           ElementEffects.play(element, tx, ty, type);
+          if (audio) audio.playSfx(type === 'ultimate' ? 'ultimate' : 'skill');
         }
       }
       if (r.heal !== undefined) {
@@ -890,11 +1044,13 @@ class BattleScene {
         if (partyIdx >= 0) {
           const spacing = 200;
           const startX = 640 - (this.battle.party.length * spacing) / 2 + spacing / 2;
-          BattleEffects.heal(startX + partyIdx * spacing, 480);
+          const hx = startX + partyIdx * spacing;
+          if (hasEffects) BattleEffects.heal(hx, 480);
+          // 治疗弹出
+          const healPopup = animatePopupNumber(hx, 480 - 50, r.heal, '#44ff88', true);
+          this._damagePopups.push(healPopup);
+          if (window.game?.audio) window.game.audio.playSfx('heal');
         }
-      }
-      if (r.buff) {
-        // buff 类暂不播放特效
       }
     }
   }
@@ -938,6 +1094,37 @@ class BattleScene {
     // 驱动粒子特效系统
     if (typeof ElementEffects !== 'undefined') ElementEffects.update(dt);
     if (typeof BattleEffects !== 'undefined') BattleEffects.update(dt);
+
+    // 更新 HP/能量条平滑过渡
+    const dtMs = dt * 1000;
+    if (this._partyHpBars && this.battle) {
+      this.battle.party.forEach((char, i) => {
+        if (this._partyHpBars[i]) {
+          this._partyHpBars[i].setHP(char.currentHp, char.maxHp);
+          this._partyHpBars[i].update(dtMs);
+        }
+        if (this._partyEnergyBars[i]) {
+          this._partyEnergyBars[i].setEnergy(char.currentEnergy, char.maxEnergy || 100);
+          this._partyEnergyBars[i].update(dtMs);
+        }
+        if (this._partyForceBars[i]) {
+          this._partyForceBars[i].setEnergy(char.elementalForce || 0, typeof ElementalForceSystem !== 'undefined' ? ElementalForceSystem.maxForce : 100);
+          this._partyForceBars[i].update(dtMs);
+        }
+      });
+    }
+    if (this._enemyHpBars && this.battle) {
+      const alive = this.battle.enemies.filter(e => e.currentHp > 0);
+      alive.forEach((enemy, i) => {
+        if (this._enemyHpBars[i]) {
+          this._enemyHpBars[i].setHP(enemy.currentHp, enemy.maxHp);
+          this._enemyHpBars[i].update(dtMs);
+        }
+      });
+    }
+
+    // 清理已完成的伤害弹出
+    this._damagePopups = (this._damagePopups || []).filter(p => p.alpha > 0);
   }
 
   render(ctx) {
@@ -999,9 +1186,10 @@ class BattleScene {
 
       // 敌人卡片（后期替换为 Q版动画帧）
       ctx.save();
-      Renderer.drawPanel(ctx, x - 45, y - 60, 90, 120, {
-        bg: 'rgba(42, 21, 21, 0.85)',
-        border: enemy === this.battle.currentActor ? '#ff6666' : '#4a2020'
+      drawFramedPanel(ctx, x - 45, y - 60, 90, 120, 'panel', {
+        slice: 20,
+        fallbackBg: 'rgba(42, 21, 21, 0.85)',
+        fallbackBorder: enemy === this.battle.currentActor ? '#ff6666' : '#4a2020'
       });
 
       // 元素图标（优先使用素材图，回退到文字）
@@ -1020,8 +1208,14 @@ class BattleScene {
         align: 'center'
       });
 
-      // HP 条
-      Renderer.drawBar(ctx, x - 40, y + 70, 80, 8, enemy.currentHp, enemy.maxHp, '#cc3333');
+      // HP 条（使用渲染器）
+      if (this._enemyHpBars && this._enemyHpBars[i]) {
+        this._enemyHpBars[i].x = x - 40;
+        this._enemyHpBars[i].y = y + 70;
+        this._enemyHpBars[i].draw(ctx);
+      } else {
+        Renderer.drawBar(ctx, x - 40, y + 70, 80, 8, enemy.currentHp, enemy.maxHp, '#cc3333');
+      }
 
       ctx.font = '11px sans-serif';
       ctx.fillStyle = '#999';
@@ -1053,9 +1247,10 @@ class BattleScene {
       ctx.save();
       const isActive = char === this.battle.currentActor;
 
-      Renderer.drawPanel(ctx, x - 50, y - 65, 100, 130, {
-        bg: char.currentHp <= 0 ? 'rgba(26, 26, 26, 0.85)' : (isActive ? 'rgba(26, 42, 58, 0.85)' : 'rgba(21, 21, 42, 0.85)'),
-        border: isActive ? '#5cb8ff' : '#303060'
+      drawFramedPanel(ctx, x - 50, y - 65, 100, 130, 'panel', {
+        slice: 20,
+        fallbackBg: char.currentHp <= 0 ? 'rgba(26, 26, 26, 0.85)' : (isActive ? 'rgba(26, 42, 58, 0.85)' : 'rgba(21, 21, 42, 0.85)'),
+        fallbackBorder: isActive ? '#5cb8ff' : '#303060'
       });
 
       // 元素图标（优先使用素材图，回退到文字）
@@ -1075,16 +1270,34 @@ class BattleScene {
         align: 'center'
       });
 
-      // HP 条
-      const hpColor = char.currentHp / char.maxHp > 0.5 ? '#33cc66' : (char.currentHp / char.maxHp > 0.2 ? '#cccc33' : '#cc3333');
-      Renderer.drawBar(ctx, x - 40, y + 70, 80, 8, char.currentHp, char.maxHp, hpColor);
+      // HP 条（使用渲染器）
+      if (this._partyHpBars && this._partyHpBars[i]) {
+        this._partyHpBars[i].x = x - 40;
+        this._partyHpBars[i].y = y + 70;
+        this._partyHpBars[i].draw(ctx);
+      } else {
+        const hpColor = char.currentHp / char.maxHp > 0.5 ? '#33cc66' : (char.currentHp / char.maxHp > 0.2 ? '#cccc33' : '#cc3333');
+        Renderer.drawBar(ctx, x - 40, y + 70, 80, 8, char.currentHp, char.maxHp, hpColor);
+      }
 
-      // 能量条（大招）
-      Renderer.drawBar(ctx, x - 40, y + 83, 80, 5, char.currentEnergy, char.maxEnergy, '#6699ff');
+      // 能量条（大招）- 使用渲染器
+      if (this._partyEnergyBars && this._partyEnergyBars[i]) {
+        this._partyEnergyBars[i].x = x - 40;
+        this._partyEnergyBars[i].y = y + 83;
+        this._partyEnergyBars[i].draw(ctx);
+      } else {
+        Renderer.drawBar(ctx, x - 40, y + 83, 80, 5, char.currentEnergy, char.maxEnergy, '#6699ff');
+      }
 
-      // 元素力条
-      const forceColor = elemColor !== '#999999' ? elemColor : '#aa88cc';
-      Renderer.drawBar(ctx, x - 40, y + 92, 80, 5, char.elementalForce || 0, ElementalForceSystem.maxForce, forceColor);
+      // 元素力条 - 使用渲染器
+      if (this._partyForceBars && this._partyForceBars[i]) {
+        this._partyForceBars[i].x = x - 40;
+        this._partyForceBars[i].y = y + 92;
+        this._partyForceBars[i].draw(ctx);
+      } else {
+        const forceColor = elemColor !== '#999999' ? elemColor : '#aa88cc';
+        Renderer.drawBar(ctx, x - 40, y + 92, 80, 5, char.elementalForce || 0, ElementalForceSystem.maxForce, forceColor);
+      }
 
       ctx.font = '10px sans-serif';
       ctx.fillStyle = '#888';
@@ -1094,6 +1307,25 @@ class BattleScene {
 
       ctx.restore();
     });
+
+    // 渲染伤害弹出数字
+    if (this._damagePopups) {
+      for (const popup of this._damagePopups) {
+        if (popup.alpha <= 0) continue;
+        ctx.save();
+        ctx.globalAlpha = popup.alpha;
+        ctx.font = `bold ${Math.round(22 * (popup.scale || 1))}px "Noto Sans SC", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // 描边
+        ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+        ctx.lineWidth = 3;
+        ctx.strokeText(popup.text, popup.x, popup.y);
+        ctx.fillStyle = popup.color;
+        ctx.fillText(popup.text, popup.x, popup.y);
+        ctx.restore();
+      }
+    }
   }
 
   _renderBattleUI(ctx) {
@@ -1101,9 +1333,10 @@ class BattleScene {
     if (this.battle && this.battle.resonances && this.battle.resonances.length > 0) {
       const resX = 1280 - 230;
       const resY = 15;
-      Renderer.drawPanel(ctx, resX, resY, 210, 20 + this.battle.resonances.length * 22, {
-        bg: 'rgba(20, 10, 40, 0.8)',
-        border: '#6a4a9a'
+      drawFramedPanel(ctx, resX, resY, 210, 20 + this.battle.resonances.length * 22, 'panel', {
+        slice: 15,
+        fallbackBg: 'rgba(20, 10, 40, 0.8)',
+        fallbackBorder: '#6a4a9a'
       });
 
       Renderer.drawText(ctx, '共鸣', resX + 10, resY + 14, {
@@ -1127,11 +1360,11 @@ class BattleScene {
       });
 
       for (const btn of this.skillButtons) {
-        Renderer.drawButton(ctx, btn.x, btn.y, btn.w, btn.h, btn.label, {
+        drawFramedButton(ctx, btn.x, btn.y, btn.w, btn.h, btn.label, {
           fontSize: 16,
           disabled: !btn.enabled,
-          bgColor: btn.enabled ? '#1a2a4a' : '#1a1a2a',
-          borderColor: btn.enabled ? '#5588cc' : '#333'
+          fallbackBg: btn.enabled ? '#1a2a4a' : '#1a1a2a',
+          fallbackBorder: btn.enabled ? '#5588cc' : '#333'
         });
       }
     }
@@ -1145,14 +1378,18 @@ class BattleScene {
       });
 
       // 取消按钮
-      Renderer.drawButton(ctx, 540, 630, 200, 40, '取消', { fontSize: 14 });
+      drawFramedButton(ctx, 540, 630, 200, 40, '取消', { fontSize: 14 });
       this._cancelBtn = { x: 540, y: 630, w: 200, h: 40 };
     }
   }
 
   _renderLog(ctx) {
     const logY = 10;
-    Renderer.drawPanel(ctx, 10, logY, 350, 100, { bg: 'rgba(0, 0, 0, 0.7)', border: 'transparent' });
+    drawFramedPanel(ctx, 10, logY, 350, 100, 'panel', {
+      slice: 15,
+      fallbackBg: 'rgba(0, 0, 0, 0.7)',
+      fallbackBorder: 'transparent'
+    });
 
     const recentLogs = this.battle.battleLog.slice(-4);
     recentLogs.forEach((log, i) => {
@@ -1176,11 +1413,7 @@ class BattleScene {
       align: 'center'
     });
 
-    Renderer.drawButton(ctx, 540, 400, 200, 50, '继续', {
-      fontSize: 20,
-      bgColor: '#2a2a4a',
-      borderColor: '#7c5cbf'
-    });
+    drawFramedButton(ctx, 540, 400, 200, 50, '继续', { fontSize: 20 });
     this._resultBtn = { x: 540, y: 400, w: 200, h: 50 };
   }
 
@@ -1310,7 +1543,7 @@ class GachaScene {
     });
 
     // 返回按钮
-    Renderer.drawButton(ctx, 30, 20, 100, 40, '返回', { fontSize: 14 });
+    drawFramedButton(ctx, 30, 20, 100, 40, '返回', { fontSize: 14 });
     this._backBtn = { x: 30, y: 20, w: 100, h: 40 };
 
     if (this.phase === 'select') {
@@ -1325,10 +1558,7 @@ class GachaScene {
     const pool = GachaConfig.pools[this.currentPool];
 
     // 卡池信息
-    Renderer.drawPanel(ctx, W / 2 - 250, 120, 500, 200, {
-      bg: 'rgba(20, 15, 40, 0.9)',
-      border: '#7c5cbf'
-    });
+    drawFramedPanel(ctx, W / 2 - 250, 120, 500, 200, 'panel', { slice: 30 });
 
     Renderer.drawText(ctx, pool.name, W / 2, 160, {
       fontSize: 28,
@@ -1367,11 +1597,9 @@ class GachaScene {
 
     for (const btn of this._pullButtons) {
       const canAfford = this.gacha.canAfford(window.game?.state?.currency || { crystals: 0 }, this.currentPool, btn.count);
-      Renderer.drawButton(ctx, btn.x, btn.y, btn.w, btn.h, btn.text, {
+      drawFramedButton(ctx, btn.x, btn.y, btn.w, btn.h, btn.text, {
         fontSize: 18,
-        disabled: !canAfford,
-        bgColor: '#2a1a4a',
-        borderColor: '#9a7cbf'
+        disabled: !canAfford
       });
     }
   }
@@ -1456,11 +1684,7 @@ class GachaScene {
     });
 
     // 确认按钮
-    Renderer.drawButton(ctx, W / 2 - 100, H - 100, 200, 50, '确认', {
-      fontSize: 20,
-      bgColor: '#2a2a4a',
-      borderColor: '#7c5cbf'
-    });
+    drawFramedButton(ctx, W / 2 - 100, H - 100, 200, 50, '确认', { fontSize: 20 });
     this._confirmBtn = { x: W / 2 - 100, y: H - 100, w: 200, h: 50 };
   }
 

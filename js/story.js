@@ -13,6 +13,17 @@ const StoryData = {
       name: '序章·黎明之前',
       description: '一切的起点，命运的齿轮开始转动…',
       unlockCondition: null, // 第一章无前置条件
+      // 剧情背景映射：节点 ID → 背景图路径（美术 2026-09-19 产出）
+      backgrounds: {
+        'ch1_n1': 'assets/maps/story/awakening_void.png',
+        'ch1_n2': 'assets/maps/story/awakening_void.png',
+        'ch1_n3': 'assets/maps/battle/arena_default.png',
+        'ch1_n4': 'assets/maps/story/ancient_path.png',
+        'ch1_n5a': 'assets/maps/story/ancient_ruins.png',
+        'ch1_n5b': 'assets/maps/story/dark_forest.png',
+        'ch1_n6': 'assets/maps/battle/arena_default.png',
+        'ch1_end': 'assets/maps/story/ancient_path.png'
+      },
       nodes: [
         {
           id: 'ch1_n1',
@@ -137,6 +148,13 @@ const StoryData = {
     const chapter = this.getChapter(chapterId);
     if (!chapter) return null;
     return chapter.nodes.find(n => n.id === nodeId);
+  },
+
+  // 获取节点背景图路径
+  getNodeBackground(chapterId, nodeId) {
+    const chapter = this.getChapter(chapterId);
+    if (!chapter || !chapter.backgrounds) return null;
+    return chapter.backgrounds[nodeId] || null;
   }
 };
 
