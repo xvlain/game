@@ -90,6 +90,19 @@ async function preloadAssets() {
     });
   }
 
+  // 剧情地图背景（序章 4 张）
+  const storyBgs = {
+    story_awakening: 'assets/maps/story/awakening_void.png',
+    story_ancient_path: 'assets/maps/story/ancient_path.png',
+    story_ancient_ruins: 'assets/maps/story/ancient_ruins.png',
+    story_dark_forest: 'assets/maps/story/dark_forest.png'
+  };
+  for (const [key, src] of Object.entries(storyBgs)) {
+    await loader.loadImage(key, src).then(img => {
+      if (img) GameAssets.backgrounds[key.replace('story_', 'story_')] = img;
+    });
+  }
+
   const loaded = Object.keys(GameAssets.backgrounds).length +
                  Object.keys(GameAssets.ui).length +
                  Object.keys(GameAssets.icons).length +
@@ -558,7 +571,14 @@ class StoryMapScene {
     const W = 1280, H = 720;
 
     // 背景
-    ctx.fillStyle = '#0a0a18';
+    // 尝试使用第一张剧情背景作为底色
+    const storyBg = GameAssets.backgrounds.story_awakening || GameAssets.backgrounds.story_ancient_path || null;
+    if (storyBg) {
+      ctx.globalAlpha = 0.3;
+      ctx.drawImage(storyBg, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = storyBg ? 'rgba(10, 10, 24, 0.7)' : '#0a0a18';
     ctx.fillRect(0, 0, W, H);
 
     // 标题
@@ -703,6 +723,9 @@ class DialogueScene {
       this.storyManager = window.game?.storyManager || new StoryManager();
     }
 
+    this._chapterId = data.chapterId;
+    this._nodeId = data.nodeId;
+
     this.storyManager.enterChapter(data.chapterId);
     // 跳到指定节点
     const chapter = StoryData.getChapter(data.chapterId);
@@ -711,6 +734,27 @@ class DialogueScene {
       if (node) {
         this.storyManager.currentNode = node;
         this.storyManager.dialogueIndex = 0;
+      }
+    }
+
+    // 加载剧情背景
+    this._dialogueBg = null;
+    const bgPath = StoryData.getNodeBackground(data.chapterId, data.nodeId);
+    if (bgPath) {
+      // 从预加载缓存中查找
+      for (const [key, img] of Object.entries(GameAssets.backgrounds)) {
+        if (key.startsWith('story_') && bgPath.includes(key.replace('story_', ''))) {
+          this._dialogueBg = img;
+          break;
+        }
+      }
+      // 如果没命中预加载缓存，尝试直接查找（兜底）
+      if (!this._dialogueBg) {
+        const bgKey = bgPath.split('/').pop().replace('.png', '');
+        const altKey = `story_${bgKey}`;
+        if (GameAssets.backgrounds[altKey]) {
+          this._dialogueBg = GameAssets.backgrounds[altKey];
+        }
       }
     }
 
@@ -736,15 +780,25 @@ class DialogueScene {
     const W = 1280, H = 720;
 
     // 背景
-    ctx.fillStyle = '#0a0a14';
-    ctx.fillRect(0, 0, W, H);
-
-    // 场景装饰（后期替换为场景图）
-    Renderer.drawText(ctx, '[ 场景 ]', W / 2, H / 2 - 100, {
-      fontSize: 14,
-      color: '#303050',
-      align: 'center'
-    });
+    if (this._dialogueBg) {
+      ctx.drawImage(this._dialogueBg, 0, 0, W, H);
+      // 底部暗化确保对话框可读
+      const grad = ctx.createLinearGradient(0, H * 0.4, 0, H);
+      grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      grad.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.fillStyle = '#0a0a14';
+      ctx.fillRect(0, 0, W, H);
+      // 场景装饰（无背景时的占位）
+      Renderer.drawText(ctx, '[ 场景 ]', W / 2, H / 2 - 100, {
+        fontSize: 14,
+        color: '#303050',
+        align: 'center'
+      });
+    }
 
     // 对话框（优先使用边框素材）
     const boxY = H - 200;

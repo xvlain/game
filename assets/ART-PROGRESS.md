@@ -222,4 +222,18 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 - 制作战斗特效序列帧（各元素攻击特效、暴击、治愈、共鸣）
 - 制作角色名标签框 UI 素材
 - 后续章节区域背景（待元首提供新章节地图设计）
-- 将 UI 动画系统和背景素材接入主引擎渲染
+
+---
+
+## 七、本次执行记录（2026-09-19 01:15）
+
+### 技术集成（v0.9.0）
+1. **UI 边框素材集成**：5 个九宫格边框素材（dialog_box/panel_frame/button_frame/hp_bar_frame/energy_bar_frame）预加载到 `GameAssets.frames`，新增 `drawNineSlice()` 九宫格绘制、`drawFramedPanel()` / `drawFramedButton()` 通用绘制函数
+2. **UI 动画系统接入场景渲染**：`UIAnimations.update(dt)` 接入引擎主循环；战斗场景使用 `HPBarRenderer`（平滑过渡+受击闪烁+低血量变色）和 `EnergyBarRenderer`（五行颜色+满能量脉冲）；伤害数字弹出动画和屏幕震动效果接入战斗行动结果
+3. **音频管理器升级**：从占位空壳升级为 Web Audio API 实现，支持合成音效（click/hit/crit/heal/gacha_roll/gacha_ssr/levelup/skill/ultimate）和 BGM 框架（循环播放+淡入淡出），音频文件待后续制作
+4. **场景全面升级**：标题画面、主菜单、剧情地图、对话框、战斗界面、抽卡界面的面板和按钮全部替换为九宫格边框渲染，素材不可用时自动回退到纯色面板
+
+### 待联动项
+- UI 动画系统已接入但 `ui-animations.js` 中的 `animateTypewriter` 尚未替换 `DialogueScene` 的逐字显示逻辑（当前 DialogueScene 使用自有的 displayTimer 方案，效果等价）
+- 合成音效已就绪，BGM 文件待制作后可通过 `game.audio.playBgm(name, url)` 直接调用
+- HP/Energy 渲染器目前仅在 BattleScene 中使用，其他场景（角色展示/养成等）可后续接入
