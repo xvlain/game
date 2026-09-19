@@ -27,6 +27,8 @@
 ```
 game-project/
 ├── index.html           # 入口
+├── manifest.json        # PWA 清单
+├── sw.js                # Service Worker（离线缓存）
 ├── js/
 │   ├── engine.js        # 引擎（场景管理、渲染、输入、资源加载）
 │   ├── battle.js        # 回合制战斗（含共鸣/元素力）
@@ -37,6 +39,8 @@ game-project/
 │   ├── stages.js        # 材料掉落关卡 / 每日挑战 / 体力系统 / 签到
 │   ├── characters.js    # 角色图鉴 & 编队
 │   ├── ui.js            # 所有场景 UI 渲染
+│   ├── ui-animations.js # UI 动画系统（HP条/伤害弹出/屏幕震动）
+│   ├── battle-effects.js # 战斗粒子特效
 │   └── main.js          # 游戏入口
 ├── assets/              # 美术资源（后期填充）
 ├── game_schema.sql      # Supabase 建表脚本（幂等，可重跑）
@@ -93,6 +97,10 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 | 时间       | 问题                                | 状态       |
 |------------|-------------------------------------|------------|
+| 2026-09-20 | PWA Service Worker + manifest.json 支持添加到主屏幕 | ✅ 已完成  |
+| 2026-09-20 | Farm 关卡自动战斗系统（优先大招→战技→普攻，集火最低血量） | ✅ 已完成  |
+| 2026-09-20 | 剧情对话快进（已读自动快进 + 手动切换 + 点击停止） | ✅ 已完成  |
+| 2026-09-20 | 玩家统计面板（总览/角色/背包三 Tab） | ✅ 已完成  |
 | 2026-09-19 | UI 边框素材已预加载 + 九宫格渲染集成 | ✅ 已完成  |
 | 2026-09-19 | UI 动画系统接入场景（HP/能量条渲染器+伤害弹出+屏幕震动） | ✅ 已完成 |
 | 2026-09-19 | 音频管理器升级为 Web Audio API（合成音效+BGM框架） | ✅ 已完成 |
@@ -109,6 +117,10 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 - [ ] Q 版战斗序列帧渲染（与美术任务联动，等序列帧素材）
 - [ ] 剧情内容填充（元首提供）
 - [ ] 音频资源制作与加载（BGM/音效文件，管理器已就绪）
+- [x] PWA 支持（Service Worker + manifest.json，可添加到主屏幕）
+- [x] 自动战斗系统（Farm 关卡自动选择技能+目标）
+- [x] 剧情对话快进（已读自动跳过 + 手动切换）
+- [x] 玩家统计面板（冒险统计场景：总览/角色/背包）
 - [x] UI 边框素材集成（九宫格渲染：对话框/面板/按钮/HP条/能量条）→ ui.js
 - [x] UI 动画系统接入场景（HPBarRenderer/EnergyBarRenderer/伤害弹出/屏幕震动）→ ui.js + engine.js
 - [x] 音频管理器（Web Audio API + 合成音效 + BGM 框架）→ engine.js

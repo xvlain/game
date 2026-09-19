@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="未定之旅 - 庸人工作室出品的网页二次元回合制RPG">
   <meta name="theme-color" content="#0a0a14">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/brand/logo/佣人工作室Logo.png">
   <title>未定之旅</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -192,6 +194,15 @@
       setTimeout(() => {
         document.getElementById('loading').classList.add('hidden');
       }, 800);
+
+      // 注册 Service Worker（PWA）
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+          console.log('[PWA] Service Worker 已注册, scope:', reg.scope);
+        }).catch((err) => {
+          console.warn('[PWA] Service Worker 注册失败:', err);
+        });
+      }
     });
 
     document.addEventListener('dblclick', (e) => e.preventDefault());

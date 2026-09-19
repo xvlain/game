@@ -1,7 +1,7 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.9.0 - UI 边框素材集成 + 动画系统接入 + 音频管理器
+ * v0.10.0 - PWA 支持 + 自动战斗 + 剧情快进 + 玩家统计
  */
 
 let game = null;
@@ -35,6 +35,7 @@ async function initGame() {
     party: new PartyScene(),
     stages: new FarmStageScene(),
     stage_result: new StageResultScene(),
+    stats: new StatsScene(),
     settings: new SettingsScene()
   };
 
@@ -73,7 +74,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.9.0 初始化完成');
+  console.log('[Game] v0.10.0 初始化完成');
 }
 
 function buildDefaultState() {

@@ -1,7 +1,7 @@
 /**
  * ui.js - 游戏场景与 UI 渲染
- * 包含：标题画面、主菜单、剧情地图、战斗界面、抽卡界面、设置
- * v0.9.0 - UI 边框素材集成 + 动画系统接入 + 音频管理器
+ * 包含：标题画面、主菜单、剧情地图、战斗界面、抽卡界面、设置、统计
+ * v0.10.0 - PWA 支持 + 自动战斗 + 剧情快进 + 玩家统计面板
  */
 
 // ============ 素材管理器 ============
@@ -342,7 +342,7 @@ class TitleScene {
     }
 
     // 底部信息
-    Renderer.drawText(ctx, 'v0.9.0 · 庸人工作室', W / 2, H - 30, {
+    Renderer.drawText(ctx, 'v0.10.0 · 庸人工作室', W / 2, H - 30, {
       fontSize: 12,
       color: '#505070',
       align: 'center'
@@ -383,6 +383,7 @@ class MainMenuScene {
       { text: '召唤', desc: '抽取新角色', action: 'gacha', icon: '✨' },
       { text: '角色', desc: '查看角色详情', action: 'characters', icon: '👤' },
       { text: '关卡', desc: '挑战独立关卡', action: 'stages', icon: '🏰' },
+      { text: '统计', desc: '冒险统计数据', action: 'stats', icon: '📊' },
       { text: '设置', desc: '游戏设置', action: 'settings', icon: '⚙️' }
     ];
   }
@@ -422,21 +423,21 @@ class MainMenuScene {
       Renderer.drawText(ctx, `${state.currency?.coins || 0}`, W - 130, 40, { fontSize: 16, color: '#ffcc44' });
     }
 
-    // 菜单网格（4+3 布局）
-    const cardW = 240, cardH = 160;
-    const gapX = 25, gapY = 25;
+    // 菜单网格（4+4 布局）
+    const cardW = 240, cardH = 140;
+    const gapX = 25, gapY = 20;
 
     for (let i = 0; i < this.menuItems.length; i++) {
       let col, row, cols;
       if (i < 4) {
         col = i; row = 0; cols = 4;
       } else {
-        col = i - 4; row = 1; cols = 3;
+        col = i - 4; row = 1; cols = 4;
       }
 
       const totalW = cols * cardW + (cols - 1) * gapX;
       const startX = (W - totalW) / 2;
-      const startY = 110;
+      const startY = 100;
 
       const x = startX + col * (cardW + gapX);
       const y = startY + row * (cardH + gapY);
@@ -475,7 +476,7 @@ class MainMenuScene {
     }
 
     // 底部
-    Renderer.drawText(ctx, 'v0.9.0 · 庸人工作室', W / 2, H - 25, {
+    Renderer.drawText(ctx, 'v0.10.0 · 庸人工作室', W / 2, H - 25, {
       fontSize: 12,
       color: '#404060',
       align: 'center'
@@ -528,6 +529,9 @@ class MainMenuScene {
             break;
           case 'stages':
             this.sceneManager.switchTo('stages');
+            break;
+          case 'stats':
+            this.sceneManager.switchTo('stats');
             break;
           case 'settings':
             this.sceneManager.switchTo('settings');
@@ -725,6 +729,8 @@ class DialogueScene {
 
     this._chapterId = data.chapterId;
     this._nodeId = data.nodeId;
+    this._autoSkip = false; // 自动快进模式
+    this._skipHintTimer = 0;
 
     this.storyManager.enterChapter(data.chapterId);
     // 跳到指定节点
@@ -734,6 +740,12 @@ class DialogueScene {
       if (node) {
         this.storyManager.currentNode = node;
         this.storyManager.dialogueIndex = 0;
+
+        // 已读节点 → 自动开启快进
+        if (this.storyManager.completedNodes.has(data.nodeId)) {
+          this._autoSkip = true;
+          this._skipHintTimer = 2.0; // 显示 2 秒"快进中"提示
+        }
       }
     }
 
@@ -772,8 +784,34 @@ class DialogueScene {
 
   update(dt) {
     this.displayTimer += dt;
-    const charsPerSecond = 30;
+    const charsPerSecond = this._autoSkip ? 200 : 30;
     this.displayedChars = Math.min(this.text.length, Math.floor(this.displayTimer * charsPerSecond));
+
+    // 快进模式：自动推进对话
+    if (this._autoSkip) {
+      this._skipHintTimer = Math.max(0, this._skipHintTimer - dt);
+
+      if (this.displayedChars >= this.text.length) {
+        // 等一小段时间再自动推进（避免闪屏）
+        if (!this._skipDelay) {
+          this._skipDelay = 0.15;
+        }
+        this._skipDelay -= dt;
+        if (this._skipDelay <= 0) {
+          this._skipDelay = 0;
+          // 如果是选择支 → 停止快进，等玩家选择
+          if (this.storyManager.currentNode?.type === 'choice') {
+            this._autoSkip = false;
+            return;
+          }
+          const result = this.storyManager.advanceDialogue();
+          if (result.type === 'none' || result.type === 'chapter_end' || result.type === 'battle') {
+            this._autoSkip = false;
+          }
+          this._handleResult(result);
+        }
+      }
+    }
   }
 
   render(ctx) {
@@ -856,6 +894,26 @@ class DialogueScene {
         this.choices[i]._rect = { x: cx, y: startY, w: choiceW, h: choiceH };
       }
     }
+
+    // 快进按钮（右上角）
+    const skipBtnW = 80, skipBtnH = 32;
+    const skipBtnX = W - skipBtnW - 20, skipBtnY = 20;
+    this._skipBtn = { x: skipBtnX, y: skipBtnY, w: skipBtnW, h: skipBtnH };
+    drawFramedButton(ctx, skipBtnX, skipBtnY, skipBtnW, skipBtnH,
+      this._autoSkip ? '⏩ 快进中' : '⏩ 快进', {
+        fontSize: 12,
+        disabled: this._autoSkip
+      });
+
+    // 快进提示
+    if (this._skipHintTimer > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, this._skipHintTimer);
+      Renderer.drawText(ctx, '已读对话 · 自动快进中（点击停止）', W / 2, 60, {
+        fontSize: 13, color: '#ffcc88', align: 'center'
+      });
+      ctx.restore();
+    }
   }
 
   _wrapText(ctx, text, x, y, maxWidth, lineHeight, options) {
@@ -882,6 +940,13 @@ class DialogueScene {
   }
 
   handleClick(x, y) {
+    // 快进按钮（右上角）
+    if (this._skipBtn && Renderer.hitTest(x, y, this._skipBtn)) {
+      this._autoSkip = !this._autoSkip;
+      if (this._autoSkip) this._skipHintTimer = 2.0;
+      return;
+    }
+
     // 选择支点击
     if (this.choices) {
       for (let i = 0; i < this.choices.length; i++) {
@@ -891,6 +956,12 @@ class DialogueScene {
           return;
         }
       }
+      return;
+    }
+
+    // 快进模式下点击 → 停止快进
+    if (this._autoSkip) {
+      this._autoSkip = false;
       return;
     }
 
@@ -966,6 +1037,8 @@ class BattleScene {
     this.farmStageConfig = data.stageConfig || null;
     this.isDailyChallenge = data.isDaily || false;
     this.stageId = data.stageId || null;
+    this._autoBattle = false;   // 自动战斗开关（仅 Farm 关卡可用）
+    this._autoTimer = 0;        // 自动行动延迟计时器
 
     // 选择战斗背景
     const bgKey = getBattleBgKey(this.stageId, this.isDailyChallenge);
@@ -1179,6 +1252,43 @@ class BattleScene {
 
     // 清理已完成的伤害弹出
     this._damagePopups = (this._damagePopups || []).filter(p => p.alpha > 0);
+
+    // 自动战斗逻辑（仅 Farm 关卡）
+    if (this._autoBattle && this.battle && this.phase !== 'result') {
+      this._autoTimer += dt;
+
+      if (this.phase === 'select_skill' && this._autoTimer >= 0.5) {
+        this._autoTimer = 0;
+        // 自动选择技能：优先大招 > 元素技 > 普攻
+        const actor = this.battle.currentActor;
+        if (actor) {
+          let chosenKey = 'normal';
+          // 大招可用时使用大招
+          if (actor.currentEnergy >= 100) {
+            chosenKey = 'ultimate';
+          }
+          // 元素力足够且战技可用时使用战技
+          else if (typeof ElementalForceSystem !== 'undefined' &&
+                   ElementalForceSystem.canUse(actor, actor.skills.skill?.forceCost || 25)) {
+            chosenKey = 'skill';
+          }
+          this.selectedSkill = chosenKey;
+          this.phase = 'select_target';
+        }
+      }
+
+      if (this.phase === 'select_target' && this._autoTimer >= 0.3) {
+        this._autoTimer = 0;
+        // 自动选择血量最低的敌人
+        const alive = this.battle.enemies.filter(e => e.currentHp > 0);
+        if (alive.length > 0) {
+          const target = alive.reduce((min, e) => e.currentHp < min.currentHp ? e : min, alive[0]);
+          const targetIdx = this.battle.enemies.indexOf(target);
+          this.battle.playerAction(this.selectedSkill, targetIdx);
+          this.phase = 'animating';
+        }
+      }
+    }
   }
 
   render(ctx) {
@@ -1435,6 +1545,19 @@ class BattleScene {
       drawFramedButton(ctx, 540, 630, 200, 40, '取消', { fontSize: 14 });
       this._cancelBtn = { x: 540, y: 630, w: 200, h: 40 };
     }
+
+    // 自动战斗按钮（仅 Farm 关卡显示）
+    if (this.isFarm && this.phase !== 'result') {
+      const autoBtnW = 90, autoBtnH = 34;
+      const autoBtnX = W - autoBtnW - 20, autoBtnY = H - autoBtnH - 20;
+      this._autoBattleBtn = { x: autoBtnX, y: autoBtnY, w: autoBtnW, h: autoBtnH };
+      drawFramedButton(ctx, autoBtnX, autoBtnY, autoBtnW, autoBtnH,
+        this._autoBattle ? '⚡ 自动' : '自动战斗', {
+          fontSize: 12,
+          fallbackBg: this._autoBattle ? '#2a4a2a' : '#2a2a3e',
+          fallbackBorder: this._autoBattle ? '#4a8a4a' : '#5c4d9a'
+        });
+    }
   }
 
   _renderLog(ctx) {
@@ -1472,6 +1595,24 @@ class BattleScene {
   }
 
   handleClick(x, y) {
+    // 自动战斗切换按钮
+    if (this._autoBattleBtn && Renderer.hitTest(x, y, this._autoBattleBtn)) {
+      this._autoBattle = !this._autoBattle;
+      this._autoTimer = 0;
+      if (this._autoBattle) {
+        console.log('[Battle] 自动战斗已开启');
+      } else {
+        console.log('[Battle] 自动战斗已关闭');
+      }
+      return;
+    }
+
+    // 自动战斗中 → 点击屏幕关闭自动
+    if (this._autoBattle && this.phase !== 'result') {
+      this._autoBattle = false;
+      return;
+    }
+
     // 技能选择
     if (this.phase === 'select_skill') {
       for (const btn of this.skillButtons) {
@@ -1813,6 +1954,342 @@ class GachaScene {
   }
 }
 
+// ============ 玩家统计场景 ============
+class StatsScene {
+  constructor() {
+    this.sceneManager = null;
+    this.tab = 0; // 0=总览, 1=角色, 2=关卡
+    this.scrollOffset = 0;
+  }
+
+  onEnter() {
+    this.tab = 0;
+    this.scrollOffset = 0;
+    this._collectStats();
+  }
+
+  onExit() {}
+
+  update(dt) {}
+
+  _collectStats() {
+    const state = window.game?.state;
+    const storyManager = window.game?.storyManager;
+
+    this.stats = {
+      // 基础信息
+      playerName: state?.player?.username || '旅者',
+      playerLevel: state?.player?.level || 1,
+
+      // 角色统计
+      rosterCount: state?.roster?.length || 0,
+      ssrCount: (state?.roster || []).filter(c => c.rarity === 'ssr').length,
+      srCount: (state?.roster || []).filter(c => c.rarity === 'sr').length,
+      rCount: (state?.roster || []).filter(c => c.rarity === 'r').length,
+
+      // 资源
+      crystals: state?.currency?.crystals || 0,
+      coins: state?.currency?.coins || 0,
+
+      // 编队
+      partySize: state?.party?.length || 0,
+
+      // 剧情进度
+      storyNodes: storyManager?.completedNodes?.size || 0,
+      unlockedChapters: storyManager?.unlockedChapters?.size || 1,
+
+      // 背包
+      inventory: state?.inventory || {},
+
+      // 角色详情
+      roster: state?.roster || [],
+
+      // 关卡进度（从本地存档读取）
+      stageProgress: this._loadStageProgress()
+    };
+  }
+
+  _loadStageProgress() {
+    const local = new LocalSaveManager();
+    const saves = local.load('main');
+    return saves?.stageProgress || null;
+  }
+
+  render(ctx) {
+    const W = 1280, H = 720;
+
+    // 背景
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#0d0d1f');
+    grad.addColorStop(1, '#1a1030');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // 顶部标题栏
+    drawFramedPanel(ctx, 20, 15, W - 40, 50, 'panel', { slice: 15 });
+    Renderer.drawText(ctx, '冒险统计', 40, 40, { fontSize: 20, color: '#d4b8ff' });
+
+    // 返回按钮
+    drawFramedButton(ctx, W - 120, 20, 90, 38, '返回', { fontSize: 14 });
+    this._backBtn = { x: W - 120, y: 20, w: 90, h: 38 };
+
+    // Tab 切换
+    const tabs = ['总览', '角色', '背包'];
+    this._tabBtns = [];
+    const tabW = 120, tabH = 36;
+    const tabStartX = 40;
+    const tabY = 80;
+
+    tabs.forEach((label, i) => {
+      const tx = tabStartX + i * (tabW + 10);
+      const isActive = this.tab === i;
+      drawFramedButton(ctx, tx, tabY, tabW, tabH, label, {
+        fontSize: 15,
+        fallbackBg: isActive ? '#3a2a5a' : '#1a1a2a',
+        fallbackBorder: isActive ? '#8a5cbf' : '#3a3060'
+      });
+      this._tabBtns.push({ x: tx, y: tabY, w: tabW, h: tabH, index: i });
+    });
+
+    // 内容区域
+    const contentY = 130;
+    const contentH = H - contentY - 30;
+
+    if (this.tab === 0) {
+      this._renderOverview(ctx, 40, contentY, W - 80, contentH);
+    } else if (this.tab === 1) {
+      this._renderRoster(ctx, 40, contentY, W - 80, contentH);
+    } else if (this.tab === 2) {
+      this._renderInventory(ctx, 40, contentY, W - 80, contentH);
+    }
+  }
+
+  _renderOverview(ctx, x, y, w, h) {
+    const s = this.stats;
+    drawFramedPanel(ctx, x, y, w, h, 'panel', { slice: 25 });
+
+    const col1X = x + 30;
+    const col2X = x + w / 2 + 20;
+    let rowY = y + 30;
+    const lineH = 36;
+
+    // 左列 - 基础信息
+    Renderer.drawText(ctx, '冒险者信息', col1X, rowY, { fontSize: 18, color: '#d4b8ff' });
+    rowY += lineH;
+    Renderer.drawText(ctx, `名称: ${s.playerName}`, col1X, rowY, { fontSize: 15, color: '#c0c0d0' });
+    rowY += lineH - 8;
+    Renderer.drawText(ctx, `等级: Lv.${s.playerLevel}`, col1X, rowY, { fontSize: 15, color: '#c0c0d0' });
+    rowY += lineH - 8;
+    Renderer.drawText(ctx, `编队: ${s.partySize} 人`, col1X, rowY, { fontSize: 15, color: '#c0c0d0' });
+    rowY += lineH - 8;
+    Renderer.drawText(ctx, `已解锁章节: ${s.unlockedChapters}`, col1X, rowY, { fontSize: 15, color: '#c0c0d0' });
+    rowY += lineH - 8;
+    Renderer.drawText(ctx, `已完成节点: ${s.storyNodes}`, col1X, rowY, { fontSize: 15, color: '#c0c0d0' });
+
+    // 右列 - 资源 & 抽卡
+    rowY = y + 30;
+    Renderer.drawText(ctx, '资源与收集', col2X, rowY, { fontSize: 18, color: '#d4b8ff' });
+    rowY += lineH;
+
+    // 水晶
+    drawItemIcon(ctx, 'crystals', col2X + 10, rowY, 18, '💎');
+    Renderer.drawText(ctx, `水晶: ${s.crystals}`, col2X + 28, rowY, { fontSize: 15, color: '#88ccff' });
+    rowY += lineH - 8;
+
+    // 金币
+    drawItemIcon(ctx, 'coins', col2X + 10, rowY, 18, '🪙');
+    Renderer.drawText(ctx, `金币: ${s.coins}`, col2X + 28, rowY, { fontSize: 15, color: '#ffcc44' });
+    rowY += lineH;
+
+    // 角色统计
+    Renderer.drawText(ctx, '角色收集', col2X, rowY, { fontSize: 18, color: '#d4b8ff' });
+    rowY += lineH;
+    Renderer.drawText(ctx, `总计: ${s.rosterCount} 名角色`, col2X, rowY, { fontSize: 15, color: '#c0c0d0' });
+    rowY += lineH - 8;
+    Renderer.drawText(ctx, `SSR: ${s.ssrCount}  ·  SR: ${s.srCount}  ·  R: ${s.rCount}`, col2X, rowY, { fontSize: 15, color: '#c0c0d0' });
+    rowY += lineH;
+
+    // SSR 率
+    const totalPulls = s.ssrCount + s.srCount + s.rCount;
+    if (totalPulls > 0) {
+      const ssrRate = ((s.ssrCount / totalPulls) * 100).toFixed(1);
+      Renderer.drawText(ctx, `SSR 出率: ${ssrRate}%`, col2X, rowY, { fontSize: 15, color: '#ffcc44' });
+    }
+  }
+
+  _renderRoster(ctx, x, y, w, h) {
+    const roster = this.stats.roster;
+
+    if (roster.length === 0) {
+      drawFramedPanel(ctx, x, y, w, h, 'panel', { slice: 25 });
+      Renderer.drawText(ctx, '暂无角色，去召唤吧！', x + w / 2, y + h / 2, {
+        fontSize: 18, color: '#8080a0', align: 'center'
+      });
+      return;
+    }
+
+    // 按稀有度排序
+    const sorted = [...roster].sort((a, b) => {
+      const order = { ssr: 0, sr: 1, r: 2 };
+      return (order[a.rarity] || 3) - (order[b.rarity] || 3);
+    });
+
+    const cardW = 200, cardH = 100, gap = 12;
+    const cols = Math.floor((w - gap) / (cardW + gap));
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+
+    sorted.forEach((char, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = x + col * (cardW + gap) + gap / 2;
+      const cy = y + row * (cardH + gap) - this.scrollOffset;
+
+      if (cy + cardH < y || cy > y + h) return;
+
+      const rarityColors = {
+        ssr: { bg: 'rgba(60, 40, 10, 0.85)', border: '#ffcc00' },
+        sr: { bg: 'rgba(40, 20, 60, 0.85)', border: '#cc66ff' },
+        r: { bg: 'rgba(20, 40, 20, 0.85)', border: '#66cc66' }
+      };
+      const colors = rarityColors[char.rarity] || rarityColors.r;
+
+      drawFramedPanel(ctx, cx, cy, cardW, cardH, 'panel', {
+        slice: 15,
+        fallbackBg: colors.bg,
+        fallbackBorder: colors.border
+      });
+
+      // 元素图标
+      const elemIcon = GameAssets.icons[char.element];
+      if (elemIcon) {
+        ctx.drawImage(elemIcon, cx + 8, cy + 8, 24, 24);
+      }
+
+      // 角色名
+      Renderer.drawText(ctx, char.name || char.id, cx + 40, cy + 20, {
+        fontSize: 14, color: '#e0d0ff'
+      });
+
+      // 稀有度
+      const stars = { ssr: '★★★★★', sr: '★★★★', r: '★★★' };
+      Renderer.drawText(ctx, stars[char.rarity] || '', cx + 10, cy + 42, {
+        fontSize: 11, color: colors.border
+      });
+
+      // 等级
+      Renderer.drawText(ctx, `Lv.${char.level || 1}`, cx + 10, cy + 62, {
+        fontSize: 13, color: '#a0a0b0'
+      });
+
+      // 命座
+      if (char.stars && char.stars > 0) {
+        Renderer.drawText(ctx, `命座 ×${char.stars}`, cx + 80, cy + 62, {
+          fontSize: 12, color: '#ffaa44'
+        });
+      }
+
+      // 定位
+      if (char.role) {
+        Renderer.drawText(ctx, char.role, cx + 10, cy + 82, {
+          fontSize: 11, color: '#8080a0'
+        });
+      }
+    });
+
+    ctx.restore();
+
+    // 滚动指示
+    if (sorted.length > cols * 3) {
+      const maxScroll = Math.max(0, Math.ceil(sorted.length / cols) * (cardH + gap) - h);
+      if (maxScroll > 0) {
+        const barH = Math.max(30, (h / (maxScroll + h)) * h);
+        const barY = y + (this.scrollOffset / maxScroll) * (h - barH);
+        ctx.fillStyle = 'rgba(128, 128, 160, 0.3)';
+        Renderer.roundRect(ctx, x + w - 6, barY, 4, barH, 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  _renderInventory(ctx, x, y, w, h) {
+    const inv = this.stats.inventory;
+    drawFramedPanel(ctx, x, y, w, h, 'panel', { slice: 25 });
+
+    const items = [
+      { key: 'exp_book_1', name: '初级经验书', count: inv.exp_book_1 || 0 },
+      { key: 'exp_book_2', name: '中级经验书', count: inv.exp_book_2 || 0 },
+      { key: 'exp_book_3', name: '高级经验书', count: inv.exp_book_3 || 0 },
+      { key: 'asc_stone_1', name: '微光之石', count: inv.asc_stone_1 || 0 },
+      { key: 'asc_stone_2', name: '辉光晶石', count: inv.asc_stone_2 || 0 },
+      { key: 'asc_stone_3', name: '星辉核心', count: inv.asc_stone_3 || 0 },
+      { key: 'asc_stone_4', name: '虹彩精华', count: inv.asc_stone_4 || 0 },
+      { key: 'asc_stone_5', name: '命运之证', count: inv.asc_stone_5 || 0 }
+    ];
+
+    const itemH = 44;
+    const startY = y + 30;
+
+    Renderer.drawText(ctx, '背包道具', x + 30, startY, { fontSize: 18, color: '#d4b8ff' });
+
+    items.forEach((item, i) => {
+      const iy = startY + 30 + i * itemH;
+      if (iy + itemH > y + h) return;
+
+      // 图标
+      drawItemIcon(ctx, item.key, x + 50, iy + itemH / 2, 28);
+
+      // 名称
+      Renderer.drawText(ctx, item.name, x + 80, iy + itemH / 2, {
+        fontSize: 15, color: '#c0c0d0'
+      });
+
+      // 数量
+      Renderer.drawText(ctx, `×${item.count}`, x + w - 60, iy + itemH / 2, {
+        fontSize: 15, color: item.count > 0 ? '#88cc88' : '#606080', align: 'right'
+      });
+
+      // 分隔线
+      if (i < items.length - 1) {
+        ctx.strokeStyle = 'rgba(60, 50, 90, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 30, iy + itemH);
+        ctx.lineTo(x + w - 30, iy + itemH);
+        ctx.stroke();
+      }
+    });
+  }
+
+  handleClick(x, y) {
+    // 返回
+    if (this._backBtn && Renderer.hitTest(x, y, this._backBtn)) {
+      this.sceneManager.switchTo('main_menu');
+      return;
+    }
+
+    // Tab 切换
+    for (const btn of this._tabBtns || []) {
+      if (Renderer.hitTest(x, y, btn)) {
+        this.tab = btn.index;
+        this.scrollOffset = 0;
+        return;
+      }
+    }
+  }
+
+  handleSwipe(direction, dist) {
+    // 角色列表支持滑动
+    if (this.tab === 1) {
+      if (direction === 'up') this.scrollOffset += 80;
+      if (direction === 'down') this.scrollOffset = Math.max(0, this.scrollOffset - 80);
+    }
+  }
+}
+
 // 导出所有场景
 window.TitleScene = TitleScene;
 window.MainMenuScene = MainMenuScene;
@@ -1820,3 +2297,4 @@ window.StoryMapScene = StoryMapScene;
 window.DialogueScene = DialogueScene;
 window.BattleScene = BattleScene;
 window.GachaScene = GachaScene;
+window.StatsScene = StatsScene;

@@ -1,0 +1,22 @@
+{
+  "name": "未定之旅",
+  "short_name": "未定之旅",
+  "description": "庸人工作室出品的网页二次元回合制RPG",
+  "start_url": "/game/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0a0a14",
+  "theme_color": "#1a1030",
+  "icons": [
+    {
+      "src": "assets/brand/logo/佣人工作室Logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/brand/logo/佣人工作室Logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
