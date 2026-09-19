@@ -1,7 +1,7 @@
 # 美术制作进度追踪
 
 > 庸人工作室 · 未定之旅 · 美术任务状态
-> 最后更新：2026-09-19 01:13
+> 最后更新：2026-09-20 01:14
 > 本文件与「游戏技术开发与网站落实」任务互通
 
 ---
@@ -105,6 +105,20 @@
 |------|------|------|------|
 | 五行召唤阵（抽卡动画背景） | `ui/backgrounds/gacha_animation_bg.png` | ✅ 已交付 | 2026-09-19 |
 
+### 12. 战斗特效 Sprite 素材（512×512px，透明背景 PNG）
+| 素材 | 文件 | 状态 | 日期 |
+|------|------|------|------|
+| 火元素攻击特效 | `battle/effects/fire_attack.png` | ✅ 已交付 | 2026-09-20 |
+| 水元素攻击特效 | `battle/effects/water_attack.png` | ✅ 已交付 | 2026-09-20 |
+| 木元素攻击特效 | `battle/effects/wood_attack.png` | ✅ 已交付 | 2026-09-20 |
+| 土元素攻击特效 | `battle/effects/earth_attack.png` | ✅ 已交付 | 2026-09-20 |
+| 金元素攻击特效 | `battle/effects/metal_attack.png` | ✅ 已交付 | 2026-09-20 |
+
+### 13. 角色名标签框（300×80px，透明背景 PNG）
+| 素材 | 文件 | 状态 | 日期 |
+|------|------|------|------|
+| 对话框角色名标签框 | `ui/frames/name_label_frame.png` | ✅ 已交付 | 2026-09-20 |
+
 ---
 
 ## 二、待制作素材（按优先级排序）
@@ -145,7 +159,9 @@
 - 路径规范：`maps/story/<区域名>.png`
 
 #### 战斗特效序列帧
-- [ ] 各元素攻击特效（火/水/木/土/金）
+- [x] ~~各元素攻击特效（火/水/木/土/金）~~ → 已完成 5 个攻击命中 sprite
+- [ ] 各元素战技特效（skill level）
+- [ ] 各元素大招特效（ultimate level）
 - [ ] 暴击特效
 - [ ] 治愈特效
 - [ ] 共鸣触发特效
@@ -158,7 +174,7 @@
 - [x] ~~按钮/面板边框~~ → 已完成 5 个 UI 边框素材（对话框/面板/按钮/HP条/能量条）
 - [x] ~~HP/能量条渲染器~~ → 已完成 Canvas 渲染器（带平滑过渡、闪烁、五行颜色）
 - [x] ~~抽卡动画素材~~ → 已完成 gacha_animation_bg.png（五行召唤阵背景）
-- [ ] 对话框内角色名标签框
+- [x] ~~对话框内角色名标签框~~ → 已完成 name_label_frame.png
 - 路径规范：`ui/<类别>/<素材名>.png`
 
 ---
@@ -195,13 +211,13 @@
 立绘：assets/characters/portraits/<角色id>.png
 Q版：assets/characters/chibi/<角色id>/<动作>_<帧号>.png
 头像：assets/characters/icons/<角色id>.png
-特效：assets/battle/effects/<特效名>_<帧号>.png
+特效：assets/battle/effects/<特效名>.png       ← 攻击特效已完成（5张sprite + 代码粒子）
 元素：assets/battle/elements/<元素id>.png    ← 已完成
 Logo：assets/brand/logo/佣人工作室Logo.png   ← 已完成
 战斗背景：assets/maps/battle/<场景名>.png     ← 已完成（7张）
 剧情背景：assets/maps/story/<区域名>.png     ← 已完成（4张，覆盖序章）
 道具图标：assets/ui/icons/<道具id>.png        ← 已完成（10个）
-UI边框：assets/ui/frames/<素材名>.png         ← 已完成（5个）
+UI边框：assets/ui/frames/<素材名>.png         ← 已完成（6个，含名标签框）
 UI动画：js/ui-animations.js                   ← 已完成（动画管理器+渲染器）
 抽卡动画背景：assets/ui/backgrounds/gacha_animation_bg.png ← 已完成
 ```
@@ -210,17 +226,20 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 
 ---
 
-## 六、本次执行记录（2026-09-19 01:13）
+## 六、本次执行记录（2026-09-20 01:13）
 
 ### 新增素材
-1. **剧情地图背景 ×4**：awakening_void（觉醒之地）、ancient_path（旅途古道）、ancient_ruins（古老遗迹）、dark_forest（幽暗森林）
-2. **抽卡动画背景 ×1**：gacha_animation_bg（五行召唤阵）
-3. **代码更新**：story.js 新增 backgrounds 映射和 getNodeBackground() 方法，序章节点全部关联背景图
+1. **角色名标签框 ×1**：`ui/frames/name_label_frame.png`（300×80px，暗紫+金色描边，左侧菱形装饰，用于对话框内显示角色名）
+2. **五行战斗特效 Sprite ×5**：`battle/effects/<element>_attack.png`（火/水/木/土/金元素攻击命中特效，512×512px，透明背景）
+
+### 代码更新
+1. **battle-effects.js 升级 v1.1.0**：新增 `SpriteEffects` 模块，支持加载并渲染 sprite 图片素材，叠加在粒子特效之上（`screen` 混合模式），包含缩放动画、淡入淡出、暴击增强特效
+2. Sprite 特效与现有粒子系统并行运行，素材不可用时自动降级为纯粒子效果
 
 ### 下一步计划
 - 等待角色设定完成后开始立绘制作（P0 阻塞项）
-- 制作战斗特效序列帧（各元素攻击特效、暴击、治愈、共鸣）
-- 制作角色名标签框 UI 素材
+- 制作战技/大招 sprite 特效（当前仅有普攻 attack 特效）
+- 制作治愈/共鸣触发 sprite 特效
 - 后续章节区域背景（待元首提供新章节地图设计）
 
 ---

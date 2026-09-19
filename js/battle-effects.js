@@ -1,11 +1,11 @@
 /**
  * battle-effects.js - 五行元素战斗特效系统
- * Canvas 粒子特效，用于战斗动画表现
- * v1.0.0 - 金木水火土五元素特效 + 通用战斗特效
+ * Canvas 粒子特效 + Sprite 图片素材，用于战斗动画表现
+ * v1.1.0 - 新增 Sprite 图片特效叠加渲染
  * 
  * 依赖：engine.js (Renderer)
- * 接口约定：assets/battle/effects/ 目录存放序列帧素材（可选）
- * 本模块提供纯代码粒子特效，无需图片资源即可运行
+ * 素材路径：assets/battle/effects/<元素>_attack.png
+ * 本模块同时提供代码粒子特效和 Sprite 图片叠加特效
  */
 
 // ============ 粒子系统核心 ============
@@ -767,7 +767,157 @@ const BattleEffects = {
   }
 };
 
+// ============ Sprite 图片特效叠加层 ============
+/**
+ * SpriteEffects - 管理战斗特效图片素材的加载与渲染
+ * 在粒子特效之上叠加静态图片素材，增强视觉表现力
+ */
+const SpriteEffects = {
+  sprites: {},       // { element: Image }
+  activeEffects: [], // 当前活跃的特效实例
+  loaded: false,
+
+  // 元素 sprite 映射
+  spriteMap: {
+    fire: 'assets/battle/effects/fire_attack.png',
+    water: 'assets/battle/effects/water_attack.png',
+    wood: 'assets/battle/effects/wood_attack.png',
+    earth: 'assets/battle/effects/earth_attack.png',
+    metal: 'assets/battle/effects/metal_attack.png'
+  },
+
+  /**
+   * 预加载所有 sprite 素材
+   * @param {string} basePath - 资源根路径，默认 ''
+   */
+  preload(basePath = '') {
+    const promises = [];
+    for (const [element, path] of Object.entries(this.spriteMap)) {
+      const img = new Image();
+      img.src = basePath + path;
+      this.sprites[element] = img;
+      promises.push(new Promise((resolve) => {
+        img.onload = () => {
+          console.log(`[SpriteEffects] ${element} loaded`);
+          resolve();
+        };
+        img.onerror = () => {
+          console.warn(`[SpriteEffects] ${element} failed to load: ${path}`);
+          this.sprites[element] = null;
+          resolve();
+        };
+      }));
+    }
+    Promise.all(promises).then(() => {
+      this.loaded = true;
+      console.log('[SpriteEffects] All sprites loaded');
+    });
+  },
+
+  /**
+   * 触发元素 sprite 特效
+   * @param {string} element - 元素名 (fire/water/wood/earth/metal)
+   * @param {number} x - 特效中心 X
+   * @param {number} y - 特效中心 Y
+   * @param {object} options - 可选参数
+   */
+  play(element, x, y, options = {}) {
+    const sprite = this.sprites[element];
+    if (!sprite || !sprite.complete || !sprite.naturalWidth) return;
+
+    this.activeEffects.push({
+      element,
+      x,
+      y,
+      sprite,
+      life: options.duration || 0.6,
+      maxLife: options.duration || 0.6,
+      size: options.size || 200,
+      rotation: options.rotation || 0,
+      scaleStart: options.scaleStart || 0.3,
+      scaleEnd: options.scaleEnd || 1.2,
+      fadeOutStart: options.fadeOutStart || 0.5 // 从生命周期的 50% 开始淡出
+    });
+  },
+
+  /**
+   * 触发暴击 sprite 特效（使用金色/白色闪光）
+   */
+  playCritical(x, y) {
+    // 暴击时同时触发所有元素中亮度最高的（金 > 火 > 其他）
+    const critElement = this.sprites.metal ? 'metal' : 
+                        this.sprites.fire ? 'fire' : null;
+    if (critElement) {
+      this.play(critElement, x, y, {
+        duration: 0.8,
+        size: 300,
+        scaleStart: 0.5,
+        scaleEnd: 1.5,
+        fadeOutStart: 0.3
+      });
+    }
+  },
+
+  update(dt) {
+    for (let i = this.activeEffects.length - 1; i >= 0; i--) {
+      const fx = this.activeEffects[i];
+      fx.life -= dt;
+      if (fx.life <= 0) {
+        this.activeEffects.splice(i, 1);
+      }
+    }
+  },
+
+  render(ctx) {
+    for (const fx of this.activeEffects) {
+      const progress = 1 - fx.life / fx.maxLife; // 0 -> 1
+      const fadeStart = fx.fadeOutStart;
+      
+      // 缩放动画：从小到大再略收缩
+      const scale = fx.scaleStart + (fx.scaleEnd - fx.scaleStart) * Math.sin(progress * Math.PI);
+      
+      // 透明度：前半段全不透明，后半段淡出
+      let alpha = 1;
+      if (progress > fadeStart) {
+        alpha = 1 - (progress - fadeStart) / (1 - fadeStart);
+      }
+      // 入场快速淡入（前 10%）
+      if (progress < 0.1) {
+        alpha *= progress / 0.1;
+      }
+
+      const drawSize = fx.size * scale;
+
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.85; // 略透明，让底层粒子可见
+      ctx.translate(fx.x, fx.y);
+      ctx.rotate(fx.rotation);
+      
+      // 添加发光混合模式
+      ctx.globalCompositeOperation = 'screen';
+      
+      ctx.drawImage(
+        fx.sprite,
+        -drawSize / 2,
+        -drawSize / 2,
+        drawSize,
+        drawSize
+      );
+      ctx.restore();
+    }
+  },
+
+  clear() {
+    this.activeEffects = [];
+  },
+
+  get active() {
+    return this.activeEffects.length > 0;
+  }
+};
+
 // ============ 导出 ============
 window.ParticleSystem = ParticleSystem;
 window.ElementEffects = ElementEffects;
 window.BattleEffects = BattleEffects;
+window.SpriteEffects = SpriteEffects;
