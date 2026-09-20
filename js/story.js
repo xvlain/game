@@ -135,6 +135,154 @@ const StoryData = {
           rewards: { items: { crystals: 500 } }
         }
       ]
+    },
+    {
+      id: 'ch2',
+      name: '第二章·命运交汇',
+      description: '离开觉醒之地，前方是更广阔的世界…',
+      unlockCondition: { completedChapter: 'ch1' }, // 需完成序章
+      // 剧情背景映射（复用现有素材，后期可替换）
+      backgrounds: {
+        'ch2_n1': 'assets/maps/story/ancient_path.png',
+        'ch2_n2': 'assets/maps/story/ancient_path.png',
+        'ch2_n3': 'assets/maps/battle/forest_dark.png',
+        'ch2_n4': 'assets/maps/story/ancient_ruins.png',
+        'ch2_n5a': 'assets/maps/battle/crystal_cave.png',
+        'ch2_n5b': 'assets/maps/battle/training_arena.png',
+        'ch2_n6': 'assets/maps/story/dark_forest.png',
+        'ch2_n7': 'assets/maps/battle/arena_default.png',
+        'ch2_end': 'assets/maps/story/ancient_path.png'
+      },
+      nodes: [
+        {
+          id: 'ch2_n1',
+          type: 'dialogue',
+          title: '旅途的开始',
+          position: { x: 100, y: 360 },
+          content: [
+            { speaker: '织星', text: '终于离开了觉醒之地。' },
+            { speaker: '织星', text: '从这里开始，你会遇到更多的旅者…也会遇到更多的敌人。' },
+            { speaker: '旁白', text: '你们沿着古道前行，远处的山峦在晨雾中若隐若现。' },
+            { speaker: '织星', text: '前面有个小镇，可以去补给一下。' }
+          ],
+          next: 'ch2_n2',
+          rewards: null
+        },
+        {
+          id: 'ch2_n2',
+          type: 'dialogue',
+          title: '神秘的旅者',
+          position: { x: 280, y: 300 },
+          content: [
+            { speaker: '???', text: '等等！你们也是旅者吗？' },
+            { speaker: '旁白', text: '一个身穿深色斗篷的人从路边跳了出来。' },
+            { speaker: '神秘旅者', text: '我叫"影"，一个人旅行太无聊了…能一起走吗？' },
+            { speaker: '织星', text: '（小声）这个人…感觉有点可疑。' }
+          ],
+          next: 'ch2_n3',
+          rewards: { items: { crystals: 150 } }
+        },
+        {
+          id: 'ch2_n3',
+          type: 'battle',
+          title: '遭遇战',
+          position: { x: 460, y: 360 },
+          description: '一群暗影生物挡住了去路！',
+          enemyConfig: [
+            { id: 'shadow_1', name: '暗影狼', hp: 800, atk: 90, def: 45, spd: 95, element: 'water' },
+            { id: 'shadow_2', name: '暗影狼', hp: 750, atk: 85, def: 40, spd: 90, element: 'water' },
+            { id: 'shadow_3', name: '暗影蝠', hp: 600, atk: 100, def: 30, spd: 110, element: 'none' }
+          ],
+          requiredParty: ['warrior', 'healer', 'mage'],
+          next: 'ch2_n4',
+          rewards: { items: { coins: 400, crystals: 80 } }
+        },
+        {
+          id: 'ch2_n4',
+          type: 'choice',
+          title: '分歧的路',
+          position: { x: 640, y: 360 },
+          content: [
+            { speaker: '影', text: '前面有两条路可以走。' },
+            { speaker: '影', text: '左边是水晶矿洞，听说里面有稀有材料。右边是修炼场，可以锻炼实力。' },
+            { speaker: '织星', text: '你想去哪边？' }
+          ],
+          choices: [
+            { text: '水晶矿洞', next: 'ch2_n5a' },
+            { text: '修炼场', next: 'ch2_n5b' }
+          ]
+        },
+        {
+          id: 'ch2_n5a',
+          type: 'dialogue',
+          title: '矿洞探索',
+          position: { x: 820, y: 260 },
+          content: [
+            { speaker: '旁白', text: '你们进入了幽暗的水晶矿洞。' },
+            { speaker: '影', text: '哇…这些水晶好漂亮！' },
+            { speaker: '织星', text: '小心，矿洞深处通常有守卫者。' },
+            { speaker: '旁白', text: '远处传来沉重的脚步声…' }
+          ],
+          next: 'ch2_n6',
+          rewards: { characters: ['mage'], items: { asc_stone_1: 3 } }
+        },
+        {
+          id: 'ch2_n5b',
+          type: 'dialogue',
+          title: '修炼场',
+          position: { x: 820, y: 460 },
+          content: [
+            { speaker: '旁白', text: '你们来到了古老的修炼场。' },
+            { speaker: '影', text: '这里好像是旅者们切磋技艺的地方。' },
+            { speaker: '织星', text: '正好可以检验一下我们的实力。' }
+          ],
+          next: 'ch2_n6',
+          rewards: { characters: ['tank'], items: { exp_book_2: 2 } }
+        },
+        {
+          id: 'ch2_n6',
+          type: 'dialogue',
+          title: '真相初现',
+          position: { x: 920, y: 360 },
+          content: [
+            { speaker: '影', text: '那个…其实我有件事一直没告诉你们。' },
+            { speaker: '织星', text: '（果然…）什么事？' },
+            { speaker: '影', text: '我不是普通的旅者。我在寻找一样东西…一样很重要的东西。' },
+            { speaker: '影', text: '但我需要帮手。你们愿意帮忙吗？' }
+          ],
+          next: 'ch2_n7',
+          rewards: null
+        },
+        {
+          id: 'ch2_n7',
+          type: 'battle',
+          title: '精英守卫',
+          position: { x: 1060, y: 360 },
+          description: '前方出现了强大的精英守卫！',
+          enemyConfig: [
+            { id: 'elite_1', name: '暗影骑士', hp: 2000, atk: 150, def: 100, spd: 85, element: 'metal' },
+            { id: 'elite_2', name: '暗影法师', hp: 1200, atk: 180, def: 60, spd: 95, element: 'fire' },
+            { id: 'elite_3', name: '暗影祭司', hp: 1400, atk: 120, def: 80, spd: 90, element: 'wood' }
+          ],
+          next: 'ch2_end',
+          rewards: { items: { crystals: 300, coins: 800 } }
+        },
+        {
+          id: 'ch2_end',
+          type: 'dialogue',
+          title: '第二章结束',
+          position: { x: 1200, y: 360 },
+          content: [
+            { speaker: '影', text: '谢谢你们…愿意相信我。' },
+            { speaker: '影', text: '接下来我要去的地方很危险…但我觉得有你们在就没问题。' },
+            { speaker: '织星', text: '（这个人的秘密…以后再说吧。）' },
+            { speaker: '旁白', text: '第二章·完' },
+            { speaker: '旁白', text: '新的冒险，即将展开…' }
+          ],
+          next: null,
+          rewards: { items: { crystals: 800, coins: 1500 } }
+        }
+      ]
     }
   ],
 

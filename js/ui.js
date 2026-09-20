@@ -2290,6 +2290,497 @@ class StatsScene {
   }
 }
 
+// ============ 设置持久化 ============
+const SettingsStore = {
+  storageKey: 'game_settings_v1',
+
+  defaults: {
+    masterVolume: 0.8,
+    bgmVolume: 0.5,
+    sfxVolume: 0.7,
+    resolution: 'auto',    // 'auto' | '720p' | '1080p'
+    frameRate: 60,         // 30 | 60
+    autoSave: true,
+    damageNumbers: true,   // 伤害数字弹出
+    screenShake: true,     // 屏幕震动
+    battleSpeed: 1,        // 1 | 1.5 | 2
+    storyAutoAdvance: false // 剧情自动推进
+  },
+
+  _cache: null,
+
+  load() {
+    if (this._cache) return this._cache;
+    try {
+      const raw = localStorage.getItem(this.storageKey);
+      if (raw) {
+        this._cache = { ...this.defaults, ...JSON.parse(raw) };
+      } else {
+        this._cache = { ...this.defaults };
+      }
+    } catch (e) {
+      this._cache = { ...this.defaults };
+    }
+    return this._cache;
+  },
+
+  save(settings) {
+    this._cache = { ...this._cache, ...settings };
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(this._cache));
+    } catch (e) {
+      console.warn('[Settings] 保存失败:', e);
+    }
+  },
+
+  get(key) {
+    const s = this.load();
+    return s[key] !== undefined ? s[key] : this.defaults[key];
+  },
+
+  set(key, value) {
+    const s = this.load();
+    s[key] = value;
+    this.save(s);
+  },
+
+  /** 应用到引擎（音频音量等） */
+  applyToEngine() {
+    if (!window.game) return;
+    const s = this.load();
+    if (window.game.audio) {
+      window.game.audio.setMasterVolume(s.masterVolume);
+      window.game.audio.setBgmVolume(s.bgmVolume);
+      window.game.audio.setSfxVolume(s.sfxVolume);
+    }
+  },
+
+  exportData() {
+    return { ...this.load() };
+  },
+
+  importData(data) {
+    if (!data) return;
+    this.save(data);
+    this.applyToEngine();
+  }
+};
+
+// ============ 设置场景 ============
+class SettingsScene {
+  constructor() {
+    this.sceneManager = null;
+    this.settings = null;
+    this.sliders = [];
+    this.buttons = [];
+    this.toggles = [];
+    this._message = null;
+    this._messageTimer = 0;
+    this.tab = 0; // 0=音频, 1=画面, 2=操作, 3=数据
+  }
+
+  onEnter() {
+    this.settings = SettingsStore.load();
+    this.tab = 0;
+    this._message = null;
+    this._messageTimer = 0;
+  }
+
+  onExit() {
+    SettingsStore.applyToEngine();
+  }
+
+  update(dt) {
+    if (this._messageTimer > 0) {
+      this._messageTimer -= dt;
+      if (this._messageTimer <= 0) this._message = null;
+    }
+  }
+
+  render(ctx) {
+    const W = 1280, H = 720;
+
+    // 背景
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#0d0d1f');
+    grad.addColorStop(1, '#1a1030');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // 顶部栏
+    drawFramedPanel(ctx, 20, 15, W - 40, 50, 'panel', { slice: 15 });
+    Renderer.drawText(ctx, '设置', 40, 40, { fontSize: 20, color: '#d4b8ff' });
+
+    // 返回按钮
+    drawFramedButton(ctx, W - 120, 20, 90, 38, '返回', { fontSize: 14 });
+    this._backBtn = { x: W - 120, y: 20, w: 90, h: 38 };
+
+    // Tab 切换
+    const tabs = ['音频', '画面', '操作', '数据'];
+    this._tabBtns = [];
+    const tabW = 110, tabH = 36;
+    const tabStartX = 40;
+    const tabY = 80;
+
+    tabs.forEach((label, i) => {
+      const tx = tabStartX + i * (tabW + 10);
+      const isActive = this.tab === i;
+      drawFramedButton(ctx, tx, tabY, tabW, tabH, label, {
+        fontSize: 15,
+        fallbackBg: isActive ? '#3a2a5a' : '#1a1a2a',
+        fallbackBorder: isActive ? '#8a5cbf' : '#3a3060'
+      });
+      this._tabBtns.push({ x: tx, y: tabY, w: tabW, h: tabH, index: i });
+    });
+
+    // 内容区域
+    const contentX = 40, contentY = 130, contentW = W - 80, contentH = H - contentY - 30;
+    drawFramedPanel(ctx, contentX, contentY, contentW, contentH, 'panel', { slice: 25 });
+
+    this.sliders = [];
+    this.buttons = [];
+    this.toggles = [];
+
+    switch (this.tab) {
+      case 0: this._renderAudioTab(ctx, contentX + 30, contentY + 20, contentW - 60); break;
+      case 1: this._renderGraphicsTab(ctx, contentX + 30, contentY + 20, contentW - 60); break;
+      case 2: this._renderControlsTab(ctx, contentX + 30, contentY + 20, contentW - 60); break;
+      case 3: this._renderDataTab(ctx, contentX + 30, contentY + 20, contentW - 60); break;
+    }
+
+    // 提示消息
+    if (this._message) {
+      const msgBg = this._message.success ? 'rgba(20, 60, 20, 0.9)' : 'rgba(60, 20, 20, 0.9)';
+      const msgBorder = this._message.success ? '#4a8a4a' : '#8a4a4a';
+      const msgColor = this._message.success ? '#88ff88' : '#ff8888';
+      Renderer.drawPanel(ctx, W / 2 - 200, H - 50, 400, 36, { bg: msgBg, border: msgBorder });
+      Renderer.drawText(ctx, this._message.text, W / 2, H - 32, {
+        fontSize: 14, color: msgColor, align: 'center'
+      });
+    }
+  }
+
+  _renderSlider(ctx, label, x, y, w, key, min, max, step, displayFn) {
+    const value = this.settings[key] ?? 0;
+    const ratio = (value - min) / (max - min);
+
+    Renderer.drawText(ctx, label, x, y, { fontSize: 15, color: '#c0c0d0' });
+
+    // 滑块轨道
+    const trackX = x, trackY = y + 22, trackW = w - 100, trackH = 8;
+    Renderer.roundRect(ctx, trackX, trackY, trackW, trackH, 4);
+    ctx.fillStyle = '#1a1a3a';
+    ctx.fill();
+
+    // 填充
+    Renderer.roundRect(ctx, trackX, trackY, trackW * ratio, trackH, 4);
+    ctx.fillStyle = '#7c5cbf';
+    ctx.fill();
+
+    // 手柄
+    const handleX = trackX + trackW * ratio;
+    ctx.beginPath();
+    ctx.arc(handleX, trackY + trackH / 2, 10, 0, Math.PI * 2);
+    ctx.fillStyle = '#d4b8ff';
+    ctx.fill();
+    ctx.strokeStyle = '#5c3d9a';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 数值
+    const displayText = displayFn ? displayFn(value) : value;
+    Renderer.drawText(ctx, displayText, x + w - 50, y + 26, {
+      fontSize: 14, color: '#88ccff', align: 'right'
+    });
+
+    this.sliders.push({
+      key, min, max, step,
+      trackRect: { x: trackX, y: trackY - 10, w: trackW, h: trackH + 20 }
+    });
+  }
+
+  _renderToggle(ctx, label, x, y, key, desc) {
+    const value = !!this.settings[key];
+
+    Renderer.drawText(ctx, label, x, y, { fontSize: 15, color: '#c0c0d0' });
+
+    // 开关
+    const switchX = x + 400, switchY = y - 10, switchW = 50, switchH = 24;
+    Renderer.roundRect(ctx, switchX, switchY, switchW, switchH, 12);
+    ctx.fillStyle = value ? '#5c8a5c' : '#3a2a2a';
+    ctx.fill();
+
+    // 圆点
+    const dotX = value ? switchX + switchW - 14 : switchX + 14;
+    ctx.beginPath();
+    ctx.arc(dotX, switchY + switchH / 2, 9, 0, Math.PI * 2);
+    ctx.fillStyle = value ? '#88ff88' : '#666';
+    ctx.fill();
+
+    // 状态文字
+    Renderer.drawText(ctx, value ? '开' : '关', switchX + switchW + 15, y, {
+      fontSize: 13, color: value ? '#88ff88' : '#606080'
+    });
+
+    if (desc) {
+      Renderer.drawText(ctx, desc, x, y + 22, { fontSize: 11, color: '#606080' });
+    }
+
+    this.toggles.push({
+      key, rect: { x: switchX - 10, y: switchY - 5, w: switchW + 40, h: switchH + 10 }
+    });
+  }
+
+  _renderAudioTab(ctx, x, y, w) {
+    Renderer.drawText(ctx, '音量设置', x, y, { fontSize: 18, color: '#d4b8ff' });
+
+    let ry = y + 35;
+    this._renderSlider(ctx, '主音量', x, ry, w, 'masterVolume', 0, 1, 0.05, v => `${Math.round(v * 100)}%`);
+    ry += 55;
+    this._renderSlider(ctx, '背景音乐', x, ry, w, 'bgmVolume', 0, 1, 0.05, v => `${Math.round(v * 100)}%`);
+    ry += 55;
+    this._renderSlider(ctx, '音效', x, ry, w, 'sfxVolume', 0, 1, 0.05, v => `${Math.round(v * 100)}%`);
+
+    ry += 70;
+    Renderer.drawText(ctx, '提示：当前使用合成音效，BGM 文件待制作后可直接播放', x, ry, {
+      fontSize: 12, color: '#606080'
+    });
+
+    // 测试音效按钮
+    ry += 30;
+    drawFramedButton(ctx, x, ry, 140, 36, '测试点击音效', { fontSize: 13 });
+    this.buttons.push({ action: 'test_click', rect: { x, y: ry, w: 140, h: 36 } });
+
+    drawFramedButton(ctx, x + 160, ry, 140, 36, '测试战斗音效', { fontSize: 13 });
+    this.buttons.push({ action: 'test_hit', rect: { x: x + 160, y: ry, w: 140, h: 36 } });
+  }
+
+  _renderGraphicsTab(ctx, x, y, w) {
+    Renderer.drawText(ctx, '画面设置', x, y, { fontSize: 18, color: '#d4b8ff' });
+
+    let ry = y + 35;
+
+    // 分辨率
+    Renderer.drawText(ctx, '分辨率', x, ry, { fontSize: 15, color: '#c0c0d0' });
+    const resOptions = [
+      { key: 'auto', label: '自动' },
+      { key: '720p', label: '720p' },
+      { key: '1080p', label: '1080p' }
+    ];
+    resOptions.forEach((opt, i) => {
+      const bx = x + 150 + i * 100;
+      const isActive = this.settings.resolution === opt.key;
+      drawFramedButton(ctx, bx, ry - 12, 85, 30, opt.label, {
+        fontSize: 13,
+        fallbackBg: isActive ? '#3a2a5a' : '#1a1a2a',
+        fallbackBorder: isActive ? '#8a5cbf' : '#3a3060'
+      });
+      this.buttons.push({ action: 'set_resolution', value: opt.key, rect: { x: bx, y: ry - 12, w: 85, h: 30 } });
+    });
+
+    ry += 50;
+
+    // 帧率
+    Renderer.drawText(ctx, '帧率上限', x, ry, { fontSize: 15, color: '#c0c0d0' });
+    const fpsOptions = [
+      { key: 30, label: '30 FPS' },
+      { key: 60, label: '60 FPS' }
+    ];
+    fpsOptions.forEach((opt, i) => {
+      const bx = x + 150 + i * 100;
+      const isActive = this.settings.frameRate === opt.key;
+      drawFramedButton(ctx, bx, ry - 12, 85, 30, opt.label, {
+        fontSize: 13,
+        fallbackBg: isActive ? '#3a2a5a' : '#1a1a2a',
+        fallbackBorder: isActive ? '#8a5cbf' : '#3a3060'
+      });
+      this.buttons.push({ action: 'set_framerate', value: opt.key, rect: { x: bx, y: ry - 12, w: 85, h: 30 } });
+    });
+
+    ry += 55;
+    this._renderToggle(ctx, '伤害数字弹出', x, ry, 'damageNumbers', '战斗中显示伤害数字');
+    ry += 48;
+    this._renderToggle(ctx, '屏幕震动效果', x, ry, 'screenShake', '暴击和大招时的屏幕震动');
+
+    ry += 60;
+    Renderer.drawText(ctx, '提示：降低帧率可节省电量，画质设置重启后生效', x, ry, {
+      fontSize: 12, color: '#606080'
+    });
+  }
+
+  _renderControlsTab(ctx, x, y, w) {
+    Renderer.drawText(ctx, '操作设置', x, y, { fontSize: 18, color: '#d4b8ff' });
+
+    let ry = y + 35;
+
+    // 战斗速度
+    Renderer.drawText(ctx, '战斗速度', x, ry, { fontSize: 15, color: '#c0c0d0' });
+    const speedOptions = [
+      { key: 1, label: '1×' },
+      { key: 1.5, label: '1.5×' },
+      { key: 2, label: '2×' }
+    ];
+    speedOptions.forEach((opt, i) => {
+      const bx = x + 150 + i * 80;
+      const isActive = this.settings.battleSpeed === opt.key;
+      drawFramedButton(ctx, bx, ry - 12, 65, 30, opt.label, {
+        fontSize: 13,
+        fallbackBg: isActive ? '#3a2a5a' : '#1a1a2a',
+        fallbackBorder: isActive ? '#8a5cbf' : '#3a3060'
+      });
+      this.buttons.push({ action: 'set_speed', value: opt.key, rect: { x: bx, y: ry - 12, w: 65, h: 30 } });
+    });
+
+    ry += 55;
+    this._renderToggle(ctx, '剧情自动推进', x, ry, 'storyAutoAdvance', '对话结束后自动推进到下一句');
+  }
+
+  _renderDataTab(ctx, x, y, w) {
+    Renderer.drawText(ctx, '数据管理', x, y, { fontSize: 18, color: '#d4b8ff' });
+
+    let ry = y + 40;
+
+    // 手动存档
+    drawFramedButton(ctx, x, ry, 180, 40, '立即保存', { fontSize: 15 });
+    this.buttons.push({ action: 'save_now', rect: { x, y: ry, w: 180, h: 40 } });
+
+    drawFramedButton(ctx, x + 200, ry, 180, 40, '加载存档', { fontSize: 15 });
+    this.buttons.push({ action: 'load_now', rect: { x: x + 200, y: ry, w: 180, h: 40 } });
+
+    ry += 65;
+    Renderer.drawText(ctx, `自动存档: ${this.settings.autoSave ? '已开启（每60秒）' : '已关闭'}`, x, ry, {
+      fontSize: 13, color: '#8080a0'
+    });
+
+    ry += 35;
+    // 成就统计
+    if (window.achievementManager) {
+      const am = window.achievementManager;
+      Renderer.drawText(ctx, `成就: ${am.getUnlockedCount()} / ${am.getTotalCount()} 已解锁`, x, ry, {
+        fontSize: 15, color: '#ffcc44'
+      });
+      ry += 30;
+    }
+
+    // 版本号
+    ry += 20;
+    Renderer.drawText(ctx, '游戏版本: v0.11.0', x, ry, { fontSize: 12, color: '#606080' });
+    ry += 22;
+    Renderer.drawText(ctx, '引擎: HTML5 Canvas + 原生 JS', x, ry, { fontSize: 12, color: '#606080' });
+    ry += 22;
+    Renderer.drawText(ctx, '后端: Supabase (PostgreSQL)', x, ry, { fontSize: 12, color: '#606080' });
+  }
+
+  _showMessage(text, success = true) {
+    this._message = { text, success };
+    this._messageTimer = 2.0;
+  }
+
+  handleClick(x, y) {
+    // 返回
+    if (this._backBtn && Renderer.hitTest(x, y, this._backBtn)) {
+      SettingsStore.applyToEngine();
+      this.sceneManager.switchTo('main_menu');
+      return;
+    }
+
+    // Tab 切换
+    for (const btn of this._tabBtns || []) {
+      if (Renderer.hitTest(x, y, btn)) {
+        this.tab = btn.index;
+        return;
+      }
+    }
+
+    // 滑块点击
+    for (const slider of this.sliders) {
+      if (Renderer.hitTest(x, y, slider.trackRect)) {
+        const ratio = Math.max(0, Math.min(1, (x - slider.trackRect.x) / slider.trackRect.w));
+        let value = slider.min + ratio * (slider.max - slider.min);
+        // 对齐到步长
+        value = Math.round(value / slider.step) * slider.step;
+        value = Math.max(slider.min, Math.min(slider.max, value));
+        this.settings[slider.key] = value;
+        SettingsStore.set(slider.key, value);
+
+        // 实时应用音频
+        if (window.game?.audio) {
+          if (slider.key === 'masterVolume') window.game.audio.setMasterVolume(value);
+          if (slider.key === 'bgmVolume') window.game.audio.setBgmVolume(value);
+          if (slider.key === 'sfxVolume') window.game.audio.setSfxVolume(value);
+        }
+        return;
+      }
+    }
+
+    // 开关切换
+    for (const toggle of this.toggles) {
+      if (Renderer.hitTest(x, y, toggle.rect)) {
+        this.settings[toggle.key] = !this.settings[toggle.key];
+        SettingsStore.set(toggle.key, this.settings[toggle.key]);
+        return;
+      }
+    }
+
+    // 按钮
+    for (const btn of this.buttons) {
+      if (!Renderer.hitTest(x, y, btn.rect)) continue;
+
+      switch (btn.action) {
+        case 'test_click':
+          if (window.game?.audio) window.game.audio.playSfx('click');
+          break;
+        case 'test_hit':
+          if (window.game?.audio) window.game.audio.playSfx('hit');
+          break;
+        case 'set_resolution':
+          this.settings.resolution = btn.value;
+          SettingsStore.set('resolution', btn.value);
+          break;
+        case 'set_framerate':
+          this.settings.frameRate = btn.value;
+          SettingsStore.set('frameRate', btn.value);
+          break;
+        case 'set_speed':
+          this.settings.battleSpeed = btn.value;
+          SettingsStore.set('battleSpeed', btn.value);
+          break;
+        case 'save_now':
+          if (window.game && typeof autoSave === 'function') {
+            autoSave().then(() => {
+              this._showMessage('存档成功！', true);
+            }).catch(() => {
+              this._showMessage('存档失败', false);
+            });
+          }
+          break;
+        case 'load_now':
+          if (window.game?.saveManager?.currentUser) {
+            window.game.saveManager.loadGame().then(result => {
+              if (result.success) {
+                if (typeof applySaveData === 'function') {
+                  applySaveData(window.game.state, result.data);
+                }
+                this._showMessage('存档已加载！', true);
+              } else {
+                this._showMessage('未找到存档', false);
+              }
+            });
+          } else {
+            this._showMessage('请先登录', false);
+          }
+          break;
+      }
+    }
+  }
+
+  handleSwipe(dir) {
+    // 左右滑动切换 tab
+    if (dir === 'left' && this.tab < 3) this.tab++;
+    if (dir === 'right' && this.tab > 0) this.tab--;
+  }
+}
+
 // 导出所有场景
 window.TitleScene = TitleScene;
 window.MainMenuScene = MainMenuScene;
@@ -2298,3 +2789,5 @@ window.DialogueScene = DialogueScene;
 window.BattleScene = BattleScene;
 window.GachaScene = GachaScene;
 window.StatsScene = StatsScene;
+window.SettingsScene = SettingsScene;
+window.SettingsStore = SettingsStore;

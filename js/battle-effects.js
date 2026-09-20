@@ -1,7 +1,7 @@
 /**
  * battle-effects.js - 五行元素战斗特效系统
  * Canvas 粒子特效 + Sprite 图片素材，用于战斗动画表现
- * v1.1.0 - 新增 Sprite 图片特效叠加渲染
+ * v1.2.0 - 新增战技/大招/通用特效sprite支持（skill/ultimate/critical/heal/resonance）
  * 
  * 依赖：engine.js (Renderer)
  * 素材路径：assets/battle/effects/<元素>_attack.png
@@ -777,7 +777,7 @@ const SpriteEffects = {
   activeEffects: [], // 当前活跃的特效实例
   loaded: false,
 
-  // 元素 sprite 映射
+  // 元素 sprite 映射（attack 级）
   spriteMap: {
     fire: 'assets/battle/effects/fire_attack.png',
     water: 'assets/battle/effects/water_attack.png',
@@ -786,69 +786,163 @@ const SpriteEffects = {
     metal: 'assets/battle/effects/metal_attack.png'
   },
 
+  // 战技 sprite 映射（skill 级）
+  skillSpriteMap: {
+    fire: 'assets/battle/effects/fire_skill.png',
+    water: 'assets/battle/effects/water_skill.png',
+    wood: 'assets/battle/effects/wood_skill.png',
+    earth: 'assets/battle/effects/earth_skill.png',
+    metal: 'assets/battle/effects/metal_skill.png'
+  },
+
+  // 大招 sprite 映射（ultimate 级）
+  ultimateSpriteMap: {
+    fire: 'assets/battle/effects/fire_ultimate.png',
+    water: 'assets/battle/effects/water_ultimate.png',
+    wood: 'assets/battle/effects/wood_ultimate.png',
+    earth: 'assets/battle/effects/earth_ultimate.png',
+    metal: 'assets/battle/effects/metal_ultimate.png'
+  },
+
+  // 通用战斗特效 sprite 映射
+  generalSpriteMap: {
+    critical: 'assets/battle/effects/critical.png',
+    heal: 'assets/battle/effects/heal.png',
+    resonance: 'assets/battle/effects/resonance.png'
+  },
+
   /**
-   * 预加载所有 sprite 素材
+   * 预加载所有 sprite 素材（attack + skill + ultimate + general）
    * @param {string} basePath - 资源根路径，默认 ''
    */
   preload(basePath = '') {
     const promises = [];
-    for (const [element, path] of Object.entries(this.spriteMap)) {
-      const img = new Image();
-      img.src = basePath + path;
-      this.sprites[element] = img;
-      promises.push(new Promise((resolve) => {
-        img.onload = () => {
-          console.log(`[SpriteEffects] ${element} loaded`);
-          resolve();
-        };
-        img.onerror = () => {
-          console.warn(`[SpriteEffects] ${element} failed to load: ${path}`);
-          this.sprites[element] = null;
-          resolve();
-        };
-      }));
-    }
+    const loadMap = (map, prefix) => {
+      for (const [key, path] of Object.entries(map)) {
+        const storageKey = prefix ? `${prefix}_${key}` : key;
+        const img = new Image();
+        img.src = basePath + path;
+        this.sprites[storageKey] = img;
+        promises.push(new Promise((resolve) => {
+          img.onload = () => {
+            console.log(`[SpriteEffects] ${storageKey} loaded`);
+            resolve();
+          };
+          img.onerror = () => {
+            console.warn(`[SpriteEffects] ${storageKey} failed to load: ${path}`);
+            this.sprites[storageKey] = null;
+            resolve();
+          };
+        }));
+      }
+    };
+    // attack 级保持无前缀（向后兼容）
+    loadMap(this.spriteMap, '');
+    // skill 级
+    loadMap(this.skillSpriteMap, 'skill');
+    // ultimate 级
+    loadMap(this.ultimateSpriteMap, 'ultimate');
+    // 通用战斗特效
+    loadMap(this.generalSpriteMap, 'general');
+
     Promise.all(promises).then(() => {
       this.loaded = true;
-      console.log('[SpriteEffects] All sprites loaded');
+      console.log('[SpriteEffects] All sprites loaded (v1.2.0)');
     });
   },
 
   /**
-   * 触发元素 sprite 特效
+   * 触发元素 sprite 特效（按技能等级自动选择对应 sprite）
    * @param {string} element - 元素名 (fire/water/wood/earth/metal)
    * @param {number} x - 特效中心 X
    * @param {number} y - 特效中心 Y
    * @param {object} options - 可选参数
+   * @param {string} [options.level] - 技能等级: 'attack'(默认) | 'skill' | 'ultimate'
    */
   play(element, x, y, options = {}) {
-    const sprite = this.sprites[element];
+    const level = options.level || 'attack';
+    let spriteKey;
+    if (level === 'skill') {
+      spriteKey = `skill_${element}`;
+    } else if (level === 'ultimate') {
+      spriteKey = `ultimate_${element}`;
+    } else {
+      spriteKey = element; // 向后兼容，attack 级无前缀
+    }
+
+    const sprite = this.sprites[spriteKey];
     if (!sprite || !sprite.complete || !sprite.naturalWidth) return;
+
+    // 不同等级使用不同尺寸和持续时间
+    const defaults = {
+      attack:   { size: 200, duration: 0.6, scaleStart: 0.3, scaleEnd: 1.2, fadeOutStart: 0.5 },
+      skill:    { size: 280, duration: 0.8, scaleStart: 0.4, scaleEnd: 1.3, fadeOutStart: 0.4 },
+      ultimate: { size: 380, duration: 1.2, scaleStart: 0.2, scaleEnd: 1.5, fadeOutStart: 0.3 }
+    };
+    const def = defaults[level] || defaults.attack;
 
     this.activeEffects.push({
       element,
       x,
       y,
       sprite,
-      life: options.duration || 0.6,
-      maxLife: options.duration || 0.6,
-      size: options.size || 200,
+      life: options.duration || def.duration,
+      maxLife: options.duration || def.duration,
+      size: options.size || def.size,
       rotation: options.rotation || 0,
-      scaleStart: options.scaleStart || 0.3,
-      scaleEnd: options.scaleEnd || 1.2,
-      fadeOutStart: options.fadeOutStart || 0.5 // 从生命周期的 50% 开始淡出
+      scaleStart: options.scaleStart || def.scaleStart,
+      scaleEnd: options.scaleEnd || def.scaleEnd,
+      fadeOutStart: options.fadeOutStart || def.fadeOutStart
     });
   },
 
   /**
-   * 触发暴击 sprite 特效（使用金色/白色闪光）
+   * 触发通用战斗特效（暴击/治愈/共鸣）
+   * @param {string} type - 特效类型: 'critical' | 'heal' | 'resonance'
+   * @param {number} x - 特效中心 X
+   * @param {number} y - 特效中心 Y
+   * @param {object} options - 可选参数
+   */
+  playGeneral(type, x, y, options = {}) {
+    const sprite = this.sprites[`general_${type}`];
+    if (!sprite || !sprite.complete || !sprite.naturalWidth) return;
+
+    this.activeEffects.push({
+      element: type,
+      x,
+      y,
+      sprite,
+      life: options.duration || 0.8,
+      maxLife: options.duration || 0.8,
+      size: options.size || 300,
+      rotation: options.rotation || 0,
+      scaleStart: options.scaleStart || 0.3,
+      scaleEnd: options.scaleEnd || 1.4,
+      fadeOutStart: options.fadeOutStart || 0.4
+    });
+  },
+
+  /**
+   * 触发暴击 sprite 特效（优先使用专用暴击 sprite，降级到金/火元素）
    */
   playCritical(x, y) {
-    // 暴击时同时触发所有元素中亮度最高的（金 > 火 > 其他）
-    const critElement = this.sprites.metal ? 'metal' : 
-                        this.sprites.fire ? 'fire' : null;
-    if (critElement) {
-      this.play(critElement, x, y, {
+    // 优先使用专用暴击 sprite
+    const critSprite = this.sprites['general_critical'];
+    if (critSprite && critSprite.complete && critSprite.naturalWidth) {
+      this.playGeneral('critical', x, y, {
+        duration: 0.8,
+        size: 320,
+        scaleStart: 0.4,
+        scaleEnd: 1.6,
+        fadeOutStart: 0.3
+      });
+      return;
+    }
+    // 降级：使用金/火元素 attack sprite
+    const fallback = this.sprites.metal ? 'metal' :
+                     this.sprites.fire ? 'fire' : null;
+    if (fallback) {
+      this.play(fallback, x, y, {
         duration: 0.8,
         size: 300,
         scaleStart: 0.5,

@@ -113,6 +113,19 @@
 | 木元素攻击特效 | `battle/effects/wood_attack.png` | ✅ 已交付 | 2026-09-20 |
 | 土元素攻击特效 | `battle/effects/earth_attack.png` | ✅ 已交付 | 2026-09-20 |
 | 金元素攻击特效 | `battle/effects/metal_attack.png` | ✅ 已交付 | 2026-09-20 |
+| 火元素战技特效 | `battle/effects/fire_skill.png` | ✅ 已交付 | 2026-09-21 |
+| 水元素战技特效 | `battle/effects/water_skill.png` | ✅ 已交付 | 2026-09-21 |
+| 木元素战技特效 | `battle/effects/wood_skill.png` | ✅ 已交付 | 2026-09-21 |
+| 土元素战技特效 | `battle/effects/earth_skill.png` | ✅ 已交付 | 2026-09-21 |
+| 金元素战技特效 | `battle/effects/metal_skill.png` | ✅ 已交付 | 2026-09-21 |
+| 火元素大招特效 | `battle/effects/fire_ultimate.png` | ✅ 已交付 | 2026-09-21 |
+| 水元素大招特效 | `battle/effects/water_ultimate.png` | ✅ 已交付 | 2026-09-21 |
+| 木元素大招特效 | `battle/effects/wood_ultimate.png` | ✅ 已交付 | 2026-09-21 |
+| 土元素大招特效 | `battle/effects/earth_ultimate.png` | ✅ 已交付 | 2026-09-21 |
+| 金元素大招特效 | `battle/effects/metal_ultimate.png` | ✅ 已交付 | 2026-09-21 |
+| 暴击特效 | `battle/effects/critical.png` | ✅ 已交付 | 2026-09-21 |
+| 治愈特效 | `battle/effects/heal.png` | ✅ 已交付 | 2026-09-21 |
+| 共鸣触发特效 | `battle/effects/resonance.png` | ✅ 已交付 | 2026-09-21 |
 
 ### 13. 角色名标签框（300×80px，透明背景 PNG）
 | 素材 | 文件 | 状态 | 日期 |
@@ -160,12 +173,12 @@
 
 #### 战斗特效序列帧
 - [x] ~~各元素攻击特效（火/水/木/土/金）~~ → 已完成 5 个攻击命中 sprite
-- [ ] 各元素战技特效（skill level）
-- [ ] 各元素大招特效（ultimate level）
-- [ ] 暴击特效
-- [ ] 治愈特效
-- [ ] 共鸣触发特效
-- 路径规范：`battle/effects/<特效名>_<帧号>.png`
+- [x] ~~各元素战技特效（skill level）~~ → 已完成 5 个战技 sprite（2026-09-21）
+- [x] ~~各元素大招特效（ultimate level）~~ → 已完成 5 个大招 sprite（2026-09-21）
+- [x] ~~暴击特效~~ → 已完成暴击专用 sprite（2026-09-21）
+- [x] ~~治愈特效~~ → 已完成治愈专用 sprite（2026-09-21）
+- [x] ~~共鸣触发特效~~ → 已完成共鸣触发专用 sprite（2026-09-21）
+- 路径规范：`battle/effects/<元素>_<等级>.png`
 
 ### P2 - UI 美化
 
@@ -211,7 +224,11 @@
 立绘：assets/characters/portraits/<角色id>.png
 Q版：assets/characters/chibi/<角色id>/<动作>_<帧号>.png
 头像：assets/characters/icons/<角色id>.png
-特效：assets/battle/effects/<特效名>.png       ← 攻击特效已完成（5张sprite + 代码粒子）
+特效：assets/battle/effects/<特效名>.png       ← 已完成（18张sprite + 代码粒子）
+  - 攻击：assets/battle/effects/<元素>_attack.png   ← 已完成（5张）
+  - 战技：assets/battle/effects/<元素>_skill.png     ← 已完成（5张）
+  - 大招：assets/battle/effects/<元素>_ultimate.png  ← 已完成（5张）
+  - 通用：assets/battle/effects/{critical,heal,resonance}.png ← 已完成（3张）
 元素：assets/battle/elements/<元素id>.png    ← 已完成
 Logo：assets/brand/logo/佣人工作室Logo.png   ← 已完成
 战斗背景：assets/maps/battle/<场景名>.png     ← 已完成（7张）
@@ -226,7 +243,30 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 
 ---
 
-## 六、本次执行记录（2026-09-20 01:13）
+## 六、本次执行记录（2026-09-21 01:20）
+
+### 新增素材（共 13 张）
+1. **五行战技特效 Sprite ×5**：`battle/effects/<element>_skill.png`（螺旋火焰柱 / 高压水柱冲击波 / 巨型藤蔓破地 / 巨石升起撞击 / 金色利刃光束斩击）
+2. **五行大招特效 Sprite ×5**：`battle/effects/<element>_ultimate.png`（毁灭火焰风暴 / 海啸巨浪冰晶 / 世界树觉醒花瓣风暴 / 大地崩裂岩浆喷发 / 万剑归宗金色剑阵法阵）
+3. **通用战斗特效 Sprite ×3**：`battle/effects/critical.png`（金色爆裂冲击波）、`battle/effects/heal.png`（翠绿光柱+花瓣治愈）、`battle/effects/resonance.png`（紫蓝同心圆+五行符号能量波）
+
+### 代码更新
+1. **battle-effects.js 升级 v1.2.0**：
+   - 新增 `skillSpriteMap` / `ultimateSpriteMap` / `generalSpriteMap` 三套 sprite 映射
+   - `preload()` 升级为批量加载四类 sprite（attack/skill/ultimate/general），使用带前缀的 key 存储
+   - `play()` 新增 `options.level` 参数（'attack' | 'skill' | 'ultimate'），自动选择对应级别的 sprite，不同级别使用不同尺寸和持续时间预设
+   - 新增 `playGeneral(type, x, y)` 方法，支持暴击/治愈/共鸣三种通用特效
+   - `playCritical()` 优先使用专用暴击 sprite，不可用时降级到金/火元素 attack sprite
+2. 向后兼容：未传 `level` 参数时默认使用 attack 级 sprite，现有调用无需修改
+
+### 下一步计划
+- 等待角色设定完成后开始立绘制作（P0 阻塞项）
+- 后续章节区域背景（待元首提供新章节地图设计）
+- Q版战斗序列帧（依赖立绘完成后开始）
+
+---
+
+## 七、本次执行记录（2026-09-20 01:13）
 
 ### 新增素材
 1. **角色名标签框 ×1**：`ui/frames/name_label_frame.png`（300×80px，暗紫+金色描边，左侧菱形装饰，用于对话框内显示角色名）
@@ -244,7 +284,7 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 
 ---
 
-## 七、本次执行记录（2026-09-19 01:15）
+## 八、本次执行记录（2026-09-19 01:15）
 
 ### 技术集成（v0.9.0）
 1. **UI 边框素材集成**：5 个九宫格边框素材（dialog_box/panel_frame/button_frame/hp_bar_frame/energy_bar_frame）预加载到 `GameAssets.frames`，新增 `drawNineSlice()` 九宫格绘制、`drawFramedPanel()` / `drawFramedButton()` 通用绘制函数

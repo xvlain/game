@@ -1,11 +1,12 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.10.0 - PWA 支持 + 自动战斗 + 剧情快进 + 玩家统计
+ * v0.11.0 - 设置持久化 + 成就系统 + 第二章剧情框架
  */
 
 let game = null;
 let authController = null;
+let achievementManager = null;
 
 async function initGame() {
   game = new GameEngine('gameCanvas');
@@ -16,8 +17,17 @@ async function initGame() {
   game.saveManager = new SaveManager();
   game.gachaEngine = new GachaEngine();
 
+  // 初始化成就系统
+  achievementManager = new AchievementManager();
+  achievementManager.load();
+  window.achievementManager = achievementManager;
+
   // 初始化默认状态（游客/登录后会被覆盖）
   game.state = buildDefaultState();
+
+  // 加载并应用设置（音量等）
+  SettingsStore.load();
+  SettingsStore.applyToEngine();
 
   // 预加载美术素材（背景图、元素图标、Logo）
   await preloadAssets();
@@ -74,7 +84,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.10.0 初始化完成');
+  console.log('[Game] v0.11.0 初始化完成');
 }
 
 function buildDefaultState() {
@@ -231,6 +241,10 @@ class AuthController {
     const checkInResult = DailyCheckIn.checkIn(game.state);
     if (checkInResult) {
       console.log(`[Game] 签到第 ${checkInResult.day} 天，获得: ${checkInResult.reward.label}`);
+      // 成就检查
+      if (window.achievementManager) {
+        AchievementChecker.onCheckIn(checkInResult.totalDays);
+      }
       // 延迟显示签到提示（等主菜单渲染稳定）
       setTimeout(() => {
         game._checkInNotice = {
@@ -261,6 +275,11 @@ function applySaveData(state, data) {
   if (data.inventory) state.inventory = data.inventory;
   if (data.currency) state.currency = data.currency;
   if (data.player) state.player = { ...state.player, ...data.player };
+
+  // 恢复成就数据
+  if (data.achievements && window.achievementManager) {
+    window.achievementManager.importData(data.achievements);
+  }
 }
 
 async function autoSave() {
@@ -270,15 +289,20 @@ async function autoSave() {
 
   const result = await game.saveManager.saveGame(game.state);
 
+  // 本地存档（含成就数据）
   const localSave = new LocalSaveManager();
-  localSave.save('main', {
+  const localData = {
     storyProgress: game.state.storyProgress,
     party: game.state.party,
     roster: game.state.roster,
     inventory: game.state.inventory,
     currency: game.state.currency,
     timestamp: new Date().toISOString()
-  });
+  };
+  if (window.achievementManager) {
+    localData.achievements = window.achievementManager.exportData();
+  }
+  localSave.save('main', localData);
 
   if (result.cloud) {
     console.log('[Game] 自动存档完成 (云端)');
