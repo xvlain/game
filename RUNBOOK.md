@@ -7,6 +7,7 @@
 
 - 游戏名：未定之旅（网页二次元回合制 RPG）
 - 工作室：庸人工作室
+- 当前版本：v0.12.0
 - 仓库：https://github.com/xvlain/game（main 分支）
 - Pages 地址：https://xvlain.github.io/game/
 - Supabase 项目：`qvbywrfkpbiojncikdnw`（新加坡区，Free）
@@ -28,9 +29,11 @@
 game-project/
 ├── index.html           # 入口
 ├── manifest.json        # PWA 清单
-├── sw.js                # Service Worker（离线缓存）
+├── sw.js                # Service Worker（v0.12.0 分类缓存策略）
+├── fix_supabase_rpc.sql # Supabase RPC 修复脚本
 ├── js/
-│   ├── engine.js        # 引擎（场景管理、渲染、输入、资源加载）
+│   ├── engine.js        # 引擎（场景管理、渲染、输入、资源加载、过渡特效）
+│   ├── character-art.js # 角色美术系统（立绘+Q版序列帧+表情）← v0.12.0 NEW
 │   ├── battle.js        # 回合制战斗（含共鸣/元素力）
 │   ├── story.js         # 剧情/地图/关卡
 │   ├── save.js          # Supabase 云端存档（SUPABASE_CONFIG 在此）
@@ -40,7 +43,9 @@ game-project/
 │   ├── characters.js    # 角色图鉴 & 编队
 │   ├── ui.js            # 所有场景 UI 渲染
 │   ├── ui-animations.js # UI 动画系统（HP条/伤害弹出/屏幕震动）
-│   ├── battle-effects.js # 战斗粒子特效
+│   ├── battle-effects.js # 战斗粒子特效 + Sprite 特效
+│   ├── battle-cutscene.js # 战斗演出系统（大招特写+技能演出）← v0.12.0 NEW
+│   ├── achievements.js  # 成就系统
 │   └── main.js          # 游戏入口
 ├── assets/              # 美术资源（后期填充）
 ├── game_schema.sql      # Supabase 建表脚本（幂等，可重跑）
@@ -97,6 +102,8 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 | 时间       | 问题                                | 状态       |
 |------------|-------------------------------------|------------|
+| 2026-09-22 | 角色美术系统 + 战斗演出系统 + 场景过渡增强 + SW 缓存升级 | ✅ 已完成  |
+| 2026-09-22 | Supabase RPC schema cache 修复脚本 | ✅ 已完成  |
 | 2026-09-20 | PWA Service Worker + manifest.json 支持添加到主屏幕 | ✅ 已完成  |
 | 2026-09-20 | Farm 关卡自动战斗系统（优先大招→战技→普攻，集火最低血量） | ✅ 已完成  |
 | 2026-09-20 | 剧情对话快进（已读自动快进 + 手动切换 + 点击停止） | ✅ 已完成  |
@@ -113,8 +120,13 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 ## 6. 下一步（技术侧）
 
-- [ ] 角色立绘资源加载（与美术任务联动，等角色设定）
-- [ ] Q 版战斗序列帧渲染（与美术任务联动，等序列帧素材）
+- [ ] 角色立绘资源加载（与美术任务联动，等角色设定）→ character-art.js 已就绪
+- [ ] Q 版战斗序列帧渲染（与美术任务联动，等序列帧素材）→ character-art.js 已就绪
+- [x] 角色美术系统框架（立绘加载+Q版序列帧+表情切换）→ character-art.js
+- [x] 战斗演出系统（大招特写+技能演出+开场/胜利/失败）→ battle-cutscene.js
+- [x] 场景过渡特效增强（fade/iris/slide 三种过渡类型）→ engine.js
+- [x] Service Worker 分类缓存策略升级 → sw.js
+- [x] Supabase RPC 修复脚本 → fix_supabase_rpc.sql
 - [ ] 剧情内容填充（元首提供）
 - [ ] 音频资源制作与加载（BGM/音效文件，管理器已就绪）
 - [x] PWA 支持（Service Worker + manifest.json，可添加到主屏幕）
@@ -147,12 +159,26 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 ## 7. 美术联动接口
 
 美术任务产出文件统一放入 `assets/`，命名规范见 `assets/README.md`：
-- 立绘：`assets/characters/portraits/<角色id>.png`
-- Q 版序列帧：`assets/characters/chibi/<角色id>/<动作>_<帧号>.png`
+- 立绘：`assets/characters/portraits/<角色id>.png`（表情变体：`<角色id>_<表情>.png`）
+- Q 版序列帧：`assets/characters/chibi/<角色id>/<动作>_<帧号>.png`（帧号两位数补零：`00`, `01`...）
 - 头像：`assets/characters/icons/<角色id>.png`
 - 战斗特效：`assets/battle/effects/<特效名>_<帧号>.png`
 
-技术侧在 `ui.js / engine.js` 中按命名规则加载，美术侧只需按规范产出文件。
+**v0.12.0 新增 `character-art.js` 统一入口：**
+- `window.characterArt.drawPortrait(ctx, charId, x, y, { expression, width, height, glow, flip, shake, damageFlash })`
+  - 自动按命名规则加载立绘，支持 5 种表情变体，素材不存在时显示渐变占位符
+- `window.characterArt.drawChibi(ctx, charId, action, x, y, { size, flip, bounce })`
+  - action 可选：idle / attack / skill / hurt / death / victory
+  - 自动管理帧动画（帧率控制、循环/单次），素材不存在时显示 Q 版占位符
+- `window.characterArt.drawIcon(ctx, charId, x, y, radius, { element, isActive, isDead })`
+  - 绘制角色头像图标，素材不存在时回退到 Renderer.drawAvatar()
+
+**战斗演出接口 `battle-cutscene.js`：**
+- `window.cutsceneManager.play(CutsceneFactory.ultimate(actor, element, skillName))` → 2.5s 大招特写
+- `window.cutsceneManager.play(CutsceneFactory.skill(element, skillName, isResonance))` → 0.8-1.2s 技能演出
+- 支持队列播放、跳过（skip），返回 Promise
+
+技术侧在 `ui.js / engine.js / main.js` 中按命名规则加载，美术侧只需按规范产出文件。
 
 ## 8. 团队分工
 

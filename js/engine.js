@@ -27,6 +27,7 @@ class SceneManager {
       return;
     }
     this.transitioning = true;
+    this._transitionType = data.transition || 'fade'; // fade | iris | slide
 
     // 从特定场景离开时触发自动存档
     const saveTriggerScenes = ['growth', 'party', 'gacha', 'battle', 'story_map'];
@@ -80,9 +81,32 @@ class SceneManager {
       this.currentScene.render(ctx);
     }
     if (this.transitionAlpha > 0) {
+      const W = ctx.canvas.width;
+      const H = ctx.canvas.height;
+      const type = this._transitionType || 'fade';
+
       ctx.save();
-      ctx.fillStyle = `rgba(0, 0, 0, ${this.transitionAlpha})`;
-      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+      if (type === 'iris') {
+        // 光圈过渡（圆形展开/收缩）
+        const maxRadius = Math.sqrt(W * W + H * H) / 2;
+        const radius = maxRadius * (1 - this.transitionAlpha);
+        ctx.beginPath();
+        ctx.rect(0, 0, W, H);
+        ctx.arc(W / 2, H / 2, Math.max(0, radius), 0, Math.PI * 2, true);
+        ctx.fillStyle = '#000';
+        ctx.fill();
+      } else if (type === 'slide') {
+        // 滑动过渡
+        const offset = W * this.transitionAlpha;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, offset, H);
+      } else {
+        // 默认淡入淡出
+        ctx.fillStyle = `rgba(0, 0, 0, ${this.transitionAlpha})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+
       ctx.restore();
     }
   }
@@ -751,6 +775,11 @@ class GameEngine {
     this.sceneManager.render(ctx);
 
     ctx.restore();
+
+    // 战斗演出覆盖层（在场景之上、转场之下渲染）
+    if (this._cutsceneOverlay && this._cutsceneOverlay.render) {
+      this._cutsceneOverlay.render(ctx);
+    }
   }
 }
 

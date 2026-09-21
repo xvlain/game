@@ -1,6 +1,6 @@
 # 未定之旅
 
-> 网页二次元回合制 RPG · 技术预览版 v0.10.0
+> 网页二次元回合制 RPG · 技术预览版 v0.12.0
 
 ## 技术栈
 
@@ -51,16 +51,23 @@
 ```
 ├── index.html          # 入口页面
 ├── manifest.json       # PWA 清单（添加到主屏幕）
-├── sw.js               # Service Worker（离线缓存）
+├── sw.js               # Service Worker（离线缓存，v0.12.0 增强分类缓存策略）
+├── fix_supabase_rpc.sql # Supabase RPC 函数修复脚本
 ├── js/
-│   ├── engine.js       # 核心引擎（场景管理、渲染、输入、资源加载）
+│   ├── engine.js       # 核心引擎（场景管理、渲染、输入、资源加载、多种过渡特效）
+│   ├── character-art.js # 角色美术系统（立绘加载+Q版序列帧+表情切换）← NEW
 │   ├── battle.js       # 回合制战斗系统（含共鸣/元素力）
+│   ├── battle-effects.js # 战斗粒子特效 + Sprite 特效
+│   ├── battle-cutscene.js # 战斗演出系统（大招特写+技能演出+开场/胜利）← NEW
 │   ├── story.js        # 剧情/地图/关卡管理
 │   ├── save.js         # Supabase 云端存档
 │   ├── gacha.js        # 抽卡系统
 │   ├── growth.js       # 角色养成系统（升级/突破/技能）
+│   ├── stages.js       # 材料掉落关卡 / 每日挑战 / 体力系统 / 签到
 │   ├── characters.js   # 角色图鉴 & 编队管理
 │   ├── ui.js           # 所有场景 UI 渲染
+│   ├── ui-animations.js # UI 动画系统（HP条/伤害弹出/屏幕震动）
+│   ├── achievements.js # 成就系统
 │   └── main.js         # 游戏入口 & 初始化
 ├── assets/             # 美术资源（占位，后期填充）
 │   ├── characters/     # 角色立绘 & Q版序列帧
@@ -116,6 +123,25 @@ https://xvlain.github.io/game/
 - 游戏设计：三人团队
 - 剧情 & 地图：元首
 - 技术实现 & 美术：AI 辅助
+
+## v0.12.0 更新日志
+
+- **角色美术系统（character-art.js）**：新增 `CharacterArtManager` 统一入口，包含：
+  - `PortraitManager`：立绘加载器，支持表情变体（default/happy/sad/angry/surprise）、异步加载、fallback 占位
+  - `ChibiAnimator`：Q版序列帧动画器，支持多动作（idle/attack/skill/hurt/death/victory）、帧率控制、循环/单次播放
+  - `drawPortrait()` / `drawChibi()` / `drawIcon()` 三个渲染入口，自动在素材不存在时回退到 Canvas 占位符
+- **战斗演出系统（battle-cutscene.js）**：新增 `BattleCutsceneManager` 演出控制器，包含：
+  - 大招特写演出（2.5s 四阶段：蓄力→技能名展示→攻击粒子爆发→淡出，含角色立绘、元素粒子、屏幕震动）
+  - 元素技/共鸣技演出（0.8-1.2s 快速演出，共鸣技额外双环特效）
+  - 战斗开场演出（1.0s 幕帘+BATTLE 文字缩放）
+  - 胜利演出（1.5s 金色粒子雨+VICTORY 文字）
+  - 失败演出（1.0s 红色暗幕+DEFEAT 文字）
+  - 支持跳过（skip）和队列播放
+- **场景过渡增强**：SceneManager 支持三种过渡类型（fade 淡入淡出 / iris 光圈 / slide 滑动），通过 `{ transition: 'iris' }` 参数选择
+- **引擎渲染增强**：GameEngine.render() 新增 `_cutsceneOverlay` 覆盖层渲染（演出系统在场景之上绘制）
+- **Service Worker v0.12.0**：升级为分类缓存策略（静态资源 CacheFirst / 美术资源 StaleWhileRevalidate / API 不缓存 / CDN StaleWhileRevalidate），旧缓存自动清理
+- **Supabase RPC 修复脚本**：新增 `fix_supabase_rpc.sql`，解决 PostgREST schema cache 导致函数找不到的问题
+- 版本号统一升级至 v0.12.0
 
 ## v0.10.0 更新日志
 

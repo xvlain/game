@@ -1,7 +1,7 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.11.0 - 设置持久化 + 成就系统 + 第二章剧情框架
+ * v0.12.0 - 角色美术系统 + 战斗演出 + 场景过渡特效
  */
 
 let game = null;
@@ -16,6 +16,16 @@ async function initGame() {
   game.storyManager = new StoryManager();
   game.saveManager = new SaveManager();
   game.gachaEngine = new GachaEngine();
+
+  // 初始化角色美术管理器（立绘 + Q版序列帧）
+  const characterArt = new CharacterArtManager();
+  window.characterArt = characterArt;
+  game.characterArt = characterArt;
+
+  // 初始化战斗演出管理器
+  const cutsceneManager = new BattleCutsceneManager();
+  window.cutsceneManager = cutsceneManager;
+  game.cutsceneManager = cutsceneManager;
 
   // 初始化成就系统
   achievementManager = new AchievementManager();
@@ -84,7 +94,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.11.0 初始化完成');
+  console.log('[Game] v0.12.0 初始化完成');
 }
 
 function buildDefaultState() {
