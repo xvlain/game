@@ -1,7 +1,7 @@
 # 美术制作进度追踪
 
 > 庸人工作室 · 未定之旅 · 美术任务状态
-> 最后更新：2026-09-20 01:14
+> 最后更新：2026-09-22 01:17
 > 本文件与「游戏技术开发与网站落实」任务互通
 
 ---
@@ -132,6 +132,27 @@
 |------|------|------|------|
 | 对话框角色名标签框 | `ui/frames/name_label_frame.png` | ✅ 已交付 | 2026-09-20 |
 
+### 14. 角色立绘（800×1200px，透明背景 PNG）
+| 角色 | 文件 | 元素 | 定位 | 状态 | 日期 |
+|------|------|------|------|------|------|
+| 织星（银发引导少女） | `characters/portraits/zhixing.png` | — | 剧情引导 NPC | ✅ 已交付 | 2026-09-22 |
+| 影（神秘旅者） | `characters/portraits/ying.png` | — | 剧情角色 / 可选 | ✅ 已交付 | 2026-09-22 |
+| 示例·战士（火属性） | `characters/portraits/warrior_01.png` | 火 | 输出 | ✅ 已交付 | 2026-09-22 |
+| 示例·法师（水属性） | `characters/portraits/mage_01.png` | 水 | 输出 | ✅ 已交付 | 2026-09-22 |
+| 示例·治疗（木属性） | `characters/portraits/healer_01.png` | 木 | 治疗 | ✅ 已交付 | 2026-09-22 |
+| 示例·守护（土属性） | `characters/portraits/tank_01.png` | 土 | 坦克 | ✅ 已交付 | 2026-09-22 |
+
+### 15. Q 版角色动画框架（JS）
+| 项目 | 文件 | 状态 | 日期 |
+|------|------|------|------|
+| ChibiSprite 类（单角色动画控制器） | `js/chibi-animator.js` | ✅ 已交付 | 2026-09-22 |
+| ChibiManager（多角色管理器） | `js/chibi-animator.js` | ✅ 已交付 | 2026-09-22 |
+| PortraitRenderer（立绘渲染器+呼吸动画+元素光效） | `js/chibi-animator.js` | ✅ 已交付 | 2026-09-22 |
+| CharIconRenderer（头像图标渲染器） | `js/chibi-animator.js` | ✅ 已交付 | 2026-09-22 |
+| BattleFormation（战斗阵型布局） | `js/chibi-animator.js` | ✅ 已交付 | 2026-09-22 |
+| 动画状态机（idle/attack/skill/ultimate/hit/victory/defeat） | `js/chibi-animator.js` | ✅ 已交付 | 2026-09-22 |
+| 占位符渲染（素材不可用时自动降级） | `js/chibi-animator.js` | ✅ 已交付 | 2026-09-22 |
+
 ---
 
 ## 二、待制作素材（按优先级排序）
@@ -139,16 +160,17 @@
 ### P0 - 阻塞游戏体验（需角色设定后才能开始）
 
 #### 角色立绘（800×1200px，透明背景 PNG）
-- [ ] 需元首/团队提供：角色列表、名字、元素属性、性格外貌描述
-- [ ] 风格参考：《重返未来1999》正常二次元立绘
+- [x] ~~初始 6 角色立绘~~ → 已完成 zhixing/ying/warrior_01/mage_01/healer_01/tank_01（2026-09-22）
+- [ ] 后续新角色立绘（待元首/团队提供角色设定）
 - 路径规范：`characters/portraits/<角色id>.png`
 
 #### 角色头像图标（小尺寸）
-- [ ] 每个角色一个头像图标
+- [ ] 每个角色一个头像图标（6个基础角色待制作）
 - 路径规范：`characters/icons/<角色id>.png`
 
 #### Q版战斗序列帧（128×128px 每帧）
 - [ ] 风格参考：《重返未来1999》战斗中略微Q版
+- [ ] 动画框架已就绪（`js/chibi-animator.js` v1.0.0），支持 idle/attack/skill/ultimate/hit/victory/defeat 7 种状态
 - 每角色需要：
   - idle（待机 2帧）
   - attack（普攻 3-4帧）
@@ -156,6 +178,7 @@
   - ultimate（大招 5-6帧）
   - hit（受击 2帧）
 - 路径规范：`characters/chibi/<角色id>/<动作>_<帧号>.png`
+- 依赖：立绘已就绪，Q 版序列帧可独立制作
 
 ### P1 - 提升沉浸感
 
@@ -196,11 +219,13 @@
 
 | 阻塞 | 原因 | 需要谁提供 | 预计解除时间 |
 |------|------|-----------|-------------|
-| 角色立绘制作 | 缺少角色设定（名字/元素/外貌） | 元首/团队 | 待提供 |
-| Q版序列帧 | 依赖立绘完成后开始 | - | 待定 |
+| 后续新角色立绘 | 缺少角色设定（名字/元素/外貌） | 元首/团队 | 待提供 |
+| Q版序列帧 | 可独立制作，下次执行时开始 | - | 下次执行 |
 | 剧情地图背景（后续章节） | 缺少地图设计 | 元首 | 待提供 |
 
-> 注：战斗场景背景已基本完成（7张），覆盖通用战斗、修炼场、矿洞、深渊、圣域、混沌虚空等主要场景。
+> 注：初始 6 角色立绘已完成（织星、影、战士、法师、治疗、守护）。
+> Q版动画框架已搭建，只需素材填入即可自动运行。
+> 战斗场景背景已基本完成（7张），覆盖通用战斗、修炼场、矿洞、深渊、圣域、混沌虚空等主要场景。
 > 剧情地图背景已完成 4 张，覆盖序章全部节点。
 
 ---
@@ -221,9 +246,9 @@
 技术侧在 `ui.js` / `engine.js` 中按以下命名规则加载素材：
 
 ```
-立绘：assets/characters/portraits/<角色id>.png
-Q版：assets/characters/chibi/<角色id>/<动作>_<帧号>.png
-头像：assets/characters/icons/<角色id>.png
+立绘：assets/characters/portraits/<角色id>.png  ← 已完成（6张：zhixing/ying/warrior_01/mage_01/healer_01/tank_01）
+Q版：assets/characters/chibi/<角色id>/<动作>_<帧号>.png  ← 框架已就绪，待素材
+头像：assets/characters/icons/<角色id>.png       ← 待制作
 特效：assets/battle/effects/<特效名>.png       ← 已完成（18张sprite + 代码粒子）
   - 攻击：assets/battle/effects/<元素>_attack.png   ← 已完成（5张）
   - 战技：assets/battle/effects/<元素>_skill.png     ← 已完成（5张）
@@ -243,7 +268,37 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 
 ---
 
-## 六、本次执行记录（2026-09-21 01:20）
+## 六、本次执行记录（2026-09-22 01:17）
+
+### 新增素材（共 6 张立绘 + 1 个动画框架）
+1. **角色立绘 ×6**（800×1200px，透明背景 PNG）：
+   - `characters/portraits/zhixing.png`：织星——银发星盘少女，白紫法袍，星光发饰
+   - `characters/portraits/ying.png`：影——深色斗篷神秘旅者，黑紫短发，暗色短刀
+   - `characters/portraits/warrior_01.png`：火属性战士——红发红甲，火焰大剑
+   - `characters/portraits/mage_01.png`：水属性法师——蓝发蓝袍，水晶法杖
+   - `characters/portraits/healer_01.png`：木属性治疗师——浅绿发，白绿修女袍，藤蔓法杖
+   - `characters/portraits/tank_01.png`：土属性守护者——棕发重甲，巨型塔盾
+
+### 代码更新
+1. **新增 `js/chibi-animator.js` v1.0.0**：Q 版角色动画系统
+   - `ChibiSprite` 类：单角色动画控制器，支持 7 种状态（idle/attack/skill/ultimate/hit/victory/defeat），帧动画播放、优先级管理、自动回退到 idle
+   - `ChibiManager`：多角色管理器，统一 update/render
+   - `PortraitRenderer`：立绘渲染器，支持呼吸动画、元素光效、翻转、剪影占位符
+   - `CharIconRenderer`：头像图标渲染器，圆形裁剪+元素色边框，降级到 Renderer.drawAvatar
+   - `BattleFormation`：战斗阵型布局数据（玩家4槽/敌方4槽位置坐标）
+   - 攻击位移、受击后退+白闪+震动等战斗动画效果
+   - 素材不可用时自动降级为占位符渲染，不阻断游戏运行
+2. **index.html 更新**：在 battle-effects.js 后加载 chibi-animator.js
+
+### 下一步计划
+- 制作 Q 版战斗序列帧（基于已有立绘，按 chibi-animator.js 规范的帧数和尺寸生成）
+- 制作角色头像图标（6个基础角色）
+- 将立绘接入剧情对话场景（PortraitRenderer 替换当前剪影占位）
+- 后续新角色立绘（待元首提供设定）
+
+---
+
+## 七、本次执行记录（2026-09-21 01:20）
 
 ### 新增素材（共 13 张）
 1. **五行战技特效 Sprite ×5**：`battle/effects/<element>_skill.png`（螺旋火焰柱 / 高压水柱冲击波 / 巨型藤蔓破地 / 巨石升起撞击 / 金色利刃光束斩击）
