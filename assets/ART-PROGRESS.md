@@ -1,7 +1,7 @@
 # 美术制作进度追踪
 
 > 庸人工作室 · 未定之旅 · 美术任务状态
-> 最后更新：2026-09-22 01:17
+> 最后更新：2026-09-23 01:25
 > 本文件与「游戏技术开发与网站落实」任务互通
 
 ---
@@ -153,6 +153,32 @@
 | 动画状态机（idle/attack/skill/ultimate/hit/victory/defeat） | `js/chibi-animator.js` | ✅ 已交付 | 2026-09-22 |
 | 占位符渲染（素材不可用时自动降级） | `js/chibi-animator.js` | ✅ 已交付 | 2026-09-22 |
 
+### 16. 角色头像图标（128×128px，圆形+元素色边框，透明背景 PNG）
+| 角色 | 文件 | 元素色 | 状态 | 日期 |
+|------|------|--------|------|------|
+| 织星 | `characters/icons/zhixing.png` | #9B59B6 紫 | ✅ 已交付 | 2026-09-23 |
+| 影 | `characters/icons/ying.png` | #6C3483 暗紫 | ✅ 已交付 | 2026-09-23 |
+| 战士 | `characters/icons/warrior_01.png` | #E74C3C 红（火） | ✅ 已交付 | 2026-09-23 |
+| 法师 | `characters/icons/mage_01.png` | #3498DB 蓝（水） | ✅ 已交付 | 2026-09-23 |
+| 治疗 | `characters/icons/healer_01.png` | #27AE60 绿（木） | ✅ 已交付 | 2026-09-23 |
+| 守护 | `characters/icons/tank_01.png` | #D4A017 金（土） | ✅ 已交付 | 2026-09-23 |
+
+### 17. Q 版 idle 待机序列帧（128×128px，透明背景 PNG）
+| 角色 | 文件 | 帧数 | 状态 | 日期 |
+|------|------|------|------|------|
+| 织星 idle_00 | `characters/chibi/zhixing/idle_00.png` | 帧1（下沉） | ✅ 已交付 | 2026-09-23 |
+| 织星 idle_01 | `characters/chibi/zhixing/idle_01.png` | 帧2（上浮） | ✅ 已交付 | 2026-09-23 |
+| 影 idle_00 | `characters/chibi/ying/idle_00.png` | 帧1（下沉） | ✅ 已交付 | 2026-09-23 |
+| 影 idle_01 | `characters/chibi/ying/idle_01.png` | 帧2（上浮） | ✅ 已交付 | 2026-09-23 |
+| 战士 idle_00 | `characters/chibi/warrior_01/idle_00.png` | 帧1（持剑下沉） | ✅ 已交付 | 2026-09-23 |
+| 战士 idle_01 | `characters/chibi/warrior_01/idle_01.png` | 帧2（上浮） | ✅ 已交付 | 2026-09-23 |
+| 法师 idle_00 | `characters/chibi/mage_01/idle_00.png` | 帧1（持杖下沉） | ✅ 已交付 | 2026-09-23 |
+| 法师 idle_01 | `characters/chibi/mage_01/idle_01.png` | 帧2（上浮） | ✅ 已交付 | 2026-09-23 |
+| 治疗 idle_00 | `characters/chibi/healer_01/idle_00.png` | 帧1（持杖下沉） | ✅ 已交付 | 2026-09-23 |
+| 治疗 idle_01 | `characters/chibi/healer_01/idle_01.png` | 帧2（上浮） | ✅ 已交付 | 2026-09-23 |
+| 守护 idle_00 | `characters/chibi/tank_01/idle_00.png` | 帧1（持盾下沉） | ✅ 已交付 | 2026-09-23 |
+| 守护 idle_01 | `characters/chibi/tank_01/idle_01.png` | 帧2（上浮） | ✅ 已交付 | 2026-09-23 |
+
 ---
 
 ## 二、待制作素材（按优先级排序）
@@ -165,18 +191,18 @@
 - 路径规范：`characters/portraits/<角色id>.png`
 
 #### 角色头像图标（小尺寸）
-- [ ] 每个角色一个头像图标（6个基础角色待制作）
+- [x] ~~每个角色一个头像图标（6个基础角色）~~ → 已完成 zhixing/ying/warrior_01/mage_01/healer_01/tank_01（2026-09-23）
 - 路径规范：`characters/icons/<角色id>.png`
 
 #### Q版战斗序列帧（128×128px 每帧）
-- [ ] 风格参考：《重返未来1999》战斗中略微Q版
-- [ ] 动画框架已就绪（`js/chibi-animator.js` v1.0.0），支持 idle/attack/skill/ultimate/hit/victory/defeat 7 种状态
+- [x] 风格参考：《重返未来1999》战斗中略微Q版
+- [x] 动画框架已就绪（`js/chibi-animator.js` v1.0.0），支持 idle/attack/skill/ultimate/hit/victory/defeat 7 种状态
 - 每角色需要：
-  - idle（待机 2帧）
-  - attack（普攻 3-4帧）
-  - skill（战技 4-5帧）
-  - ultimate（大招 5-6帧）
-  - hit（受击 2帧）
+  - ~~idle（待机 2帧）~~ → 已完成 6 角色 × 2 帧（2026-09-23）
+  - attack（普攻 3-4帧）→ 待制作
+  - skill（战技 4-5帧）→ 待制作
+  - ultimate（大招 5-6帧）→ 待制作
+  - hit（受击 2帧）→ 待制作
 - 路径规范：`characters/chibi/<角色id>/<动作>_<帧号>.png`
 - 依赖：立绘已就绪，Q 版序列帧可独立制作
 
@@ -220,11 +246,13 @@
 | 阻塞 | 原因 | 需要谁提供 | 预计解除时间 |
 |------|------|-----------|-------------|
 | 后续新角色立绘 | 缺少角色设定（名字/元素/外貌） | 元首/团队 | 待提供 |
-| Q版序列帧 | 可独立制作，下次执行时开始 | - | 下次执行 |
+| Q版 attack/skill/ultimate/hit 帧 | idle 已完成，其余动作待下次执行 | - | 下次执行 |
 | 剧情地图背景（后续章节） | 缺少地图设计 | 元首 | 待提供 |
 
 > 注：初始 6 角色立绘已完成（织星、影、战士、法师、治疗、守护）。
-> Q版动画框架已搭建，只需素材填入即可自动运行。
+> 角色头像图标 6 个已完成（2026-09-23）。
+> Q版 idle 待机帧 6 角色 × 2 帧已完成（2026-09-23）。
+> Q版动画框架已搭建，attack/skill/ultimate/hit 帧待制作。
 > 战斗场景背景已基本完成（7张），覆盖通用战斗、修炼场、矿洞、深渊、圣域、混沌虚空等主要场景。
 > 剧情地图背景已完成 4 张，覆盖序章全部节点。
 
@@ -247,8 +275,8 @@
 
 ```
 立绘：assets/characters/portraits/<角色id>.png  ← 已完成（6张：zhixing/ying/warrior_01/mage_01/healer_01/tank_01）
-Q版：assets/characters/chibi/<角色id>/<动作>_<帧号>.png  ← 框架已就绪，待素材
-头像：assets/characters/icons/<角色id>.png       ← 待制作
+Q版：assets/characters/chibi/<角色id>/<动作>_<帧号>.png  ← idle 已完成（6角色×2帧），attack/skill/ultimate/hit 待制作
+头像：assets/characters/icons/<角色id>.png       ← 已完成（6张）
 特效：assets/battle/effects/<特效名>.png       ← 已完成（18张sprite + 代码粒子）
   - 攻击：assets/battle/effects/<元素>_attack.png   ← 已完成（5张）
   - 战技：assets/battle/effects/<元素>_skill.png     ← 已完成（5张）
@@ -268,7 +296,40 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 
 ---
 
-## 六、本次执行记录（2026-09-22 01:17）
+## 六、本次执行记录（2026-09-23 01:25）
+
+### 新增素材（共 18 张）
+1. **角色头像图标 ×6**（128×128px，圆形裁剪+元素色边框，透明背景 PNG）：
+   - `characters/icons/zhixing.png`：织星——紫色边框
+   - `characters/icons/ying.png`：影——暗紫边框
+   - `characters/icons/warrior_01.png`：战士——红色边框（火）
+   - `characters/icons/mage_01.png`：法师——蓝色边框（水）
+   - `characters/icons/healer_01.png`：治疗——绿色边框（木）
+   - `characters/icons/tank_01.png`：守护——金色边框（土）
+   - 制作方式：基于已有立绘裁剪头部区域 → 缩放至 128×128 → 圆形遮罩 + 元素色描边 + 顶部高光
+
+2. **Q 版 idle 待机序列帧 ×12**（128×128px，透明背景 PNG，6 角色 × 2 帧）：
+   - `characters/chibi/zhixing/idle_00.png` ~ `idle_01.png`：织星呼吸感待机
+   - `characters/chibi/ying/idle_00.png` ~ `idle_01.png`：影呼吸感待机
+   - `characters/chibi/warrior_01/idle_00.png` ~ `idle_01.png`：战士持剑呼吸感待机
+   - `characters/chibi/mage_01/idle_00.png` ~ `idle_01.png`：法师持杖呼吸感待机
+   - `characters/chibi/healer_01/idle_00.png` ~ `idle_01.png`：治疗持杖呼吸感待机
+   - `characters/chibi/tank_01/idle_00.png` ~ `idle_01.png`：守护持盾呼吸感待机
+   - 风格：像素艺术（Pixel Art），略 Q 版比例（参考《重返未来1999》战斗小人），线条清晰
+   - 帧 1（idle_00）：自然站姿微微下沉（吸气前奏）
+   - 帧 2（idle_01）：站姿微微上浮（呼气状态）
+   - 配合 chibi-animator.js 的 idle 配置（3fps 循环播放）即可实现呼吸待机动画
+
+### 下一步计划
+- 制作 Q 版 attack 攻击序列帧（6 角色 × 4 帧）
+- 制作 Q 版 skill 战技序列帧（6 角色 × 5 帧）
+- 制作 Q 版 hit 受击序列帧（6 角色 × 2 帧）
+- 将 Q 版 idle 帧接入 battle.js 战斗渲染（chibi-animator.js 框架已就绪）
+- 后续新角色立绘（待元首提供设定）
+
+---
+
+## 七、本次执行记录（2026-09-22 01:17）
 
 ### 新增素材（共 6 张立绘 + 1 个动画框架）
 1. **角色立绘 ×6**（800×1200px，透明背景 PNG）：
