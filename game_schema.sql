@@ -64,12 +64,38 @@ CREATE TABLE IF NOT EXISTS game_stage_progress (
   UNIQUE(user_id, stage_id)
 );
 
+-- ============ 5b. 任务进度表（v0.13.0） ============
+CREATE TABLE IF NOT EXISTS game_quest_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES game_players(id) ON DELETE CASCADE,
+  quest_type TEXT NOT NULL,        -- 'daily' | 'weekly'
+  quest_id TEXT NOT NULL,
+  progress INTEGER DEFAULT 0,
+  completed BOOLEAN DEFAULT false,
+  claimed BOOLEAN DEFAULT false,
+  period_start TIMESTAMPTZ,       -- 当前周期开始时间
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, quest_type, quest_id, period_start)
+);
+
+-- ============ 5c. 成就奖励领取记录表（v0.13.0） ============
+CREATE TABLE IF NOT EXISTS game_achievement_claims (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES game_players(id) ON DELETE CASCADE,
+  achievement_id TEXT NOT NULL,
+  claimed_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, achievement_id)
+);
+
 -- ============ 6. 索引 ============
 CREATE INDEX IF NOT EXISTS idx_game_saves_user ON game_saves(user_id);
 CREATE INDEX IF NOT EXISTS idx_game_roster_user ON game_roster(user_id);
 CREATE INDEX IF NOT EXISTS idx_game_gacha_user ON game_gacha_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_game_stage_user ON game_stage_progress(user_id);
 CREATE INDEX IF NOT EXISTS idx_game_players_username ON game_players(username);
+CREATE INDEX IF NOT EXISTS idx_game_quest_user ON game_quest_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_game_quest_period ON game_quest_progress(period_start);
+CREATE INDEX IF NOT EXISTS idx_game_achievement_claims_user ON game_achievement_claims(user_id);
 
 -- ============ 7. 启用 RLS ============
 ALTER TABLE game_players ENABLE ROW LEVEL SECURITY;
@@ -77,6 +103,8 @@ ALTER TABLE game_saves ENABLE ROW LEVEL SECURITY;
 ALTER TABLE game_roster ENABLE ROW LEVEL SECURITY;
 ALTER TABLE game_gacha_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE game_stage_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE game_quest_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE game_achievement_claims ENABLE ROW LEVEL SECURITY;
 
 -- ============ 8. RPC 函数 ============
 
@@ -285,6 +313,90 @@ BEGIN
 END;
 $$;
 
+-- ============ 8b. 任务进度 RPC 函数（v0.13.0） ============
+
+-- 更新任务进度
+CREATE OR REPLACE FUNCTION game_update_quest(
+  p_user_id UUID,
+  p_quest_type TEXT,
+  p_quest_id TEXT,
+  p_progress INTEGER,
+  p_period_start TIMESTAMPTZ
+)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER
+AS $$
+BEGIN
+  INSERT INTO game_quest_progress (user_id, quest_type, quest_id, progress, completed, period_start, updated_at)
+  VALUES (p_user_id, p_quest_type, p_quest_id, p_progress, p_progress > 0, p_period_start, now())
+  ON CONFLICT (user_id, quest_type, quest_id, period_start) DO UPDATE
+  SET progress = GREATEST(game_quest_progress.progress, p_progress),
+      completed = game_quest_progress.progress >= p_progress OR p_progress > 0,
+      updated_at = now();
+END;
+$$;
+
+-- 领取任务奖励
+CREATE OR REPLACE FUNCTION game_claim_quest(
+  p_user_id UUID,
+  p_quest_type TEXT,
+  p_quest_id TEXT,
+  p_period_start TIMESTAMPTZ
+)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE game_quest_progress
+  SET claimed = true, updated_at = now()
+  WHERE user_id = p_user_id AND quest_type = p_quest_type
+    AND quest_id = p_quest_id AND period_start = p_period_start;
+END;
+$$;
+
+-- 领取成就奖励
+CREATE OR REPLACE FUNCTION game_claim_achievement(
+  p_user_id UUID,
+  p_achievement_id TEXT
+)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER
+AS $$
+BEGIN
+  INSERT INTO game_achievement_claims (user_id, achievement_id, claimed_at)
+  VALUES (p_user_id, p_achievement_id, now())
+  ON CONFLICT (user_id, achievement_id) DO NOTHING;
+END;
+$$;
+
+-- 获取玩家任务进度
+CREATE OR REPLACE FUNCTION game_get_quests(
+  p_user_id UUID,
+  p_quest_type TEXT,
+  p_period_start TIMESTAMPTZ
+)
+RETURNS JSONB
+LANGUAGE plpgsql SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN COALESCE(
+    jsonb_agg(
+      jsonb_build_object(
+        'quest_id', quest_id,
+        'progress', progress,
+        'completed', completed,
+        'claimed', claimed
+      )
+    ),
+    '[]'::jsonb
+  )
+  FROM game_quest_progress
+  WHERE user_id = p_user_id
+    AND quest_type = p_quest_type
+    AND period_start = p_period_start;
+END;
+$$;
+
 -- ============ 9. 授权 anon 角色执行函数 ============
 GRANT EXECUTE ON FUNCTION game_register TO anon;
 GRANT EXECUTE ON FUNCTION game_login TO anon;
@@ -294,6 +406,10 @@ GRANT EXECUTE ON FUNCTION game_gacha_record TO anon;
 GRANT EXECUTE ON FUNCTION game_update_stage TO anon;
 GRANT EXECUTE ON FUNCTION game_get_roster TO anon;
 GRANT EXECUTE ON FUNCTION game_gacha_stats TO anon;
+GRANT EXECUTE ON FUNCTION game_update_quest TO anon;
+GRANT EXECUTE ON FUNCTION game_claim_quest TO anon;
+GRANT EXECUTE ON FUNCTION game_claim_achievement TO anon;
+GRANT EXECUTE ON FUNCTION game_get_quests TO anon;
 
 -- ============ 10. 完成提示 ============
 SELECT '数据库初始化完成！未定之旅 v0.1' AS status;

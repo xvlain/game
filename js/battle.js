@@ -210,6 +210,10 @@ class BattleEngine {
     this.onActionComplete = null;
     this.onBattleEnd = null;
     this.animationQueue = [];
+    // v0.13.0 连击链管理器
+    this.chainManager = (typeof BattleChainManager !== 'undefined') ? new BattleChainManager() : null;
+    this.critCount = 0;   // 本场暴击次数
+    this.comboCount = 0;  // 本场连击链次数
   }
 
   init(partyTemplates, enemyConfigs) {
@@ -263,6 +267,9 @@ class BattleEngine {
 
   startBattle() {
     this.state = 'running';
+    this.critCount = 0;
+    this.comboCount = 0;
+    if (this.chainManager) this.chainManager.initBattle();
     this._nextTurn();
   }
 
@@ -288,6 +295,21 @@ class BattleEngine {
     nextActor.actionValue = 0;
     this.currentActor = nextActor;
     this.turnCount++;
+
+    // v0.13.0 眩晕检测：被眩晕的角色跳过回合
+    const isStunned = nextActor.debuffs && nextActor.debuffs.some(d => d.type === 'stun' && d.turns > 0);
+    if (isStunned) {
+      this._log(`💫 ${nextActor.name} 处于眩晕状态，跳过回合`);
+      // 移除一层眩晕
+      nextActor.debuffs = nextActor.debuffs.map(d => {
+        if (d.type === 'stun') return { ...d, turns: d.turns - 1 };
+        return d;
+      }).filter(d => d.turns > 0);
+      // 直接跳到下一个角色
+      setTimeout(() => this._nextTurn(), 400);
+      if (this.onStateChange) this.onStateChange('stunned', nextActor);
+      return;
+    }
 
     if (nextActor.team === 'player') {
       this.state = 'player_turn';
@@ -346,8 +368,43 @@ class BattleEngine {
         if (!target) break;
 
         const dmg = this._calcDamage(actor, target, skill);
-        target.currentHp = Math.max(0, target.currentHp - dmg.damage);
+        let finalDamage = dmg.damage;
+
+        // v0.13.0 连击链系统
+        if (this.chainManager) {
+          const chainResult = this.chainManager.onAttack(actor, target, dmg.damage, skillKey, skill);
+          finalDamage = chainResult.totalDamage;
+
+          if (chainResult.chainCount > 1) {
+            this.comboCount++;
+            this._log(`⚡ ${chainResult.chainCount}连击！(+${chainResult.chainBonus})`);
+          }
+          if (chainResult.elementChain) {
+            this._log(`✦ 元素连锁！(+${chainResult.elementBonus})`);
+          }
+          if (chainResult.isBreak) {
+            this._log(`💥 破防！${target.name} 眩晕 1 回合`);
+            target.debuffs.push({ type: 'stun', turns: 1, value: 0 });
+          }
+        }
+
+        target.currentHp = Math.max(0, target.currentHp - finalDamage);
         actor.currentEnergy = Math.min(actor.maxEnergy, actor.currentEnergy + 20);
+
+        if (dmg.crit) this.critCount++;
+
+        // v0.13.0 反击系统
+        if (this.chainManager && target.currentHp > 0) {
+          const counter = this.chainManager.processCounter();
+          if (counter) {
+            CounterSystem.apply(counter, actor);
+            this._log(`🔄 ${counter.message}`);
+            // 反击触发粒子特效信号
+            if (typeof window !== 'undefined' && window._battleEffects) {
+              window._battleEffects.push({ type: 'counter', target: actor.id });
+            }
+          }
+        }
 
         // 普攻回复元素力（含共鸣增益加成）
         if (skillKey === 'normal') {
@@ -364,8 +421,8 @@ class BattleEngine {
         }
 
         const advText = dmg.elementAdvantage ? '（克制！）' : '';
-        results.push({ target: target.name, damage: dmg.damage, crit: dmg.crit, killed: target.currentHp <= 0, elementAdvantage: dmg.elementAdvantage });
-        this._log(`${actor.name} 使用 ${skill.name} 对 ${target.name} 造成 ${dmg.damage} 伤害${dmg.crit ? '（暴击！）' : ''}${advText}`);
+        results.push({ target: target.name, damage: finalDamage, crit: dmg.crit, killed: target.currentHp <= 0, elementAdvantage: dmg.elementAdvantage });
+        this._log(`${actor.name} 使用 ${skill.name} 对 ${target.name} 造成 ${finalDamage} 伤害${dmg.crit ? '（暴击！）' : ''}${advText}`);
         break;
       }
 
@@ -419,6 +476,9 @@ class BattleEngine {
     if (this.onActionComplete) {
       this.onActionComplete(actor, skill, results);
     }
+
+    // v0.13.0 回合结束重置连击链
+    if (this.chainManager) this.chainManager.onTurnEnd();
 
     setTimeout(() => this._nextTurn(), 600);
   }
@@ -500,7 +560,14 @@ class BattleEngine {
     if (enemyAlive === 0) {
       this.state = 'victory';
       this._log('战斗胜利！');
-      if (this.onBattleEnd) this.onBattleEnd('victory');
+      if (this.onBattleEnd) {
+        const chainStats = this.chainManager ? this.chainManager.getSummary() : { maxChain: 0, totalChains: 0 };
+        this.onBattleEnd('victory', {
+          critCount: this.critCount,
+          comboCount: this.comboCount,
+          chainStats
+        });
+      }
       return true;
     }
 

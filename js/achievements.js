@@ -11,46 +11,46 @@
 // ============ 成就定义 ============
 const AchievementDefs = [
   // ── 剧情 ──
-  { id: 'first_story_node',   name: '旅途开始',       desc: '完成第一个剧情节点',        icon: '📖', hidden: false },
-  { id: 'ch1_complete',       name: '黎明之前',       desc: '完成序章·黎明之前',         icon: '🌅', hidden: false },
-  { id: 'ch2_unlock',         name: '新篇章',         desc: '解锁第二章',               icon: '🗺️', hidden: false },
-  { id: 'ch2_complete',       name: '命运交汇',       desc: '完成第二章·命运交汇',       icon: '⚡', hidden: false },
-  { id: 'all_ch1_nodes',      name: '探索者',         desc: '完成序章所有节点（含分支）', icon: '🔍', hidden: false },
+  { id: 'first_story_node',   name: '旅途开始',       desc: '完成第一个剧情节点',        icon: '📖', hidden: false, reward: { crystals: 50, coins: 200 } },
+  { id: 'ch1_complete',       name: '黎明之前',       desc: '完成序章·黎明之前',         icon: '🌅', hidden: false, reward: { crystals: 100, coins: 500 } },
+  { id: 'ch2_unlock',         name: '新篇章',         desc: '解锁第二章',               icon: '🗺️', hidden: false, reward: { crystals: 50, coins: 300 } },
+  { id: 'ch2_complete',       name: '命运交汇',       desc: '完成第二章·命运交汇',       icon: '⚡', hidden: false, reward: { crystals: 150, coins: 800 } },
+  { id: 'all_ch1_nodes',      name: '探索者',         desc: '完成序章所有节点（含分支）', icon: '🔍', hidden: false, reward: { crystals: 80, coins: 400 } },
 
   // ── 战斗 ──
-  { id: 'first_battle',       name: '初次交锋',       desc: '完成第一场战斗',            icon: '⚔️', hidden: false },
-  { id: 'battle_10',          name: '百战之师',       desc: '累计完成 10 场战斗',         icon: '🗡️', hidden: false },
-  { id: 'battle_50',          name: '无双勇者',       desc: '累计完成 50 场战斗',         icon: '🏆', hidden: false },
-  { id: 'first_boss_kill',    name: '挑战者',         desc: '击败第一个 Boss',           icon: '💀', hidden: false },
-  { id: 'daily_boss_clear',   name: '日常猎人',       desc: '完成一次每日挑战',          icon: '📅', hidden: false },
+  { id: 'first_battle',       name: '初次交锋',       desc: '完成第一场战斗',            icon: '⚔️', hidden: false, reward: { crystals: 20, coins: 100 } },
+  { id: 'battle_10',          name: '百战之师',       desc: '累计完成 10 场战斗',         icon: '🗡️', hidden: false, reward: { crystals: 60, coins: 400 } },
+  { id: 'battle_50',          name: '无双勇者',       desc: '累计完成 50 场战斗',         icon: '🏆', hidden: false, reward: { crystals: 150, coins: 1000 } },
+  { id: 'first_boss_kill',    name: '挑战者',         desc: '击败第一个 Boss',           icon: '💀', hidden: false, reward: { crystals: 40, coins: 300 } },
+  { id: 'daily_boss_clear',   name: '日常猎人',       desc: '完成一次每日挑战',          icon: '📅', hidden: false, reward: { crystals: 30, coins: 200 } },
 
   // ── 抽卡 ──
-  { id: 'first_gacha',        name: '命运之轮',       desc: '进行第一次召唤',            icon: '✨', hidden: false },
-  { id: 'first_ssr',          name: '星辰眷顾',       desc: '获得第一个 SSR 角色',        icon: '🌟', hidden: false },
-  { id: 'gacha_10',           name: '十连勇者',       desc: '完成一次十连召唤',          icon: '🎰', hidden: false },
-  { id: 'gacha_50',           name: '资深旅者',       desc: '累计召唤 50 次',            icon: '🃏', hidden: false },
-  { id: 'roster_5',           name: '小有阵容',       desc: '收集 5 名角色',             icon: '👥', hidden: false },
-  { id: 'roster_10',          name: '角色大师',       desc: '收集 10 名角色',            icon: '🏅', hidden: false },
+  { id: 'first_gacha',        name: '命运之轮',       desc: '进行第一次召唤',            icon: '✨', hidden: false, reward: { crystals: 20, coins: 100 } },
+  { id: 'first_ssr',          name: '星辰眷顾',       desc: '获得第一个 SSR 角色',        icon: '🌟', hidden: false, reward: { crystals: 100, coins: 500 } },
+  { id: 'gacha_10',           name: '十连勇者',       desc: '完成一次十连召唤',          icon: '🎰', hidden: false, reward: { crystals: 30, coins: 200 } },
+  { id: 'gacha_50',           name: '资深旅者',       desc: '累计召唤 50 次',            icon: '🃏', hidden: false, reward: { crystals: 80, coins: 600 } },
+  { id: 'roster_5',           name: '小有阵容',       desc: '收集 5 名角色',             icon: '👥', hidden: false, reward: { crystals: 50, coins: 300 } },
+  { id: 'roster_10',          name: '角色大师',       desc: '收集 10 名角色',            icon: '🏅', hidden: false, reward: { crystals: 100, coins: 800 } },
 
   // ── 养成 ──
-  { id: 'first_levelup',      name: '成长之路',       desc: '第一次升级角色',            icon: '⬆️', hidden: false },
-  { id: 'first_ascend',       name: '突破极限',       desc: '第一次突破角色',            icon: '🔓', hidden: false },
-  { id: 'first_skillup',      name: '技艺精进',       desc: '第一次升级技能',            icon: '📚', hidden: false },
-  { id: 'level_40',           name: '中坚力量',       desc: '将任意角色提升至 Lv.40',    icon: '💪', hidden: false },
-  { id: 'level_80',           name: '满级传说',       desc: '将任意角色提升至 Lv.80',    icon: '👑', hidden: false },
+  { id: 'first_levelup',      name: '成长之路',       desc: '第一次升级角色',            icon: '⬆️', hidden: false, reward: { crystals: 20, coins: 100 } },
+  { id: 'first_ascend',       name: '突破极限',       desc: '第一次突破角色',            icon: '🔓', hidden: false, reward: { crystals: 40, coins: 300 } },
+  { id: 'first_skillup',      name: '技艺精进',       desc: '第一次升级技能',            icon: '📚', hidden: false, reward: { crystals: 20, coins: 150 } },
+  { id: 'level_40',           name: '中坚力量',       desc: '将任意角色提升至 Lv.40',    icon: '💪', hidden: false, reward: { crystals: 80, coins: 500 } },
+  { id: 'level_80',           name: '满级传说',       desc: '将任意角色提升至 Lv.80',    icon: '👑', hidden: false, reward: { crystals: 200, coins: 1500 } },
 
   // ── 关卡 ──
-  { id: 'first_stage',        name: '初次历练',       desc: '完成第一个材料关卡',         icon: '🏰', hidden: false },
-  { id: 'stage_3star',        name: '完美通关',       desc: '获得关卡三星评价',           icon: '⭐', hidden: false },
+  { id: 'first_stage',        name: '初次历练',       desc: '完成第一个材料关卡',         icon: '🏰', hidden: false, reward: { crystals: 20, coins: 150 } },
+  { id: 'stage_3star',        name: '完美通关',       desc: '获得关卡三星评价',           icon: '⭐', hidden: false, reward: { crystals: 50, coins: 300 } },
 
   // ── 签到 ──
-  { id: 'checkin_7',          name: '坚持一周',       desc: '连续签到 7 天',             icon: '📆', hidden: false },
-  { id: 'checkin_30',         name: '月度旅者',       desc: '连续签到 30 天',            icon: '🗓️', hidden: false },
+  { id: 'checkin_7',          name: '坚持一周',       desc: '连续签到 7 天',             icon: '📆', hidden: false, reward: { crystals: 80, coins: 500 } },
+  { id: 'checkin_30',         name: '月度旅者',       desc: '连续签到 30 天',            icon: '🗓️', hidden: false, reward: { crystals: 200, coins: 1500 } },
 
   // ── 隐藏成就 ──
-  { id: 'crystals_10000',     name: '水晶富翁',       desc: '持有 10000 水晶',           icon: '💎', hidden: true },
-  { id: 'coins_50000',        name: '金库满仓',       desc: '持有 50000 金币',           icon: '🪙', hidden: true },
-  { id: 'all_elements',       name: '五行齐聚',       desc: '编队中包含全部五种元素',     icon: '☯️', hidden: true }
+  { id: 'crystals_10000',     name: '水晶富翁',       desc: '持有 10000 水晶',           icon: '💎', hidden: true,  reward: { coins: 2000 } },
+  { id: 'coins_50000',        name: '金库满仓',       desc: '持有 50000 金币',           icon: '🪙', hidden: true,  reward: { crystals: 100 } },
+  { id: 'all_elements',       name: '五行齐聚',       desc: '编队中包含全部五种元素',     icon: '☯️', hidden: true,  reward: { crystals: 80, coins: 500 } }
 ];
 
 // ============ 成就管理器 ============
@@ -58,6 +58,7 @@ class AchievementManager {
   constructor() {
     this.storageKey = 'game_achievements_v1';
     this.unlocked = {};       // { achievementId: { unlockedAt: ISO string } }
+    this.claimed = {};        // { achievementId: { claimedAt: ISO string } }  v0.13.0 新增
     this.counters = {};       // { counterKey: number }  用于累计计数
     this.pendingNotifications = []; // 待展示的解锁通知
   }
@@ -69,6 +70,7 @@ class AchievementManager {
       if (raw) {
         const data = JSON.parse(raw);
         this.unlocked = data.unlocked || {};
+        this.claimed = data.claimed || {};
         this.counters = data.counters || {};
       }
     } catch (e) {
@@ -81,6 +83,7 @@ class AchievementManager {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify({
         unlocked: this.unlocked,
+        claimed: this.claimed,
         counters: this.counters,
         version: 1
       }));
@@ -134,8 +137,47 @@ class AchievementManager {
     return AchievementDefs.map(def => ({
       ...def,
       unlocked: !!this.unlocked[def.id],
-      unlockedAt: this.unlocked[def.id]?.unlockedAt || null
+      unlockedAt: this.unlocked[def.id]?.unlockedAt || null,
+      claimable: !!this.unlocked[def.id] && !this.claimed[def.id] && !!def.reward,
+      claimed: !!this.claimed[def.id],
+      claimedAt: this.claimed[def.id]?.claimedAt || null
     }));
+  }
+
+  /** v0.13.0 领取成就奖励 */
+  claimReward(achievementId, gameState) {
+    if (!this.unlocked[achievementId]) return { success: false, reason: '未解锁' };
+    if (this.claimed[achievementId]) return { success: false, reason: '已领取' };
+
+    const def = AchievementDefs.find(d => d.id === achievementId);
+    if (!def || !def.reward) return { success: false, reason: '无奖励' };
+
+    // 发放奖励
+    if (def.reward.crystals) {
+      gameState.currency.crystals = (gameState.currency.crystals || 0) + def.reward.crystals;
+    }
+    if (def.reward.coins) {
+      gameState.currency.coins = (gameState.currency.coins || 0) + def.reward.coins;
+    }
+    if (def.reward.item) {
+      gameState.inventory = gameState.inventory || {};
+      gameState.inventory[def.reward.item] = (gameState.inventory[def.reward.item] || 0) + (def.reward.itemAmount || 1);
+    }
+
+    this.claimed[achievementId] = { claimedAt: new Date().toISOString() };
+    this.save();
+
+    return { success: true, reward: def.reward };
+  }
+
+  /** v0.13.0 获取未领取奖励的成就数量 */
+  getClaimableCount() {
+    return AchievementDefs.filter(d => this.unlocked[d.id] && !this.claimed[d.id] && d.reward).length;
+  }
+
+  /** v0.13.0 获取已领取的成就数量 */
+  getClaimedCount() {
+    return Object.keys(this.claimed).length;
   }
 
   /** 获取解锁数量 */
@@ -167,6 +209,7 @@ class AchievementManager {
   exportData() {
     return {
       unlocked: { ...this.unlocked },
+      claimed: { ...this.claimed },
       counters: { ...this.counters }
     };
   }
@@ -175,10 +218,16 @@ class AchievementManager {
   importData(data) {
     if (!data) return;
     if (data.unlocked) {
-      // 合并：保留本地已有的，添加云端新的
       for (const [id, info] of Object.entries(data.unlocked)) {
         if (!this.unlocked[id]) {
           this.unlocked[id] = info;
+        }
+      }
+    }
+    if (data.claimed) {
+      for (const [id, info] of Object.entries(data.claimed)) {
+        if (!this.claimed[id]) {
+          this.claimed[id] = info;
         }
       }
     }

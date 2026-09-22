@@ -3,7 +3,7 @@
  * v0.12.0 - 增强缓存策略（版本化 + 分类缓存 + 离线降级）
  */
 
-const CACHE_VERSION = 'v0.12.0';
+const CACHE_VERSION = 'v0.13.0';
 const STATIC_CACHE = `game-static-${CACHE_VERSION}`;
 const ASSET_CACHE = `game-assets-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `game-dynamic-${CACHE_VERSION}`;
@@ -18,11 +18,13 @@ const STATIC_FILES = [
   './js/battle.js',
   './js/battle-effects.js',
   './js/battle-cutscene.js',
+  './js/battle-chain.js',
   './js/story.js',
   './js/save.js',
   './js/gacha.js',
   './js/growth.js',
   './js/stages.js',
+  './js/quests.js',
   './js/characters.js',
   './js/ui.js',
   './js/ui-animations.js',
@@ -98,8 +100,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. 其他请求 → NetworkFirst（带离线降级）
-  event.respondWith(networkFirst(event.request, DYNAMIC_CACHE));
+  // 5. 其他请求 → NetworkFirst（带离线降级 + 离线页面）
+  event.respondWith(
+    networkFirst(event.request, DYNAMIC_CACHE).then(response => response).catch(() => {
+      // 离线降级：尝试返回离线页面
+      return caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        // 对 HTML 请求返回离线提示页
+        if (event.request.headers.get('accept')?.includes('text/html')) {
+          return new Response(
+            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>离线</title><style>body{background:#0a0a14;color:#e0e0e0;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif}div{text-align:center}h1{color:#8a5cbf}p{color:#8080a0}</style></head><body><div><h1>未定之旅</h1><p>当前无网络连接</p><p style="font-size:14px">恢复网络后刷新页面即可继续</p></div></body></html>',
+            { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+          );
+        }
+        return new Response('Offline', { status: 503 });
+      });
+    })
+  );
 });
 
 // ============ 缓存策略 ============

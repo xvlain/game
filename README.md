@@ -1,6 +1,6 @@
 # 未定之旅
 
-> 网页二次元回合制 RPG · 技术预览版 v0.12.0
+> 网页二次元回合制 RPG · 技术预览版 v0.13.0
 
 ## 技术栈
 
@@ -59,11 +59,13 @@
 │   ├── battle.js       # 回合制战斗系统（含共鸣/元素力）
 │   ├── battle-effects.js # 战斗粒子特效 + Sprite 特效
 │   ├── battle-cutscene.js # 战斗演出系统（大招特写+技能演出+开场/胜利）← NEW
+│   ├── battle-chain.js # 连击链/反击/元素连锁系统 ← NEW
 │   ├── story.js        # 剧情/地图/关卡管理
 │   ├── save.js         # Supabase 云端存档
 │   ├── gacha.js        # 抽卡系统
 │   ├── growth.js       # 角色养成系统（升级/突破/技能）
 │   ├── stages.js       # 材料掉落关卡 / 每日挑战 / 体力系统 / 签到
+│   ├── quests.js       # 每日委托/周常任务/活跃度系统 ← NEW
 │   ├── characters.js   # 角色图鉴 & 编队管理
 │   ├── ui.js           # 所有场景 UI 渲染
 │   ├── ui-animations.js # UI 动画系统（HP条/伤害弹出/屏幕震动）
@@ -123,6 +125,35 @@ https://xvlain.github.io/game/
 - 游戏设计：三人团队
 - 剧情 & 地图：元首
 - 技术实现 & 美术：AI 辅助
+
+## v0.13.0 更新日志
+
+- **每日委托系统（quests.js）**：新增完整的委托/周常任务体系
+  - 每日委托：每天 04:00 自动重置，随机抽取 4 个任务
+  - 周常任务：每周一 04:00 重置，7 个长期目标
+  - 活跃度系统：完成委托累积活跃度，40/80/120/160 四档宝箱可领取
+  - 任务类型覆盖：战斗、关卡、抽卡、养成、签到、连击链等 16 种事件
+  - `QuestEventBridge` 事件桥接，自动追踪玩家行为
+- **连击链系统（battle-chain.js）**：增强回合制战斗策略深度
+  - 连击链（Chain）：同一目标连续受击伤害递增（每连 +5%，上限 30%）
+  - 元素连锁（Elemental Chain）：连续同属性攻击触发 +15% 额外伤害
+  - 破防系统（Break）：连续攻击累积破防值，满后眩晕目标 1 回合
+  - 反击系统（Counter）：被攻击时概率反击，坦克 20%/输出 10%/治疗 5%
+  - `BattleChainManager` 统一管理，与 `BattleEngine` 无缝集成
+- **成就奖励领取**：所有成就解锁后可领取水晶/金币奖励
+  - 28 个成就均配置独立奖励（水晶 20~200、金币 100~2000）
+  - `claimReward()` 领取接口 + `getClaimableCount()` 未领取数量查询
+  - Supabase `game_achievement_claims` 表支持云端持久化
+- **Supabase 扩展**：新增 2 张数据表 + 4 个 RPC 函数
+  - `game_quest_progress` 任务进度表（每日/每周重置周期隔离）
+  - `game_achievement_claims` 成就领取记录表
+  - `game_update_quest / game_claim_quest / game_claim_achievement / game_get_quests`
+- **Service Worker v0.13.0**：离线体验优化
+  - 离线访问返回专属 HTML 提示页（非空白 503）
+  - 缓存清单新增 `battle-chain.js` 和 `quests.js`
+  - 旧缓存自动清理机制保持
+- **眩晕状态支持**：被破防的角色跳过回合，自动消耗眩晕层数
+- 版本号统一升级至 v0.13.0
 
 ## v0.12.0 更新日志
 

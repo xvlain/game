@@ -7,7 +7,7 @@
 
 - 游戏名：未定之旅（网页二次元回合制 RPG）
 - 工作室：庸人工作室
-- 当前版本：v0.12.0
+- 当前版本：v0.13.0
 - 仓库：https://github.com/xvlain/game（main 分支）
 - Pages 地址：https://xvlain.github.io/game/
 - Supabase 项目：`qvbywrfkpbiojncikdnw`（新加坡区，Free）
@@ -33,19 +33,21 @@ game-project/
 ├── fix_supabase_rpc.sql # Supabase RPC 修复脚本
 ├── js/
 │   ├── engine.js        # 引擎（场景管理、渲染、输入、资源加载、过渡特效）
-│   ├── character-art.js # 角色美术系统（立绘+Q版序列帧+表情）← v0.12.0 NEW
-│   ├── battle.js        # 回合制战斗（含共鸣/元素力）
+│   ├── character-art.js # 角色美术系统（立绘+Q版序列帧+表情）← v0.12.0
+│   ├── battle.js        # 回合制战斗（含共鸣/元素力/连击链/反击）
+│   ├── battle-chain.js  # 连击链/反击/元素连锁/破防系统 ← v0.13.0 NEW
 │   ├── story.js         # 剧情/地图/关卡
 │   ├── save.js          # Supabase 云端存档（SUPABASE_CONFIG 在此）
 │   ├── gacha.js         # 抽卡
 │   ├── growth.js        # 角色养成（升级/突破/技能升级）
 │   ├── stages.js        # 材料掉落关卡 / 每日挑战 / 体力系统 / 签到
+│   ├── quests.js        # 每日委托/周常任务/活跃度系统 ← v0.13.0 NEW
 │   ├── characters.js    # 角色图鉴 & 编队
 │   ├── ui.js            # 所有场景 UI 渲染
 │   ├── ui-animations.js # UI 动画系统（HP条/伤害弹出/屏幕震动）
 │   ├── battle-effects.js # 战斗粒子特效 + Sprite 特效
-│   ├── battle-cutscene.js # 战斗演出系统（大招特写+技能演出）← v0.12.0 NEW
-│   ├── achievements.js  # 成就系统
+│   ├── battle-cutscene.js # 战斗演出系统（大招特写+技能演出）← v0.12.0
+│   ├── achievements.js  # 成就系统（含奖励领取）← v0.13.0 增强
 │   └── main.js          # 游戏入口
 ├── assets/              # 美术资源（后期填充）
 ├── game_schema.sql      # Supabase 建表脚本（幂等，可重跑）
@@ -102,6 +104,7 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 | 时间       | 问题                                | 状态       |
 |------------|-------------------------------------|------------|
+| 2026-09-23 | v0.13.0: 每日委托+连击链+成就奖励+离线优化 | ✅ 已完成  |
 | 2026-09-22 | 角色美术系统 + 战斗演出系统 + 场景过渡增强 + SW 缓存升级 | ✅ 已完成  |
 | 2026-09-22 | Supabase RPC schema cache 修复脚本 | ✅ 已完成  |
 | 2026-09-20 | PWA Service Worker + manifest.json 支持添加到主屏幕 | ✅ 已完成  |
@@ -122,6 +125,10 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 - [ ] 角色立绘资源加载（与美术任务联动，等角色设定）→ character-art.js 已就绪
 - [ ] Q 版战斗序列帧渲染（与美术任务联动，等序列帧素材）→ character-art.js 已就绪
+- [x] 每日委托/周常任务系统 → quests.js (v0.13.0)
+- [x] 连击链/反击/元素连锁/破防系统 → battle-chain.js (v0.13.0)
+- [x] 成就奖励领取 + Supabase 持久化 → achievements.js + game_schema.sql (v0.13.0)
+- [x] Service Worker 离线体验优化（离线提示页）→ sw.js (v0.13.0)
 - [x] 角色美术系统框架（立绘加载+Q版序列帧+表情切换）→ character-art.js
 - [x] 战斗演出系统（大招特写+技能演出+开场/胜利/失败）→ battle-cutscene.js
 - [x] 场景过渡特效增强（fade/iris/slide 三种过渡类型）→ engine.js

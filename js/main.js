@@ -32,6 +32,13 @@ async function initGame() {
   achievementManager.load();
   window.achievementManager = achievementManager;
 
+  // v0.13.0 初始化任务管理器
+  if (typeof QuestManager !== 'undefined') {
+    const questManager = new QuestManager();
+    questManager.load();
+    window.questManager = questManager;
+  }
+
   // 初始化默认状态（游客/登录后会被覆盖）
   game.state = buildDefaultState();
 
@@ -94,7 +101,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.12.0 初始化完成');
+  console.log('[Game] v0.13.0 初始化完成');
 }
 
 function buildDefaultState() {
@@ -247,6 +254,11 @@ class AuthController {
     }
     game.sceneManager.switchTo('main_menu');
 
+    // v0.13.0 任务系统：登录事件
+    if (typeof QuestEventBridge !== 'undefined') {
+      QuestEventBridge.onLogin();
+    }
+
     // 每日签到
     const checkInResult = DailyCheckIn.checkIn(game.state);
     if (checkInResult) {
@@ -254,6 +266,10 @@ class AuthController {
       // 成就检查
       if (window.achievementManager) {
         AchievementChecker.onCheckIn(checkInResult.totalDays);
+      }
+      // v0.13.0 任务系统：签到事件
+      if (typeof QuestEventBridge !== 'undefined') {
+        QuestEventBridge.onCheckIn(checkInResult.day);
       }
       // 延迟显示签到提示（等主菜单渲染稳定）
       setTimeout(() => {
@@ -290,6 +306,10 @@ function applySaveData(state, data) {
   if (data.achievements && window.achievementManager) {
     window.achievementManager.importData(data.achievements);
   }
+  // v0.13.0 恢复任务数据
+  if (data.quests && window.questManager) {
+    window.questManager.importData(data.quests);
+  }
 }
 
 async function autoSave() {
@@ -311,6 +331,10 @@ async function autoSave() {
   };
   if (window.achievementManager) {
     localData.achievements = window.achievementManager.exportData();
+  }
+  // v0.13.0 任务系统存档
+  if (window.questManager) {
+    localData.quests = window.questManager.exportData();
   }
   localSave.save('main', localData);
 
