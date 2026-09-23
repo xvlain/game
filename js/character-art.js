@@ -406,16 +406,16 @@ class CharacterArtManager {
   /** 为所有已知角色注册默认 Q 版动画定义 */
   _initDefaultChibiDefs() {
     const defaultAnims = {
-      idle:   { frames: 4, fps: 6, loop: true },
-      attack: { frames: 6, fps: 12, loop: false },
-      skill:  { frames: 8, fps: 10, loop: false },
-      hurt:   { frames: 3, fps: 8, loop: false },
-      death:  { frames: 4, fps: 6, loop: false },
+      idle:   { frames: 2, fps: 3, loop: true },
+      attack: { frames: 4, fps: 12, loop: false },
+      skill:  { frames: 5, fps: 10, loop: false },
+      ultimate: { frames: 6, fps: 10, loop: false },
+      hit:    { frames: 2, fps: 8, loop: false },
       victory:{ frames: 6, fps: 8, loop: true }
     };
 
     // 默认可用角色
-    const defaultChars = ['warrior', 'healer', 'mage', 'tank'];
+    const defaultChars = ['zhixing', 'ying', 'warrior_01', 'mage_01', 'healer_01', 'tank_01'];
     for (const id of defaultChars) {
       this.chibi.register(id, { ...defaultAnims });
     }
@@ -424,11 +424,11 @@ class CharacterArtManager {
   /** 注册新角色美术资源 */
   registerCharacter(charId, animDefs) {
     this.chibi.register(charId, animDefs || {
-      idle:   { frames: 4, fps: 6, loop: true },
-      attack: { frames: 6, fps: 12, loop: false },
-      skill:  { frames: 8, fps: 10, loop: false },
-      hurt:   { frames: 3, fps: 8, loop: false },
-      death:  { frames: 4, fps: 6, loop: false },
+      idle:   { frames: 2, fps: 3, loop: true },
+      attack: { frames: 4, fps: 12, loop: false },
+      skill:  { frames: 5, fps: 10, loop: false },
+      ultimate: { frames: 6, fps: 10, loop: false },
+      hit:    { frames: 2, fps: 8, loop: false },
       victory:{ frames: 6, fps: 8, loop: true }
     });
   }
