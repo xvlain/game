@@ -423,6 +423,28 @@ class MainMenuScene {
       Renderer.drawText(ctx, `${state.currency?.coins || 0}`, W - 130, 40, { fontSize: 16, color: '#ffcc44' });
     }
 
+    // 邮件按钮（顶栏右侧，v0.14.0）
+    const mailBtnX = W - 55, mailBtnY = 25, mailBtnW = 40, mailBtnH = 30;
+    this._mailBtnRect = { x: mailBtnX, y: mailBtnY, w: mailBtnW, h: mailBtnH };
+    ctx.save();
+    ctx.font = '22px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('📬', mailBtnX + mailBtnW / 2, mailBtnY + mailBtnH / 2 + 2);
+    // 未读红点
+    const unreadCount = window.mailManager ? window.mailManager.getUnreadCount() : 0;
+    if (unreadCount > 0) {
+      ctx.beginPath();
+      ctx.arc(mailBtnX + mailBtnW - 4, mailBtnY + 4, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff4444';
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(unreadCount > 99 ? '99+' : String(unreadCount), mailBtnX + mailBtnW - 4, mailBtnY + 5);
+    }
+    ctx.restore();
+
     // 菜单网格（4+4 布局）
     const cardW = 240, cardH = 140;
     const gapX = 25, gapY = 20;
@@ -476,7 +498,7 @@ class MainMenuScene {
     }
 
     // 底部
-    Renderer.drawText(ctx, 'v0.10.0 · 庸人工作室', W / 2, H - 25, {
+    Renderer.drawText(ctx, 'v0.14.0 · 庸人工作室', W / 2, H - 25, {
       fontSize: 12,
       color: '#404060',
       align: 'center'
@@ -509,6 +531,12 @@ class MainMenuScene {
   }
 
   handleClick(x, y) {
+    // 邮件按钮点击（v0.14.0）
+    if (this._mailBtnRect && Renderer.hitTest(x, y, this._mailBtnRect)) {
+      this.sceneManager.switchTo('mail');
+      return;
+    }
+
     for (const item of this.menuItems) {
       if (item._rect && Renderer.hitTest(x, y, item._rect)) {
         switch (item.action) {
@@ -2781,6 +2809,346 @@ class SettingsScene {
   }
 }
 
+// ============ 邮箱场景（v0.14.0） ============
+class MailScene {
+  constructor() {
+    this.sceneManager = null;
+    this.mails = [];
+    this.scrollOffset = 0;
+    this.selectedIndex = -1;
+    this.maxScroll = 0;
+  }
+
+  onEnter() {
+    this.mails = window.mailManager ? window.mailManager.getAll() : [];
+    this.scrollOffset = 0;
+    this.selectedIndex = -1;
+    // 自动标记第一封为已读
+    if (this.mails.length > 0 && this.mails[0].status === 'unread') {
+      window.mailManager?.markAsRead(this.mails[0].id);
+    }
+  }
+
+  onExit() {}
+  update(dt) {}
+
+  render(ctx) {
+    const W = 1280, H = 720;
+
+    // 背景
+    ctx.fillStyle = '#0d0d1f';
+    ctx.fillRect(0, 0, W, H);
+
+    // 顶栏
+    drawFramedPanel(ctx, 20, 15, W - 40, 50, 'panel', {
+      slice: 15,
+      fallbackBg: 'rgba(15, 15, 30, 0.8)',
+      fallbackBorder: '#3a3060'
+    });
+    Renderer.drawText(ctx, '📬 邮箱', 50, 40, { fontSize: 20, color: '#d4b8ff' });
+
+    // 返回按钮
+    Renderer.drawButton(ctx, W - 120, 22, 80, 36, '返回', {
+      bgColor: '#2a2040', fontSize: 14
+    });
+    this._backBtn = { x: W - 120, y: 22, w: 80, h: 36 };
+
+    // 一键领取按钮
+    const claimableCount = window.mailManager ? window.mailManager.getClaimableCount() : 0;
+    if (claimableCount > 0) {
+      Renderer.drawButton(ctx, W - 240, 22, 100, 36, `一键领取(${claimableCount})`, {
+        bgColor: '#2a4020', borderColor: '#4a8a4a', fontSize: 13
+      });
+      this._claimAllBtn = { x: W - 240, y: 22, w: 100, h: 36 };
+    } else {
+      this._claimAllBtn = null;
+    }
+
+    // 邮件列表
+    const listX = 40, listY = 80, listW = 440, listH = H - 120;
+    const itemH = 65, gap = 8;
+
+    if (this.mails.length === 0) {
+      Renderer.drawText(ctx, '暂无邮件', W / 2, H / 2, {
+        fontSize: 18, color: '#505070', align: 'center'
+      });
+      this._selectedMail = null;
+      return;
+    }
+
+    // 计算滚动范围
+    const totalH = this.mails.length * (itemH + gap);
+    this.maxScroll = Math.max(0, totalH - listH);
+    this.scrollOffset = Math.max(0, Math.min(this.maxScroll, this.scrollOffset));
+
+    // 裁剪区域
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(listX - 5, listY - 5, listW + 10, listH + 10);
+    ctx.clip();
+
+    for (let i = 0; i < this.mails.length; i++) {
+      const mail = this.mails[i];
+      const y = listY + i * (itemH + gap) - this.scrollOffset;
+      if (y + itemH < listY - 20 || y > listY + listH + 20) continue;
+
+      const isSelected = i === this.selectedIndex;
+      const isUnread = mail.status === 'unread';
+      const isClaimed = mail.status === 'claimed';
+
+      // 卡片背景
+      const bgColor = isSelected ? 'rgba(40, 30, 70, 0.95)' : (isUnread ? 'rgba(25, 25, 50, 0.9)' : 'rgba(18, 18, 30, 0.8)');
+      const borderColor = isSelected ? '#7c5cbf' : (isUnread ? '#5a4a8a' : '#2a2a4a');
+
+      drawFramedPanel(ctx, listX, y, listW, itemH, 'panel', {
+        slice: 12,
+        fallbackBg: bgColor,
+        fallbackBorder: borderColor
+      });
+
+      // 未读指示点
+      if (isUnread) {
+        ctx.beginPath();
+        ctx.arc(listX + 12, y + itemH / 2, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#5cb8ff';
+        ctx.fill();
+      }
+
+      // 类型图标
+      const typeIcon = mail.type === 'reward' ? '🎁' : (mail.type === 'event' ? '🎉' : '📋');
+      ctx.font = '20px serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(typeIcon, listX + 24, y + 28);
+
+      // 标题
+      const titleColor = isClaimed ? '#606080' : (isUnread ? '#e4d0ff' : '#b0a0d0');
+      Renderer.drawText(ctx, mail.title, listX + 52, y + 22, {
+        fontSize: 15, color: titleColor, maxWidth: listW - 80
+      });
+
+      // 发件人 + 时间
+      const timeStr = this._formatTime(mail.createdAt);
+      Renderer.drawText(ctx, `${mail.sender} · ${timeStr}`, listX + 52, y + 46, {
+        fontSize: 11, color: '#606080'
+      });
+
+      // 附件标记
+      if (mail.attachments && !isClaimed) {
+        Renderer.drawText(ctx, '🎁 可领取', listX + listW - 70, y + 46, {
+          fontSize: 11, color: '#4a8a4a'
+        });
+      } else if (isClaimed) {
+        Renderer.drawText(ctx, '✓ 已领取', listX + listW - 65, y + 46, {
+          fontSize: 11, color: '#505050'
+        });
+      }
+
+      // 存储点击区域
+      mail._rect = { x: listX, y, w: listW, h: itemH };
+    }
+
+    ctx.restore();
+
+    // 右侧详情面板
+    const detailX = 500, detailY = 80, detailW = W - 540, detailH = H - 120;
+    drawFramedPanel(ctx, detailX, detailY, detailW, detailH, 'panel', {
+      slice: 20,
+      fallbackBg: 'rgba(15, 15, 30, 0.9)',
+      fallbackBorder: '#3a2a5a'
+    });
+
+    const selectedMail = this.selectedIndex >= 0 ? this.mails[this.selectedIndex] : null;
+
+    if (selectedMail) {
+      // 标题
+      Renderer.drawText(ctx, selectedMail.title, detailX + 20, detailY + 30, {
+        fontSize: 20, color: '#e4d0ff'
+      });
+
+      // 发件人 + 时间
+      const timeStr = this._formatTimeFull(selectedMail.createdAt);
+      Renderer.drawText(ctx, `发件人：${selectedMail.sender}    ${timeStr}`, detailX + 20, detailY + 58, {
+        fontSize: 12, color: '#7070a0'
+      });
+
+      // 分割线
+      ctx.strokeStyle = '#3a2a5a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(detailX + 20, detailY + 75);
+      ctx.lineTo(detailX + detailW - 20, detailY + 75);
+      ctx.stroke();
+
+      // 正文（自动换行）
+      this._drawWrappedText(ctx, selectedMail.content, detailX + 20, detailY + 95, detailW - 40, {
+        fontSize: 14, color: '#c0b0e0', lineHeight: 22
+      });
+
+      // 附件区域
+      if (selectedMail.attachments) {
+        const attY = detailY + detailH - 120;
+        ctx.strokeStyle = '#3a2a5a';
+        ctx.beginPath();
+        ctx.moveTo(detailX + 20, attY - 10);
+        ctx.lineTo(detailX + detailW - 20, attY - 10);
+        ctx.stroke();
+
+        Renderer.drawText(ctx, '附件：', detailX + 20, attY + 10, {
+          fontSize: 14, color: '#a090c0'
+        });
+
+        let attX = detailX + 20;
+        const atts = selectedMail.attachments;
+
+        if (atts.crystals) {
+          drawItemIcon(ctx, 'crystals', attX + 12, attY + 35, 14, '💎');
+          Renderer.drawText(ctx, `×${atts.crystals}`, attX + 32, attY + 35, { fontSize: 14, color: '#88ccff' });
+          attX += 90;
+        }
+        if (atts.coins) {
+          drawItemIcon(ctx, 'coins', attX + 12, attY + 35, 14, '🪙');
+          Renderer.drawText(ctx, `×${atts.coins}`, attX + 32, attY + 35, { fontSize: 14, color: '#ffcc44' });
+          attX += 90;
+        }
+        if (atts.items) {
+          for (const [itemId, amount] of Object.entries(atts.items)) {
+            const itemEmoji = itemId.includes('exp_book') ? '📗' : '📦';
+            ctx.font = '16px serif';
+            ctx.fillText(itemEmoji, attX + 5, attY + 40);
+            Renderer.drawText(ctx, `×${amount}`, attX + 25, attY + 35, { fontSize: 14, color: '#c0b0e0' });
+            attX += 80;
+          }
+        }
+
+        // 领取按钮
+        if (selectedMail.status !== 'claimed') {
+          const claimBtnX = detailX + detailW - 120;
+          const claimBtnY = attY + 10;
+          Renderer.drawButton(ctx, claimBtnX, claimBtnY, 100, 36, '领取附件', {
+            bgColor: '#2a4a20', borderColor: '#4a8a4a', fontSize: 14
+          });
+          selectedMail._claimBtn = { x: claimBtnX, y: claimBtnY, w: 100, h: 36 };
+        } else {
+          const claimBtnX = detailX + detailW - 120;
+          const claimBtnY = attY + 10;
+          Renderer.drawButton(ctx, claimBtnX, claimBtnY, 100, 36, '已领取', {
+            bgColor: '#1a1a2a', borderColor: '#333', fontSize: 14, disabled: true
+          });
+          selectedMail._claimBtn = null;
+        }
+      }
+    } else {
+      Renderer.drawText(ctx, '选择一封邮件查看详情', detailX + detailW / 2, detailY + detailH / 2, {
+        fontSize: 16, color: '#505070', align: 'center'
+      });
+    }
+  }
+
+  handleClick(x, y) {
+    // 返回按钮
+    if (this._backBtn && Renderer.hitTest(x, y, this._backBtn)) {
+      this.sceneManager.switchTo('main_menu');
+      return;
+    }
+
+    // 一键领取
+    if (this._claimAllBtn && Renderer.hitTest(x, y, this._claimAllBtn)) {
+      const result = window.mailManager?.claimAll(window.game.state);
+      if (result?.success) {
+        this.mails = window.mailManager.getAll();
+      }
+      return;
+    }
+
+    // 邮件列表点击
+    for (let i = 0; i < this.mails.length; i++) {
+      const mail = this.mails[i];
+      if (mail._rect && Renderer.hitTest(x, y, mail._rect)) {
+        this.selectedIndex = i;
+        // 标记已读
+        if (mail.status === 'unread') {
+          window.mailManager?.markAsRead(mail.id);
+        }
+        // 重新加载
+        this.mails = window.mailManager.getAll();
+        return;
+      }
+    }
+
+    // 领取按钮
+    if (this.selectedIndex >= 0) {
+      const selectedMail = this.mails[this.selectedIndex];
+      if (selectedMail?._claimBtn && Renderer.hitTest(x, y, selectedMail._claimBtn)) {
+        const result = window.mailManager?.claimAttachment(selectedMail.id, window.game.state);
+        if (result?.success) {
+          this.mails = window.mailManager.getAll();
+        }
+        return;
+      }
+    }
+  }
+
+  handleSwipe(dir) {
+    const scrollStep = 80;
+    if (dir === 'up') {
+      this.scrollOffset = Math.min(this.maxScroll, this.scrollOffset + scrollStep);
+    } else if (dir === 'down') {
+      this.scrollOffset = Math.max(0, this.scrollOffset - scrollStep);
+    }
+  }
+
+  _formatTime(ts) {
+    const d = new Date(ts);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return '刚刚';
+    if (diffMin < 60) return `${diffMin}分钟前`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}小时前`;
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay < 7) return `${diffDay}天前`;
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  }
+
+  _formatTimeFull(ts) {
+    const d = new Date(ts);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  _drawWrappedText(ctx, text, x, y, maxWidth, options = {}) {
+    const { fontSize = 14, color = '#c0b0e0', lineHeight = 22 } = options;
+    ctx.save();
+    ctx.font = `${fontSize}px "Noto Sans SC", sans-serif`;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    const lines = text.split('\n');
+    let currentY = y;
+
+    for (const line of lines) {
+      const words = line.split('');
+      let currentLine = '';
+
+      for (const char of words) {
+        const testLine = currentLine + char;
+        if (ctx.measureText(testLine).width > maxWidth && currentLine.length > 0) {
+          ctx.fillText(currentLine, x, currentY);
+          currentLine = char;
+          currentY += lineHeight;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      ctx.fillText(currentLine, x, currentY);
+      currentY += lineHeight;
+    }
+
+    ctx.restore();
+  }
+}
+
 // 导出所有场景
 window.TitleScene = TitleScene;
 window.MainMenuScene = MainMenuScene;
@@ -2790,4 +3158,5 @@ window.BattleScene = BattleScene;
 window.GachaScene = GachaScene;
 window.StatsScene = StatsScene;
 window.SettingsScene = SettingsScene;
+window.MailScene = MailScene;
 window.SettingsStore = SettingsStore;

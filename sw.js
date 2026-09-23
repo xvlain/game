@@ -1,9 +1,9 @@
 /**
  * Service Worker - 未定之旅 PWA
- * v0.12.0 - 增强缓存策略（版本化 + 分类缓存 + 离线降级）
+ * v0.14.0 - 缓存清单新增 toast.js / mail.js / chibi-animator.js
  */
 
-const CACHE_VERSION = 'v0.13.0';
+const CACHE_VERSION = 'v0.14.0';
 const STATIC_CACHE = `game-static-${CACHE_VERSION}`;
 const ASSET_CACHE = `game-assets-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `game-dynamic-${CACHE_VERSION}`;
@@ -29,6 +29,9 @@ const STATIC_FILES = [
   './js/ui.js',
   './js/ui-animations.js',
   './js/achievements.js',
+  './js/toast.js',
+  './js/mail.js',
+  './js/chibi-animator.js',
   './js/main.js'
 ];
 

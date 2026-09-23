@@ -135,7 +135,7 @@ class ChibiSprite {
     
     for (const [state, config] of Object.entries(ChibiAnimConfig)) {
       const frames = [];
-      for (let i = 1; i <= config.frames; i++) {
+      for (let i = 0; i < config.frames; i++) {
         const frameStr = String(i).padStart(2, '0');
         const img = new Image();
         img.src = `${dir}${state}_${frameStr}.png`;

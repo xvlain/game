@@ -7,6 +7,7 @@
 let game = null;
 let authController = null;
 let achievementManager = null;
+let mailManager = null;
 
 async function initGame() {
   game = new GameEngine('gameCanvas');
@@ -39,6 +40,13 @@ async function initGame() {
     window.questManager = questManager;
   }
 
+  // v0.14.0 初始化邮件管理器
+  if (typeof MailManager !== 'undefined') {
+    mailManager = new MailManager();
+    mailManager.load();
+    window.mailManager = mailManager;
+  }
+
   // 初始化默认状态（游客/登录后会被覆盖）
   game.state = buildDefaultState();
 
@@ -63,7 +71,8 @@ async function initGame() {
     stages: new FarmStageScene(),
     stage_result: new StageResultScene(),
     stats: new StatsScene(),
-    settings: new SettingsScene()
+    settings: new SettingsScene(),
+    mail: new MailScene()
   };
 
   for (const [name, scene] of Object.entries(scenes)) {
@@ -101,7 +110,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.13.0 初始化完成');
+  console.log('[Game] v0.14.0 初始化完成');
 }
 
 function buildDefaultState() {
@@ -254,6 +263,12 @@ class AuthController {
     }
     game.sceneManager.switchTo('main_menu');
 
+    // v0.14.0 新玩家欢迎邮件（首次进入主菜单时发送）
+    if (window.mailManager && !window.mailManager.mails.some(m => m.title === '欢迎来到未定之旅')) {
+      const welcomeMail = MailTemplates.welcome(game.state.player.username || '冒险者');
+      window.mailManager.send(welcomeMail);
+    }
+
     // v0.13.0 任务系统：登录事件
     if (typeof QuestEventBridge !== 'undefined') {
       QuestEventBridge.onLogin();
@@ -310,6 +325,10 @@ function applySaveData(state, data) {
   if (data.quests && window.questManager) {
     window.questManager.importData(data.quests);
   }
+  // v0.14.0 恢复邮件数据
+  if (data.mail && window.mailManager) {
+    window.mailManager.importData(data.mail);
+  }
 }
 
 async function autoSave() {
@@ -335,6 +354,10 @@ async function autoSave() {
   // v0.13.0 任务系统存档
   if (window.questManager) {
     localData.quests = window.questManager.exportData();
+  }
+  // v0.14.0 邮件系统存档
+  if (window.mailManager) {
+    localData.mail = window.mailManager.exportData();
   }
   localSave.save('main', localData);
 

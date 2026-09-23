@@ -755,6 +755,8 @@ class GameEngine {
     this.animations.update(dt);
     // 驱动 UI 动画系统
     if (typeof UIAnimations !== 'undefined') UIAnimations.update(dt * 1000);
+    // 驱动 Toast 通知系统（v0.14.0）
+    if (typeof ToastSystem !== 'undefined') ToastSystem.update(dt * 1000);
   }
 
   render() {
@@ -779,6 +781,11 @@ class GameEngine {
     // 战斗演出覆盖层（在场景之上、转场之下渲染）
     if (this._cutsceneOverlay && this._cutsceneOverlay.render) {
       this._cutsceneOverlay.render(ctx);
+    }
+
+    // Toast 通知层（最顶层，v0.14.0）
+    if (typeof ToastSystem !== 'undefined') {
+      ToastSystem.render(ctx, this.canvas.width, this.canvas.height);
     }
   }
 }

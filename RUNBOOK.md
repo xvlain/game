@@ -48,6 +48,8 @@ game-project/
 │   ├── battle-effects.js # 战斗粒子特效 + Sprite 特效
 │   ├── battle-cutscene.js # 战斗演出系统（大招特写+技能演出）← v0.12.0
 │   ├── achievements.js  # 成就系统（含奖励领取）← v0.13.0 增强
+│   ├── toast.js         # 全局 Toast 通知系统 ← v0.14.0 NEW
+│   ├── mail.js          # 邮件/收件箱系统 ← v0.14.0 NEW
 │   └── main.js          # 游戏入口
 ├── assets/              # 美术资源（后期填充）
 ├── game_schema.sql      # Supabase 建表脚本（幂等，可重跑）
@@ -104,6 +106,8 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 | 时间       | 问题                                | 状态       |
 |------------|-------------------------------------|------------|
+| 2026-09-24 | v0.14.0: 邮件/收件箱系统 + Toast通知 + 邮箱场景 + 欢迎邮件 + SW缓存更新 | ✅ 已完成  |
+| 2026-09-24 | chibi-animator.js 帧索引修复（1-based→0-based） | ✅ 已完成  |
 | 2026-09-23 | v0.13.0: 每日委托+连击链+成就奖励+离线优化 | ✅ 已完成  |
 | 2026-09-22 | 角色美术系统 + 战斗演出系统 + 场景过渡增强 + SW 缓存升级 | ✅ 已完成  |
 | 2026-09-22 | Supabase RPC schema cache 修复脚本 | ✅ 已完成  |
@@ -123,6 +127,8 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 ## 6. 下一步（技术侧）
 
+- [x] 邮件/收件箱系统 → mail.js + ui.js MailScene (v0.14.0)
+- [x] 全局 Toast 通知系统 → toast.js + engine.js 集成 (v0.14.0)
 - [ ] 角色立绘资源加载（与美术任务联动，等角色设定）→ character-art.js 已就绪
 - [ ] Q 版战斗序列帧渲染（与美术任务联动，等序列帧素材）→ character-art.js 已就绪
 - [x] 每日委托/周常任务系统 → quests.js (v0.13.0)
