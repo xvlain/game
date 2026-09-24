@@ -103,6 +103,22 @@ async function preloadAssets() {
     });
   }
 
+  // v0.15.0 角色头像图标 + Q版 idle 帧预加载
+  const charIds = ['zhixing', 'ying', 'warrior_01', 'mage_01', 'healer_01', 'tank_01'];
+  for (const cid of charIds) {
+    await loader.loadImage(`icon_${cid}`, `assets/characters/icons/${cid}.png`);
+  }
+  // 预加载 Q版 idle 帧（战斗中默认动作）
+  if (window.characterArt) {
+    await window.characterArt.preload(charIds);
+    // 预加载所有战斗动作帧
+    for (const cid of charIds) {
+      for (const action of ['attack', 'skill', 'ultimate', 'hit']) {
+        await window.characterArt.chibi.loadAction(cid, action);
+      }
+    }
+  }
+
   const loaded = Object.keys(GameAssets.backgrounds).length +
                  Object.keys(GameAssets.ui).length +
                  Object.keys(GameAssets.icons).length +
@@ -1056,6 +1072,45 @@ class BattleScene {
     this.logDisplay = [];
     this.chapterId = null;
     this.nodeId = null;
+    // v0.15.0 Q版动画状态追踪
+    this._chibiStates = {};     // charId → { action, startTime, duration }
+    this._battleResultTimer = 0;
+  }
+
+  /** v0.15.0 每帧更新 Q版动画状态 */
+  update(dt) {
+    const now = performance.now();
+    for (const [charId, state] of Object.entries(this._chibiStates)) {
+      if (state.action !== 'idle' && state.startTime) {
+        const elapsed = now - state.startTime;
+        if (elapsed > state.duration) {
+          state.action = 'idle';
+          state.startTime = now;
+        }
+      }
+    }
+    if (this.phase === 'result') {
+      this._battleResultTimer += dt;
+    }
+  }
+
+  /** v0.15.0 触发角色 Q版动画 */
+  _triggerChibiAnim(charId, action, durationMs) {
+    const durations = {
+      attack: 400, skill: 600, ultimate: 800,
+      hit: 300, victory: 3000, defeat: 2000
+    };
+    this._chibiStates[charId] = {
+      action,
+      startTime: performance.now(),
+      duration: durationMs || durations[action] || 500
+    };
+  }
+
+  /** v0.15.0 获取角色当前 Q版动画动作 */
+  _getChibiAction(charId) {
+    const state = this._chibiStates[charId];
+    return state ? state.action : 'idle';
   }
 
   onEnter(data) {
@@ -1130,20 +1185,100 @@ class BattleScene {
       this.logDisplay = this.battle.battleLog.slice(-5);
       // 触发粒子特效 + 伤害弹出 + 音效
       this._triggerActionEffects(actor, skill, results);
+      // v0.15.0 触发 Q版动画
+      this._triggerChibiAnimForAction(actor, skill, results);
     };
 
     this.battle.onBattleEnd = (result) => {
       this.phase = 'result';
       this.battleResult = result;
+      this._battleResultTimer = 0;
       // 战斗结束音效
       if (window.game?.audio) {
         window.game.audio.playSfx(result === 'victory' ? 'levelup' : 'hit');
+      }
+      // v0.15.0 触发全体胜利/败北 Q版动画
+      if (this.battle) {
+        const endAction = result === 'victory' ? 'victory' : 'defeat';
+        for (const char of this.battle.party) {
+          if (char.currentHp > 0) {
+            this._triggerChibiAnim(char.id || char.templateId, endAction, 3000);
+          }
+        }
       }
     };
 
     this.phase = 'idle';
     this.logDisplay = [];
+
+    // v0.15.0 初始化 Q版动画状态
+    for (const char of this.battle.party) {
+      const cid = char.id || char.templateId;
+      this._chibiStates[cid] = { action: 'idle', startTime: performance.now(), duration: 0 };
+    }
+
     this.battle.startBattle();
+  }
+
+  /** v0.15.0 根据战斗行动触发 Q版动画 */
+  _triggerChibiAnimForAction(actor, skill, results) {
+    const actorId = actor.id || actor.templateId;
+    // 攻击者播放对应动画
+    const skillKey = this._getSkillKey(actor, skill);
+    this._triggerChibiAnim(actorId, skillKey);
+
+    // 受击目标播放 hit 动画
+    for (const r of results) {
+      if (r.damage !== undefined) {
+        const targetEnemy = this.battle.enemies.find(e => e.name === r.target);
+        const targetParty = this.battle.party.find(c => c.name === r.target);
+        if (targetParty) {
+          this._triggerChibiAnim(targetParty.id || targetParty.templateId, 'hit');
+        }
+        // 敌方暂不播放 Q版（使用占位）
+      }
+    }
+  }
+
+  /** v0.15.0 获取技能对应的动画类型 */
+  _getSkillKey(actor, skill) {
+    if (!skill || !actor.skills) return 'attack';
+    if (skill === actor.skills.ultimate) return 'ultimate';
+    if (skill === actor.skills.skill || skill === actor.skills.resonance) return 'skill';
+    return 'attack';
+  }
+
+  /** v0.15.0 绘制 Q版占位符（素材不存在时） */
+  _drawChibiPlaceholder(ctx, charId, x, y, size, elemColor) {
+    const r = size / 2;
+    const cx = Math.floor(x);
+    const cy = Math.floor(y);
+    // 身体圆形
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.7, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(30, 30, 60, 0.8)';
+    ctx.fill();
+    ctx.strokeStyle = elemColor || '#4a3a6a';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // 眼睛
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.22, cy - r * 0.1, r * 0.12, 0, Math.PI * 2);
+    ctx.arc(cx + r * 0.22, cy - r * 0.1, r * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1a3a';
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.22, cy - r * 0.05, r * 0.06, 0, Math.PI * 2);
+    ctx.arc(cx + r * 0.22, cy - r * 0.05, r * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+    // 角色名缩写
+    const name = (charId || '?').substring(0, 2);
+    ctx.fillStyle = '#8080b0';
+    ctx.font = `${Math.floor(r * 0.4)}px "Noto Sans SC", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name, cx, cy + r * 0.35);
   }
 
   /** 根据战斗行动结果触发对应粒子特效 + 伤害弹出 + 屏幕震动 */
@@ -1430,22 +1565,57 @@ class BattleScene {
     const party = this.battle.party;
     const spacing = 200;
     const startX = 640 - (party.length * spacing) / 2 + spacing / 2;
+    const art = window.characterArt;
 
     party.forEach((char, i) => {
-      const x = startX + i * spacing;
+      const x = Math.floor(startX + i * spacing);
       const y = 480;
       const elemColor = ElementSystem.colors[char.element] || '#999';
+      const charArtId = char.id || char.templateId || char.name;
 
       ctx.save();
       const isActive = char === this.battle.currentActor;
 
+      // v0.15.0 背景面板（保留，作为角色区域底板）
       drawFramedPanel(ctx, x - 50, y - 65, 100, 130, 'panel', {
         slice: 20,
         fallbackBg: char.currentHp <= 0 ? 'rgba(26, 26, 26, 0.85)' : (isActive ? 'rgba(26, 42, 58, 0.85)' : 'rgba(21, 21, 42, 0.85)'),
         fallbackBorder: isActive ? '#5cb8ff' : '#303060'
       });
 
-      // 元素图标（优先使用素材图，回退到文字）
+      // v0.15.0 Q版角色渲染（替代占位文字）
+      const chibiAction = this._getChibiAction(charArtId);
+      const isDead = char.currentHp <= 0;
+      const chibiOpts = {
+        size: 80,
+        flip: false,
+        bounce: chibiAction === 'idle' && !isDead
+      };
+      if (isDead) {
+        // 倒下状态：半透明 + defeat 动画（有素材时）或默认灰色
+        if (art && art.chibi.hasChibi(charArtId)) {
+          art.drawChibi(ctx, charArtId, 'defeat', x, y + 50, { ...chibiOpts, alpha: 0.5 });
+        } else {
+          ctx.globalAlpha = 0.4;
+          this._drawChibiPlaceholder(ctx, charArtId, x, y + 10, 60, elemColor);
+          ctx.globalAlpha = 1;
+        }
+      } else if (art && art.chibi.hasChibi(charArtId)) {
+        art.drawChibi(ctx, charArtId, chibiAction, x, y + 50, chibiOpts);
+      } else {
+        this._drawChibiPlaceholder(ctx, charArtId, x, y + 10, 60, elemColor);
+      }
+
+      // 当前行动角色高亮标记
+      if (isActive && !isDead) {
+        ctx.strokeStyle = '#5cb8ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y + 10, 42, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // 元素图标
       const elemIcon = GameAssets.icons[char.element];
       if (elemIcon) {
         ctx.drawImage(elemIcon, x + 26, y - 68, 22, 22);
@@ -1458,11 +1628,11 @@ class BattleScene {
       // 角色名
       Renderer.drawText(ctx, char.name, x, y - 80, {
         fontSize: 14,
-        color: char.currentHp <= 0 ? '#555' : '#99ccff',
+        color: isDead ? '#555' : '#99ccff',
         align: 'center'
       });
 
-      // HP 条（使用渲染器）
+      // HP 条
       if (this._partyHpBars && this._partyHpBars[i]) {
         this._partyHpBars[i].x = x - 40;
         this._partyHpBars[i].y = y + 70;
@@ -1472,7 +1642,7 @@ class BattleScene {
         Renderer.drawBar(ctx, x - 40, y + 70, 80, 8, char.currentHp, char.maxHp, hpColor);
       }
 
-      // 能量条（大招）- 使用渲染器
+      // 能量条（大招）
       if (this._partyEnergyBars && this._partyEnergyBars[i]) {
         this._partyEnergyBars[i].x = x - 40;
         this._partyEnergyBars[i].y = y + 83;
@@ -1481,7 +1651,7 @@ class BattleScene {
         Renderer.drawBar(ctx, x - 40, y + 83, 80, 5, char.currentEnergy, char.maxEnergy, '#6699ff');
       }
 
-      // 元素力条 - 使用渲染器
+      // 元素力条
       if (this._partyForceBars && this._partyForceBars[i]) {
         this._partyForceBars[i].x = x - 40;
         this._partyForceBars[i].y = y + 92;

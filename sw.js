@@ -1,9 +1,9 @@
 /**
  * Service Worker - 未定之旅 PWA
- * v0.14.0 - 缓存清单新增 toast.js / mail.js / chibi-animator.js
+ * v0.15.0 - Q版序列帧战斗渲染 + Canvas 优化
  */
 
-const CACHE_VERSION = 'v0.14.0';
+const CACHE_VERSION = 'v0.15.0';
 const STATIC_CACHE = `game-static-${CACHE_VERSION}`;
 const ASSET_CACHE = `game-assets-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `game-dynamic-${CACHE_VERSION}`;

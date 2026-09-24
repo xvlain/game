@@ -7,7 +7,7 @@
 
 - 游戏名：未定之旅（网页二次元回合制 RPG）
 - 工作室：庸人工作室
-- 当前版本：v0.13.0
+- 当前版本：v0.15.0
 - 仓库：https://github.com/xvlain/game（main 分支）
 - Pages 地址：https://xvlain.github.io/game/
 - Supabase 项目：`qvbywrfkpbiojncikdnw`（新加坡区，Free）
@@ -106,6 +106,7 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 | 时间       | 问题                                | 状态       |
 |------------|-------------------------------------|------------|
+| 2026-09-25 | v0.15.0: Q版序列帧接入战斗渲染 + Canvas整数坐标优化 + 动画状态机 | ✅ 已完成  |
 | 2026-09-24 | v0.14.0: 邮件/收件箱系统 + Toast通知 + 邮箱场景 + 欢迎邮件 + SW缓存更新 | ✅ 已完成  |
 | 2026-09-24 | chibi-animator.js 帧索引修复（1-based→0-based） | ✅ 已完成  |
 | 2026-09-23 | v0.13.0: 每日委托+连击链+成就奖励+离线优化 | ✅ 已完成  |
@@ -129,8 +130,10 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 - [x] 邮件/收件箱系统 → mail.js + ui.js MailScene (v0.14.0)
 - [x] 全局 Toast 通知系统 → toast.js + engine.js 集成 (v0.14.0)
+- [x] Q版序列帧接入战斗渲染（idle/attack/skill/ultimate/hit/victory/defeat 全7种动作）→ ui.js BattleScene (v0.15.0)
+- [x] Q版动画状态机 + 战斗事件驱动（攻击→attack/受击→hit/胜利→victory/败北→defeat）→ ui.js (v0.15.0)
 - [ ] 角色立绘资源加载（与美术任务联动，等角色设定）→ character-art.js 已就绪
-- [ ] Q 版战斗序列帧渲染（与美术任务联动，等序列帧素材）→ character-art.js 已就绪
+- [ ] Q版 victory/defeat 序列帧素材（待美术任务产出）→ 占位符已就绪
 - [x] 每日委托/周常任务系统 → quests.js (v0.13.0)
 - [x] 连击链/反击/元素连锁/破防系统 → battle-chain.js (v0.13.0)
 - [x] 成就奖励领取 + Supabase 持久化 → achievements.js + game_schema.sql (v0.13.0)

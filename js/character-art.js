@@ -411,7 +411,8 @@ class CharacterArtManager {
       skill:  { frames: 5, fps: 10, loop: false },
       ultimate: { frames: 6, fps: 10, loop: false },
       hit:    { frames: 2, fps: 8, loop: false },
-      victory:{ frames: 6, fps: 8, loop: true }
+      victory:{ frames: 6, fps: 8, loop: true },
+      defeat: { frames: 2, fps: 4, loop: false }
     };
 
     // 默认可用角色
@@ -429,7 +430,8 @@ class CharacterArtManager {
       skill:  { frames: 5, fps: 10, loop: false },
       ultimate: { frames: 6, fps: 10, loop: false },
       hit:    { frames: 2, fps: 8, loop: false },
-      victory:{ frames: 6, fps: 8, loop: true }
+      victory:{ frames: 6, fps: 8, loop: true },
+      defeat: { frames: 2, fps: 4, loop: false }
     });
   }
 
