@@ -341,7 +341,36 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 
 ---
 
-## 五、本次执行记录（2026-09-24 01:10）
+## 五、本次执行记录（2026-09-25 01:10）
+
+### 技术集成（v0.15.0）
+1. **Q版序列帧完整接入战斗渲染**：`ui.js` BattleScene 全面升级
+   - `_renderParty()` 从纯色占位面板替换为 `characterArt.drawChibi()` 实际 Sprite 渲染
+   - 6 角色 × 5 种战斗动作（idle/attack/skill/ultimate/hit）= 102 帧全面接入
+   - 角色死亡时自动切换 defeat 状态（半透明 + 倒下占位动画）
+   - 当前行动角色蓝色光圈高亮标记
+2. **Q版动画状态机**：新增 `_chibiStates` 追踪系统
+   - `update(dt)` 每帧更新动画计时，动画播放完毕自动回归 idle
+   - `_triggerChibiAnimForAction()` 根据战斗行动自动触发动画：
+     - 攻击者播放 attack/skill/ultimate（根据技能类型自动选择）
+     - 被攻击目标播放 hit
+   - 战斗胜利时全体存活角色播放 victory 动画
+   - 战斗败北时全体角色播放 defeat 动画
+3. **Canvas 渲染优化**：坐标使用 `Math.floor()` 取整避免子像素抗锯齿开销
+4. **character-art.js 更新**：`defaultAnims` 新增 `defeat: { frames: 2, fps: 4, loop: false }`
+5. **预加载增强**：启动时预加载全部 6 角色头像图标 + idle 帧 + 全动作帧（attack/skill/ultimate/hit）
+6. **Service Worker v0.15.0**：缓存版本更新
+
+### 阻塞项更新
+- Q版 victory/defeat 序列帧素材尚未产出（代码已就绪，使用占位符降级渲染）
+- 美术任务需产出：6 角色 × victory 3帧 + defeat 2帧 = 30 张
+  - 路径规范：`assets/characters/chibi/<角色id>/victory_00.png` ~ `victory_02.png`
+  - 路径规范：`assets/characters/chibi/<角色id>/defeat_00.png` ~ `defeat_01.png`
+  - character-art.js 的 `defaultAnims` 已定义 victory: 6帧 和 defeat: 2帧，美术可按此帧数产出或调整
+
+---
+
+## 六、本次执行记录（2026-09-24 01:10）
 
 ### 新增素材（共 102 张 Q 版战斗序列帧）
 1. **Q版 attack 攻击序列帧 ×24**（128×128px，透明背景 PNG，6 角色 × 4 帧）：
