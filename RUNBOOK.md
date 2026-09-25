@@ -106,6 +106,7 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 | 时间       | 问题                                | 状态       |
 |------------|-------------------------------------|------------|
+| 2026-09-26 | v0.16.0: 剧情立绘系统 + 全局错误处理 + 性能监控 + 调试面板 | ✅ 已完成  |
 | 2026-09-25 | v0.15.0: Q版序列帧接入战斗渲染 + Canvas整数坐标优化 + 动画状态机 | ✅ 已完成  |
 | 2026-09-24 | v0.14.0: 邮件/收件箱系统 + Toast通知 + 邮箱场景 + 欢迎邮件 + SW缓存更新 | ✅ 已完成  |
 | 2026-09-24 | chibi-animator.js 帧索引修复（1-based→0-based） | ✅ 已完成  |
@@ -128,12 +129,14 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 ## 6. 下一步（技术侧）
 
+- [x] 角色立绘接入剧情对话（SPEAKER_CHAR_MAP + 渲染 + 淡入淡出 + 表情推断）→ ui.js DialogueScene (v0.16.0)
+- [x] 全局错误处理 + 性能监控 + 调试面板 → engine.js (v0.16.0)
 - [x] 邮件/收件箱系统 → mail.js + ui.js MailScene (v0.14.0)
 - [x] 全局 Toast 通知系统 → toast.js + engine.js 集成 (v0.14.0)
 - [x] Q版序列帧接入战斗渲染（idle/attack/skill/ultimate/hit/victory/defeat 全7种动作）→ ui.js BattleScene (v0.15.0)
 - [x] Q版动画状态机 + 战斗事件驱动（攻击→attack/受击→hit/胜利→victory/败北→defeat）→ ui.js (v0.15.0)
-- [ ] 角色立绘资源加载（与美术任务联动，等角色设定）→ character-art.js 已就绪
-- [ ] Q版 victory/defeat 序列帧素材（待美术任务产出）→ 占位符已就绪
+- [x] 角色立绘接入剧情对话 → ui.js DialogueScene (v0.16.0，说话人映射 + 渲染 + 过渡 + 表情)
+- [x] Q版 victory/defeat 序列帧素材 → 已交付 (2026-09-25, 6角色×5帧=30张)
 - [x] 每日委托/周常任务系统 → quests.js (v0.13.0)
 - [x] 连击链/反击/元素连锁/破防系统 → battle-chain.js (v0.13.0)
 - [x] 成就奖励领取 + Supabase 持久化 → achievements.js + game_schema.sql (v0.13.0)

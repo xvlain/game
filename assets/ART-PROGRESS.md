@@ -364,6 +364,9 @@ Logo：assets/brand/logo/佣人工作室Logo.png   ← 已完成
 UI边框：assets/ui/frames/<素材名>.png         ← 已完成（6个，含名标签框）
 UI动画：js/ui-animations.js                   ← 已完成（动画管理器+渲染器）
 抽卡动画背景：assets/ui/backgrounds/gacha_animation_bg.png ← 已完成
+标题背景：assets/ui/backgrounds/title_bg.png   ← v0.16.0 已完成
+胜利结算背景：assets/ui/backgrounds/victory_splash.png ← v0.16.0 已完成
+败北结算背景：assets/ui/backgrounds/defeat_splash.png  ← v0.16.0 已完成
 ```
 
 美术侧只需按规范产出文件放入对应目录，技术侧自动加载替换占位符。
