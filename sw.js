@@ -1,9 +1,9 @@
 /**
  * Service Worker - 未定之旅 PWA
- * v0.15.0 - Q版序列帧战斗渲染 + Canvas 优化
+ * v0.16.0 - 标题背景 + 战斗结算画面升级
  */
 
-const CACHE_VERSION = 'v0.15.0';
+const CACHE_VERSION = 'v0.16.0';
 const STATIC_CACHE = `game-static-${CACHE_VERSION}`;
 const ASSET_CACHE = `game-assets-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `game-dynamic-${CACHE_VERSION}`;

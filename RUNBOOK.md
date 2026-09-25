@@ -7,7 +7,7 @@
 
 - 游戏名：未定之旅（网页二次元回合制 RPG）
 - 工作室：庸人工作室
-- 当前版本：v0.15.0
+- 当前版本：v0.16.0
 - 仓库：https://github.com/xvlain/game（main 分支）
 - Pages 地址：https://xvlain.github.io/game/
 - Supabase 项目：`qvbywrfkpbiojncikdnw`（新加坡区，Free）

@@ -103,6 +103,17 @@ async function preloadAssets() {
     });
   }
 
+  // v0.16.0 标题画面 + 战斗结算背景预加载
+  await loader.loadImage('bg_title', 'assets/ui/backgrounds/title_bg.png').then(img => {
+    if (img) GameAssets.ui.titleBg = img;
+  });
+  await loader.loadImage('bg_victory', 'assets/ui/backgrounds/victory_splash.png').then(img => {
+    if (img) GameAssets.ui.victoryBg = img;
+  });
+  await loader.loadImage('bg_defeat', 'assets/ui/backgrounds/defeat_splash.png').then(img => {
+    if (img) GameAssets.ui.defeatBg = img;
+  });
+
   // v0.15.0 角色头像图标 + Q版 idle 帧预加载
   const charIds = ['zhixing', 'ying', 'warrior_01', 'mage_01', 'healer_01', 'tank_01'];
   for (const cid of charIds) {
@@ -299,13 +310,20 @@ class TitleScene {
   render(ctx) {
     const W = 1280, H = 720;
 
-    // 背景渐变
-    const grad = ctx.createLinearGradient(0, 0, W, H);
-    grad.addColorStop(0, '#0a0a1a');
-    grad.addColorStop(0.5, '#1a1030');
-    grad.addColorStop(1, '#0a0a1a');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+    // v0.16.0 标题背景图（素材不可用时降级到渐变）
+    if (GameAssets.ui.titleBg) {
+      ctx.drawImage(GameAssets.ui.titleBg, 0, 0, W, H);
+      // 暗色遮罩保证文字可读性
+      ctx.fillStyle = 'rgba(10, 10, 26, 0.35)';
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, '#0a0a1a');
+      grad.addColorStop(0.5, '#1a1030');
+      grad.addColorStop(1, '#0a0a1a');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
 
     // 粒子
     Renderer.drawParticles(ctx, this.particles);
@@ -358,7 +376,7 @@ class TitleScene {
     }
 
     // 底部信息
-    Renderer.drawText(ctx, 'v0.10.0 · 庸人工作室', W / 2, H - 30, {
+    Renderer.drawText(ctx, 'v0.16.0 · 庸人工作室', W / 2, H - 30, {
       fontSize: 12,
       color: '#505070',
       align: 'center'
@@ -753,6 +771,25 @@ class StoryMapScene {
 }
 
 // ============ 对话场景 ============
+// ============ v0.16.0 说话人→角色ID映射 ============
+const SPEAKER_CHAR_MAP = {
+  '织星': 'zhixing',
+  '银发少女': 'zhixing',
+  '影': 'ying',
+  '神秘旅者': 'ying',
+  // 旁白 / ??? 不映射立绘
+};
+
+// 说话人→表情映射（根据台词关键词自动推断）
+function inferExpression(text) {
+  if (!text) return 'default';
+  if (/[！!？?…]/.test(text) && text.length < 20) return 'surprise';
+  if (/哈哈|嘻嘻|开心|太好了|不错/.test(text)) return 'happy';
+  if (/对不起|抱歉|难过|悲伤|可惜/.test(text)) return 'sad';
+  if (/小心|危险|可恶|滚|不许/.test(text)) return 'angry';
+  return 'default';
+}
+
 class DialogueScene {
   constructor() {
     this.sceneManager = null;
@@ -764,6 +801,10 @@ class DialogueScene {
     this.choices = null;
     this.speaker = '';
     this.text = '';
+    // v0.16.0 立绘状态
+    this._portraits = {};         // { left: { charId, alpha, targetAlpha }, right: { ... } }
+    this._prevSpeaker = '';
+    this._portraitTransition = 0; // 过渡计时器
   }
 
   onEnter(data) {
@@ -814,22 +855,67 @@ class DialogueScene {
       }
     }
 
+    // v0.16.0 重置立绘状态
+    this._portraits = {};
+    this._prevSpeaker = '';
+    this._portraitTransition = 0;
+    this._slotAssignment = {};
+
     const dialogue = this.storyManager.getCurrentDialogue();
     if (dialogue) {
       this.speaker = dialogue.speaker;
       this.text = dialogue.text;
+      // v0.16.0 初始化立绘
+      this._updatePortraitForSpeaker(this.speaker, this.text);
     }
     this.displayedChars = 0;
     this.displayTimer = 0;
     this.choices = null;
+
+    // v0.16.0 预加载当前节点涉及的立绘
+    this._preloadNodePortraits(data.chapterId, data.nodeId);
   }
 
-  onExit() {}
+  /** v0.16.0 预加载当前节点对话中涉及的角色立绘 */
+  async _preloadNodePortraits(chapterId, nodeId) {
+    const chapter = StoryData.getChapter(chapterId);
+    if (!chapter) return;
+    const node = chapter.nodes.find(n => n.id === nodeId);
+    if (!node || !node.content) return;
+
+    const charIds = new Set();
+    for (const line of node.content) {
+      const charId = SPEAKER_CHAR_MAP[line.speaker];
+      if (charId) charIds.add(charId);
+    }
+
+    if (charIds.size > 0 && window.characterArt) {
+      const promises = [];
+      for (const cid of charIds) {
+        promises.push(window.characterArt.portraits.load(cid, 'default'));
+        // 预加载可能用到的表情
+        const expressions = ['happy', 'sad', 'angry', 'surprise'];
+        for (const expr of expressions) {
+          promises.push(window.characterArt.portraits.load(cid, expr));
+        }
+      }
+      await Promise.allSettled(promises);
+    }
+  }
+
+  onExit() {
+    // v0.16.0 清理立绘状态
+    this._portraits = {};
+    this._slotAssignment = {};
+  }
 
   update(dt) {
     this.displayTimer += dt;
     const charsPerSecond = this._autoSkip ? 200 : 30;
     this.displayedChars = Math.min(this.text.length, Math.floor(this.displayTimer * charsPerSecond));
+
+    // v0.16.0 更新立绘过渡动画
+    this._updatePortraitTransition(dt);
 
     // 快进模式：自动推进对话
     if (this._autoSkip) {
@@ -858,6 +944,77 @@ class DialogueScene {
     }
   }
 
+  /** v0.16.0 更新立绘透明度过渡 */
+  _updatePortraitTransition(dt) {
+    const speed = 4.0; // 每秒过渡速度（250ms 完成）
+    for (const [slot, portrait] of Object.entries(this._portraits)) {
+      if (portrait.alpha !== portrait.targetAlpha) {
+        const dir = portrait.targetAlpha > portrait.alpha ? 1 : -1;
+        portrait.alpha += dir * speed * dt;
+        portrait.alpha = dir > 0
+          ? Math.min(portrait.alpha, portrait.targetAlpha)
+          : Math.max(portrait.alpha, portrait.targetAlpha);
+      }
+    }
+    // 清理完全透明且非目标的立绘
+    for (const [slot, portrait] of Object.entries(this._portraits)) {
+      if (portrait.alpha <= 0 && portrait.targetAlpha <= 0) {
+        delete this._portraits[slot];
+      }
+    }
+  }
+
+  /** v0.16.0 根据说话人更新立绘状态 */
+  _updatePortraitForSpeaker(speaker, text) {
+    const charId = SPEAKER_CHAR_MAP[speaker];
+    if (!charId) {
+      // 旁白/未知 → 所有立绘降低透明度
+      for (const slot of Object.keys(this._portraits)) {
+        this._portraits[slot].targetAlpha = 0.3;
+      }
+      return;
+    }
+
+    const expression = inferExpression(text);
+
+    // 确定当前说话人应在哪一侧（交替分配或根据角色固定）
+    const slot = this._getPortraitSlot(charId);
+    const otherSlot = slot === 'left' ? 'right' : 'left';
+
+    // 当前说话人立绘：全亮 + 更新表情
+    this._portraits[slot] = {
+      charId,
+      alpha: this._portraits[slot]?.alpha ?? 0,
+      targetAlpha: 1.0,
+      expression,
+      speaking: true
+    };
+
+    // 其他角色：如果存在则降低透明度（非说话人）
+    if (this._portraits[otherSlot] && this._portraits[otherSlot].charId !== charId) {
+      this._portraits[otherSlot].targetAlpha = 0.4;
+      this._portraits[otherSlot].speaking = false;
+    }
+
+    // 更新上一个说话人
+    this._prevSpeaker = speaker;
+  }
+
+  /** v0.16.0 角色在对话中的站位（左/右） */
+  _getPortraitSlot(charId) {
+    // 简单规则：织星固定在左侧，影固定在右侧，其他按首次出现交替
+    if (charId === 'zhixing') return 'left';
+    if (charId === 'ying') return 'right';
+    // 交替分配
+    if (!this._slotAssignment) this._slotAssignment = {};
+    if (!this._slotAssignment[charId]) {
+      const usedLeft = Object.entries(this._slotAssignment).filter(([, s]) => s === 'left').length;
+      const usedRight = Object.entries(this._slotAssignment).filter(([, s]) => s === 'right').length;
+      this._slotAssignment[charId] = usedLeft <= usedRight ? 'left' : 'right';
+    }
+    return this._slotAssignment[charId];
+  }
+
   render(ctx) {
     const W = 1280, H = 720;
 
@@ -882,6 +1039,9 @@ class DialogueScene {
       });
     }
 
+    // v0.16.0 角色立绘渲染（在对话框之上、背景之下）
+    this._renderPortraits(ctx, W, H);
+
     // 对话框（优先使用边框素材）
     const boxY = H - 200;
     const boxH = 170;
@@ -891,18 +1051,32 @@ class DialogueScene {
       fallbackBorder: '#5c4d9a'
     });
 
-    // 说话人
+    // 说话人（v0.16.0 增加头像图标）
     if (this.speaker) {
-      drawFramedPanel(ctx, 50, boxY - 35, 160, 32, 'button', {
+      const charId = SPEAKER_CHAR_MAP[this.speaker];
+      const nameW = charId ? 200 : 160;
+      drawFramedPanel(ctx, 50, boxY - 35, nameW, 32, 'button', {
         slice: 10,
         fallbackBg: '#2a1a4a',
         fallbackBorder: '#7c5cbf'
       });
-      Renderer.drawText(ctx, this.speaker, 130, boxY - 19, {
-        fontSize: 16,
-        color: '#d4b8ff',
-        align: 'center'
-      });
+      // 如果有角色头像，绘制在名字左侧
+      if (charId && window.characterArt) {
+        window.characterArt.drawIcon(ctx, charId, 68, boxY - 19, 12, {
+          element: this._getCharElement(charId)
+        });
+        Renderer.drawText(ctx, this.speaker, 84 + (nameW - 160) / 2, boxY - 19, {
+          fontSize: 16,
+          color: '#d4b8ff',
+          align: 'left'
+        });
+      } else {
+        Renderer.drawText(ctx, this.speaker, 50 + nameW / 2, boxY - 19, {
+          fontSize: 16,
+          color: '#d4b8ff',
+          align: 'center'
+        });
+      }
     }
 
     // 文本（逐字显示）
@@ -958,6 +1132,75 @@ class DialogueScene {
       });
       ctx.restore();
     }
+  }
+
+  /** v0.16.0 渲染对话立绘 */
+  _renderPortraits(ctx, W, H) {
+    if (!window.characterArt) return;
+
+    const boxY = H - 200;
+    const portraitH = Math.min(boxY - 20, 420); // 立绘最大高度（不超过对话框）
+    const portraitW = Math.floor(portraitH * 0.6); // 宽高比 3:5
+
+    for (const [slot, portrait] of Object.entries(this._portraits)) {
+      if (portrait.alpha <= 0.01) continue;
+
+      const x = slot === 'left' ? W * 0.25 : W * 0.75;
+      const y = boxY - 10; // 立绘底部对齐到对话框上方
+      const flip = slot === 'right'; // 右侧角色翻转
+
+      // 说话人呼吸光效
+      const glowColor = portrait.speaking ? this._getElementGlow(portrait.charId) : null;
+
+      ctx.save();
+      ctx.globalAlpha = portrait.alpha;
+
+      window.characterArt.drawPortrait(ctx, portrait.charId, x, y, {
+        width: portraitW,
+        height: portraitH,
+        expression: portrait.expression || 'default',
+        flip,
+        glow: glowColor
+      });
+
+      // 说话人指示光圈
+      if (portrait.speaking && portrait.alpha > 0.7) {
+        const pulseAlpha = 0.3 + Math.sin(performance.now() / 400) * 0.15;
+        ctx.globalAlpha = pulseAlpha * portrait.alpha;
+        ctx.beginPath();
+        ctx.ellipse(x, y - portraitH * 0.05, portraitW * 0.45, 8, 0, 0, Math.PI * 2);
+        ctx.fillStyle = glowColor || '#7c5cbf';
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  /** v0.16.0 获取角色元素发光色 */
+  _getElementGlow(charId) {
+    const ELEMENT_GLOW = {
+      'zhixing': '#9B59B6', // 紫色（织星）
+      'ying': '#6C3483',    // 暗紫（影）
+      'warrior_01': '#E74C3C', // 火红
+      'mage_01': '#3498DB',    // 水蓝
+      'healer_01': '#27AE60',  // 木绿
+      'tank_01': '#D4A017'     // 土金
+    };
+    return ELEMENT_GLOW[charId] || '#7c5cbf';
+  }
+
+  /** v0.16.0 获取角色元素标识 */
+  _getCharElement(charId) {
+    const ELEMENT_MAP = {
+      'zhixing': 'none',
+      'ying': 'none',
+      'warrior_01': 'fire',
+      'mage_01': 'water',
+      'healer_01': 'wood',
+      'tank_01': 'earth'
+    };
+    return ELEMENT_MAP[charId] || 'none';
   }
 
   _wrapText(ctx, text, x, y, maxWidth, lineHeight, options) {
@@ -1029,6 +1272,8 @@ class DialogueScene {
         this.text = result.line.text;
         this.displayedChars = 0;
         this.displayTimer = 0;
+        // v0.16.0 更新立绘状态
+        this._updatePortraitForSpeaker(this.speaker, this.text);
         break;
 
       case 'choice':
@@ -1777,19 +2022,68 @@ class BattleScene {
   }
 
   _renderResult(ctx) {
-    // 结果遮罩
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, 1280, 720);
-
+    const W = 1280, H = 720;
     const isVictory = this.battleResult === 'victory';
-    Renderer.drawText(ctx, isVictory ? '战斗胜利！' : '战斗失败', 640, 300, {
-      fontSize: 48,
-      color: isVictory ? '#ffcc44' : '#cc4444',
+    const t = Math.min(this._battleResultTimer || 0, 2);
+    const fadeIn = Math.min(t / 0.8, 1);
+
+    // v0.16.0 结算背景图（胜利/败北各一张）
+    const splashBg = isVictory ? GameAssets.ui.victoryBg : GameAssets.ui.defeatBg;
+    if (splashBg) {
+      ctx.save();
+      ctx.globalAlpha = fadeIn;
+      ctx.drawImage(splashBg, 0, 0, W, H);
+      // 暗色叠加控制亮度
+      ctx.fillStyle = isVictory ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.45)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.7 * fadeIn})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // v0.16.0 文字入场动画
+    ctx.save();
+    ctx.globalAlpha = fadeIn;
+    const textY = 280 + Math.sin(t * 2) * 3; // 轻微浮动
+
+    // 文字阴影/光晕
+    ctx.shadowColor = isVictory ? '#ffcc44' : '#cc4444';
+    ctx.shadowBlur = 20 + Math.sin(t * 3) * 8;
+
+    Renderer.drawText(ctx, isVictory ? '战斗胜利！' : '战斗失败', 640, textY, {
+      fontSize: 52,
+      color: isVictory ? '#ffe066' : '#ff6666',
       align: 'center'
     });
 
-    drawFramedButton(ctx, 540, 400, 200, 50, '继续', { fontSize: 20 });
-    this._resultBtn = { x: 540, y: 400, w: 200, h: 50 };
+    ctx.shadowBlur = 0;
+
+    // 副标题
+    if (t > 0.5) {
+      const subAlpha = Math.min((t - 0.5) / 0.5, 1);
+      ctx.globalAlpha = subAlpha;
+      Renderer.drawText(ctx,
+        isVictory ? '命运的齿轮继续转动' : '暂时的退却，为了更好的归来',
+        640, textY + 50, {
+          fontSize: 18,
+          color: isVictory ? '#c0a050' : '#a05050',
+          align: 'center'
+        });
+    }
+    ctx.restore();
+
+    // 按钮（延迟显示）
+    if (t > 1.0) {
+      const btnAlpha = Math.min((t - 1.0) / 0.3, 1);
+      ctx.save();
+      ctx.globalAlpha = btnAlpha;
+      drawFramedButton(ctx, 540, 420, 200, 50, '继续', { fontSize: 20 });
+      ctx.restore();
+      this._resultBtn = { x: 540, y: 420, w: 200, h: 50 };
+    } else {
+      this._resultBtn = null;
+    }
   }
 
   handleClick(x, y) {
@@ -2800,6 +3094,12 @@ class SettingsScene {
     ry += 48;
     this._renderToggle(ctx, '屏幕震动效果', x, ry, 'screenShake', '暴击和大招时的屏幕震动');
 
+    ry += 48;
+    // v0.16.0 调试信息面板
+    const debugOn = window.game?._debugOverlay || false;
+    this._renderToggle(ctx, '调试信息面板', x, ry, 'debugOverlay',
+      debugOn ? '当前开启（显示 FPS / 帧时间 / 错误）' : '显示 FPS 和性能信息');
+
     ry += 60;
     Renderer.drawText(ctx, '提示：降低帧率可节省电量，画质设置重启后生效', x, ry, {
       fontSize: 12, color: '#606080'
@@ -2916,6 +3216,10 @@ class SettingsScene {
       if (Renderer.hitTest(x, y, toggle.rect)) {
         this.settings[toggle.key] = !this.settings[toggle.key];
         SettingsStore.set(toggle.key, this.settings[toggle.key]);
+        // v0.16.0 调试面板开关特殊处理
+        if (toggle.key === 'debugOverlay' && window.game) {
+          window.game._debugOverlay = this.settings[toggle.key];
+        }
         return;
       }
     }

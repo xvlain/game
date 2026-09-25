@@ -685,6 +685,19 @@ class GameEngine {
     this.lastTime = 0;
     this.running = false;
 
+    // v0.16.0 性能监控
+    this._perf = {
+      fps: 0,
+      frameCount: 0,
+      fpsTimer: 0,
+      frameTimes: [],       // 最近 60 帧的耗时（ms）
+      avgFrameTime: 0,
+      maxFrameTime: 0,
+      errors: [],           // 最近错误记录
+      errorCount: 0
+    };
+    this._debugOverlay = false; // 调试信息显示开关（设置中可开启）
+
     this.state = {
       player: null,
       party: [],
@@ -696,6 +709,40 @@ class GameEngine {
     };
 
     this._setupResize();
+    this._setupGlobalErrorHandlers();
+  }
+
+  /** v0.16.0 全局错误捕获 */
+  _setupGlobalErrorHandlers() {
+    window.addEventListener('error', (e) => {
+      this._recordError(e.message, e.filename, e.lineno);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      this._recordError(`Promise: ${e.reason?.message || e.reason}`, 'async', 0);
+    });
+  }
+
+  /** v0.16.0 记录错误（最近 20 条） */
+  _recordError(message, source, line) {
+    const entry = {
+      time: new Date().toLocaleTimeString(),
+      message: String(message).substring(0, 120),
+      source: source || 'unknown',
+      line: line || 0
+    };
+    this._perf.errors.push(entry);
+    if (this._perf.errors.length > 20) this._perf.errors.shift();
+    this._perf.errorCount++;
+    console.warn('[Engine Error]', entry);
+
+    // 严重错误时显示 Toast
+    if (typeof ToastSystem !== 'undefined') {
+      ToastSystem.show({
+        type: 'warning',
+        text: `渲染异常: ${entry.message}`,
+        duration: 3000
+      });
+    }
   }
 
   _setupResize() {
@@ -744,8 +791,33 @@ class GameEngine {
     this.lastTime = now;
 
     const clampedDt = Math.min(dt, 1 / 30);
-    this.update(clampedDt);
-    this.render();
+
+    // v0.16.0 性能追踪
+    const frameStart = now;
+    try {
+      this.update(clampedDt);
+      this.render();
+    } catch (e) {
+      this._recordError(e.message, e.stack?.split('\n')[1]?.trim() || 'loop', 0);
+    }
+    const frameTime = performance.now() - frameStart;
+
+    // 更新 FPS 统计
+    this._perf.frameCount++;
+    this._perf.fpsTimer += dt;
+    this._perf.frameTimes.push(frameTime);
+    if (this._perf.frameTimes.length > 60) this._perf.frameTimes.shift();
+
+    if (this._perf.fpsTimer >= 1.0) {
+      this._perf.fps = Math.round(this._perf.frameCount / this._perf.fpsTimer);
+      this._perf.frameCount = 0;
+      this._perf.fpsTimer = 0;
+      // 计算平均帧时间和最大帧时间
+      if (this._perf.frameTimes.length > 0) {
+        this._perf.avgFrameTime = this._perf.frameTimes.reduce((a, b) => a + b, 0) / this._perf.frameTimes.length;
+        this._perf.maxFrameTime = Math.max(...this._perf.frameTimes);
+      }
+    }
 
     requestAnimationFrame(() => this._loop());
   }
@@ -787,6 +859,46 @@ class GameEngine {
     if (typeof ToastSystem !== 'undefined') {
       ToastSystem.render(ctx, this.canvas.width, this.canvas.height);
     }
+
+    // v0.16.0 调试信息覆盖层
+    if (this._debugOverlay) {
+      this._renderDebugOverlay(ctx);
+    }
+  }
+
+  /** v0.16.0 调试信息面板 */
+  _renderDebugOverlay(ctx) {
+    const p = this._perf;
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(4, 4, 180, 72);
+    ctx.globalAlpha = 1;
+
+    ctx.font = '11px monospace';
+    ctx.fillStyle = p.fps >= 50 ? '#5cbf5c' : p.fps >= 30 ? '#bfbf5c' : '#bf5c5c';
+    ctx.textAlign = 'left';
+    ctx.fillText(`FPS: ${p.fps}`, 10, 20);
+
+    ctx.fillStyle = '#b0b0b0';
+    ctx.fillText(`Frame: ${p.avgFrameTime.toFixed(1)}ms (max ${p.maxFrameTime.toFixed(1)}ms)`, 10, 34);
+    ctx.fillText(`Scene: ${this.sceneManager.currentSceneName}`, 10, 48);
+    ctx.fillText(`Errors: ${p.errorCount}`, 10, 62);
+
+    // 最近一条错误
+    if (p.errors.length > 0) {
+      const lastErr = p.errors[p.errors.length - 1];
+      ctx.fillStyle = '#ff8888';
+      ctx.fillText(`[${lastErr.time}] ${lastErr.message.substring(0, 30)}`, 10, 74);
+    }
+
+    ctx.restore();
+  }
+
+  /** v0.16.0 切换调试面板 */
+  toggleDebugOverlay() {
+    this._debugOverlay = !this._debugOverlay;
+    console.log(`[Engine] 调试面板: ${this._debugOverlay ? '开启' : '关闭'}`);
   }
 }
 
