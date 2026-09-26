@@ -176,7 +176,9 @@ https://xvlain.github.io/game/
 - **引擎渲染层集成战斗日志**：engine.js render() 新增 battleLogger.render() 调用
 - **引擎更新层集成战斗日志**：engine.js update() 新增 battleLogger.update(dt) 调用
 - **主入口集成场景 BGM 联动**：main.js 拦截 switchTo 自动触发 bgmDirector.enterScene
-- **Service Worker v0.17.0-r1**：缓存清单新增 `audio-scene.js` 和 `battle-log.js`，旧缓存自动清理
+- **Service Worker v0.17.0-r2**：缓存清单新增 `audio-scene.js` 和 `battle-log.js`，旧缓存自动清理
+- **加载画面背景（loading_bg.png）**：游戏加载期间从纯色背景升级为命运之路奇幻背景图+暗色遮罩，文字和进度条下沉底部显示
+- **角色详情/展示页背景（character_detail_bg.png）**：角色图鉴、编队管理、角色养成三个场景从纯色渐变升级为魔法阵符文背景图+半透明遮罩，素材不可用时自动降级
 - 版本号统一升级至 v0.17.0
 
 ## v0.16.0 更新日志
