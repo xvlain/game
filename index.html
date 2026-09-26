@@ -27,8 +27,17 @@
     }
     #loading {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: #0a0a14; z-index: 100; transition: opacity 0.5s;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+      padding-bottom: 80px;
+      background: #0a0a14;
+      background-image: url('assets/ui/backgrounds/loading_bg.png');
+      background-size: cover; background-position: center;
+      z-index: 100; transition: opacity 0.8s;
+    }
+    #loading::before {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(10, 10, 20, 0.4);
+      z-index: -1;
     }
     #loading.hidden { opacity: 0; pointer-events: none; }
     #loading h1 {
@@ -140,8 +149,8 @@
 </head>
 <body>
   <div id="loading">
-    <h1>未定之旅</h1>
-    <div class="studio">庸人工作室</div>
+    <h1 style="text-shadow: 0 2px 8px rgba(0,0,0,0.6);">未定之旅</h1>
+    <div class="studio" style="text-shadow: 0 1px 4px rgba(0,0,0,0.6);">庸人工作室</div>
     <div class="bar"><div class="bar-fill"></div></div>
   </div>
 
@@ -195,6 +204,8 @@
   <script src="js/achievements.js"></script>
   <script src="js/toast.js"></script>
   <script src="js/mail.js"></script>
+  <script src="js/audio-scene.js"></script>
+  <script src="js/battle-log.js"></script>
   <script src="js/main.js"></script>
 
   <script>

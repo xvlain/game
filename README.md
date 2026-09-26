@@ -1,6 +1,6 @@
 # 未定之旅
 
-> 网页二次元回合制 RPG · 技术预览版 v0.16.0
+> 网页二次元回合制 RPG · 技术预览版 v0.17.0
 
 ## 技术栈
 
@@ -54,12 +54,14 @@
 ├── sw.js               # Service Worker（离线缓存，v0.12.0 增强分类缓存策略）
 ├── fix_supabase_rpc.sql # Supabase RPC 函数修复脚本
 ├── js/
-│   ├── engine.js       # 核心引擎（场景管理、渲染、输入、资源加载、多种过渡特效）
-│   ├── character-art.js # 角色美术系统（立绘加载+Q版序列帧+表情切换）← NEW
+│   ├── engine.js       # 核心引擎（场景管理、渲染、输入、资源加载、过渡特效、页面可见性暂停）
+│   ├── character-art.js # 角色美术系统（立绘加载+Q版序列帧+表情切换）
 │   ├── battle.js       # 回合制战斗系统（含共鸣/元素力）
 │   ├── battle-effects.js # 战斗粒子特效 + Sprite 特效
-│   ├── battle-cutscene.js # 战斗演出系统（大招特写+技能演出+开场/胜利）← NEW
-│   ├── battle-chain.js # 连击链/反击/元素连锁系统 ← NEW
+│   ├── battle-cutscene.js # 战斗演出系统（大招特写+技能演出+开场/胜利）
+│   ├── battle-chain.js # 连击链/反击/元素连锁系统
+│   ├── battle-log.js   # 战斗日志系统（实时日志+伤害统计面板）← v0.17.0 NEW
+│   ├── audio-scene.js  # 音频场景映射（BGM自动切换）← v0.17.0 NEW
 │   ├── story.js        # 剧情/地图/关卡管理
 │   ├── save.js         # Supabase 云端存档
 │   ├── gacha.js        # 抽卡系统
@@ -117,6 +119,10 @@
 - [x] 全局 Toast 通知系统（操作反馈 + 队列管理 + Canvas 渲染）→ toast.js (v0.14.0)
 - [x] 邮箱场景（列表 + 详情面板 + 附件领取）→ ui.js MailScene (v0.14.0)
 - [x] 角色立绘接入剧情对话（说话人→角色映射 + 立绘渲染 + 淡入淡出过渡 + 表情推断）→ ui.js DialogueScene (v0.16.0)
+- [x] 音频场景映射系统（BGM 自动切换 + 音效预定义 + 场景联动）→ audio-scene.js (v0.17.0)
+- [x] 战斗日志系统（实时日志滚动 + 伤害统计面板 + DPS 追踪）→ battle-log.js (v0.17.0)
+- [x] 剧情地图渲染增强（动画连线 + 节点脉冲 + 进度条 + 章节切换）→ ui.js StoryMapScene (v0.17.0)
+- [x] 页面可见性暂停/恢复（省电省资源）→ engine.js (v0.17.0)
 - [ ] Q版战斗动画（Q版序列帧已接入战斗渲染 v0.15.0）
 - [ ] 地图美术
 - [ ] 剧情内容填充
@@ -131,6 +137,47 @@ https://xvlain.github.io/game/
 - 游戏设计：三人团队
 - 剧情 & 地图：元首
 - 技术实现 & 美术：AI 辅助
+
+## v0.17.0 更新日志
+
+- **音频场景映射系统（audio-scene.js）**：新增 BGM 自动切换框架
+  - `BGM_MAP` 定义 16 个场景的 BGM 配置（标题/主菜单/剧情/战斗/功能区等）
+  - `BgmDirector` 场景切换自动匹配 BGM（支持 Boss 战专属曲、章节专属曲）
+  - 交叉淡入淡出切换（fadeIn 可配置 0.3s~1.5s）
+  - `SFX_MAP` 预定义 30+ 音效文件路径（UI/战斗/抽卡/养成/奖励/剧情）
+  - `SfxPlayer` 带冷却机制的音效播放器（防止同一音效过快触发）
+  - BGM 预加载接口 `bgmDirector.preload(keys)`
+- **战斗日志系统（battle-log.js）**：实时战斗记录与伤害统计
+  - `BattleLogger` 记录所有战斗事件（攻击/伤害/治疗/BUFF/连击/元素反应/共鸣）
+  - 10 种日志类型，每种类型独立配色
+  - Canvas 渲染的可折叠日志面板（右侧，8 行可视，自动滚动）
+  - `DamageTracker` 伤害统计追踪器（每角色伤害/治疗/暴击/行动次数/DPS）
+  - 伤害占比条形图可视化
+  - 战斗结束时的全屏统计摘要面板（排名/DPS/占比）
+  - 快捷方法：`logAttack()` / `logHeal()` / `logDeath()` / `logChain()` / `logElement()`
+- **剧情地图渲染增强（ui.js StoryMapScene）**：
+  - 动画连接线：未完成路径使用流动虚线（lineDashOffset 动画），已完成路径带光点流动
+  - 分支选择使用贝塞尔曲线连接（更自然的分叉视觉效果）
+  - 当前节点脉冲光环（紫色呼吸光效 + 外圈发光）
+  - 节点渐变填充（已完成绿/当前紫/可达灰/未解锁暗）
+  - 已完成节点打勾标记
+  - 当前节点类型标签（剧情/战斗/抉择）
+  - 章节进度条（顶部，渐变色填充 + 完成节点计数）
+  - 章节切换按钮（多章节快速切换，未解锁显示锁图标）
+  - 背景星空粒子（40 颗随机闪烁）
+  - 节点装饰粒子（每节点 3 颗浮动光点）
+  - 底部滚动条（地图超宽时显示，含左右箭头提示）
+  - 平滑滚动动画（targetScrollX 插值过渡）
+  - 节点可达性判断 `_isNodeAccessible()`
+- **页面可见性暂停/恢复（engine.js）**：
+  - 页面隐藏时自动暂停游戏循环（节省 CPU/电量）
+  - 页面恢复时重置时间戳避免跳帧
+  - `visibilitychange` 事件监听
+- **引擎渲染层集成战斗日志**：engine.js render() 新增 battleLogger.render() 调用
+- **引擎更新层集成战斗日志**：engine.js update() 新增 battleLogger.update(dt) 调用
+- **主入口集成场景 BGM 联动**：main.js 拦截 switchTo 自动触发 bgmDirector.enterScene
+- **Service Worker v0.17.0-r1**：缓存清单新增 `audio-scene.js` 和 `battle-log.js`，旧缓存自动清理
+- 版本号统一升级至 v0.17.0
 
 ## v0.16.0 更新日志
 

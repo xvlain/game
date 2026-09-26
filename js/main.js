@@ -1,13 +1,14 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.12.0 - 角色美术系统 + 战斗演出 + 场景过渡特效
+ * v0.17.0 - 音频场景映射 + 战斗日志系统 + 增强地图渲染
  */
 
 let game = null;
 let authController = null;
 let achievementManager = null;
 let mailManager = null;
+let battleLogger = null; // v0.17.0
 
 async function initGame() {
   game = new GameEngine('gameCanvas');
@@ -47,6 +48,15 @@ async function initGame() {
     window.mailManager = mailManager;
   }
 
+  // v0.17.0 初始化战斗日志
+  battleLogger = new BattleLogger();
+  window.battleLogger = battleLogger;
+
+  // v0.17.0 初始化 BGM 导演
+  if (typeof BgmDirector !== 'undefined') {
+    bgmDirector.init();
+  }
+
   // 初始化默认状态（游客/登录后会被覆盖）
   game.state = buildDefaultState();
 
@@ -79,6 +89,16 @@ async function initGame() {
     game.sceneManager.register(name, scene);
   }
 
+  // v0.17.0 场景切换时自动切换 BGM
+  const _origSwitchTo = game.sceneManager.switchTo.bind(game.sceneManager);
+  game.sceneManager.switchTo = function(name, data = {}) {
+    _origSwitchTo(name, data);
+    // 延迟触发 BGM 切换（等场景初始化稳定）
+    setTimeout(() => {
+      if (window.bgmDirector) bgmDirector.enterScene(name, data);
+    }, 200);
+  };
+
   // 统一点击事件分发
   game.input.onClick((x, y) => {
     const currentScene = game.sceneManager.currentScene;
@@ -110,7 +130,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.16.0 初始化完成');
+  console.log('[Game] v0.17.0 初始化完成');
 }
 
 function buildDefaultState() {

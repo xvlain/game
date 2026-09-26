@@ -114,6 +114,14 @@ async function preloadAssets() {
     if (img) GameAssets.ui.defeatBg = img;
   });
 
+  // v0.17.0 加载画面 + 角色详情背景预加载
+  await loader.loadImage('bg_loading', 'assets/ui/backgrounds/loading_bg.png').then(img => {
+    if (img) GameAssets.ui.loadingBg = img;
+  });
+  await loader.loadImage('bg_char_detail', 'assets/ui/backgrounds/character_detail_bg.png').then(img => {
+    if (img) GameAssets.ui.charDetailBg = img;
+  });
+
   // v0.15.0 角色头像图标 + Q版 idle 帧预加载
   const charIds = ['zhixing', 'ying', 'warrior_01', 'mage_01', 'healer_01', 'tank_01'];
   for (const cid of charIds) {
@@ -611,129 +619,529 @@ class StoryMapScene {
     this.storyManager = null;
     this.chapter = null;
     this.scrollX = 0;
+    this.targetScrollX = 0;
     this.selectedNode = null;
+    this._animTime = 0;          // v0.17.0 动画计时器
+    this._particleSeeds = [];     // 节点粒子种子
+    this._currentChapterIdx = 0;  // 当前章节索引
   }
 
   onEnter(data) {
     if (!this.storyManager) {
       this.storyManager = new StoryManager();
-      // 加载已有进度
       if (window.game?.state?.storyProgress) {
         this.storyManager.loadProgress(window.game.state.storyProgress);
       }
     }
 
     const chapters = this.storyManager.getChapterList();
-    this.chapter = StoryData.getChapter(chapters[0]?.id || 'ch1');
+    // v0.17.0 支持 data 指定章节
+    const targetChapter = data?.chapterId || chapters[0]?.id || 'ch1';
+    this.chapter = StoryData.getChapter(targetChapter);
+    this._currentChapterIdx = StoryData.chapters.findIndex(ch => ch.id === targetChapter);
+    if (this._currentChapterIdx < 0) this._currentChapterIdx = 0;
     this.scrollX = 0;
+    this.targetScrollX = 0;
     this.selectedNode = null;
+    this._animTime = 0;
+    this._particleSeeds = this._generateParticles();
+
+    // v0.17.0 场景 BGM
+    if (window.bgmDirector) {
+      bgmDirector.enterScene('story', { chapterId: targetChapter });
+    }
   }
 
   onExit() {}
 
-  update(dt) {}
+  /** v0.17.0 更新动画 */
+  update(dt) {
+    this._animTime += dt;
+
+    // 平滑滚动
+    const scrollDiff = this.targetScrollX - this.scrollX;
+    if (Math.abs(scrollDiff) > 0.5) {
+      this.scrollX += scrollDiff * Math.min(1, dt * 6);
+    } else {
+      this.scrollX = this.targetScrollX;
+    }
+  }
+
+  /** v0.17.0 生成节点装饰粒子 */
+  _generateParticles() {
+    const seeds = [];
+    if (!this.chapter) return seeds;
+    for (const node of this.chapter.nodes) {
+      for (let i = 0; i < 3; i++) {
+        seeds.push({
+          nodeId: node.id,
+          offsetX: (Math.random() - 0.5) * 80,
+          offsetY: (Math.random() - 0.5) * 60,
+          size: 1 + Math.random() * 2,
+          speed: 0.3 + Math.random() * 0.5,
+          phase: Math.random() * Math.PI * 2,
+          alpha: 0.15 + Math.random() * 0.25
+        });
+      }
+    }
+    return seeds;
+  }
 
   render(ctx) {
     const W = 1280, H = 720;
 
-    // 背景
-    // 尝试使用第一张剧情背景作为底色
+    // ===== 背景层 =====
     const storyBg = GameAssets.backgrounds.story_awakening || GameAssets.backgrounds.story_ancient_path || null;
     if (storyBg) {
-      ctx.globalAlpha = 0.3;
+      ctx.globalAlpha = 0.25;
       ctx.drawImage(storyBg, 0, 0, W, H);
       ctx.globalAlpha = 1;
     }
-    ctx.fillStyle = storyBg ? 'rgba(10, 10, 24, 0.7)' : '#0a0a18';
+    ctx.fillStyle = storyBg ? 'rgba(10, 10, 24, 0.75)' : '#0a0a18';
     ctx.fillRect(0, 0, W, H);
 
-    // 标题
-    drawFramedPanel(ctx, 20, 15, W - 40, 50, 'panel', {
+    // v0.17.0 背景星空粒子
+    this._renderBackgroundStars(ctx, W, H);
+
+    // ===== 顶部信息栏 =====
+    drawFramedPanel(ctx, 20, 12, W - 40, 55, 'panel', {
       slice: 15,
       fallbackBg: 'rgba(15, 15, 30, 0.9)'
     });
-    Renderer.drawText(ctx, this.chapter?.name || '章节', 40, 40, { fontSize: 20, color: '#d4b8ff' });
+
+    // 章节名称
+    Renderer.drawText(ctx, this.chapter?.name || '章节', 40, 30, { fontSize: 20, color: '#d4b8ff' });
+
+    // v0.17.0 章节进度条
+    if (this.chapter) {
+      const completedCount = this.chapter.nodes.filter(n => this.storyManager.completedNodes.has(n.id)).length;
+      const totalCount = this.chapter.nodes.length;
+      const progress = totalCount > 0 ? completedCount / totalCount : 0;
+
+      const barX = 40;
+      const barY = 48;
+      const barW = 300;
+      const barH = 8;
+
+      // 进度条背景
+      ctx.fillStyle = 'rgba(40, 40, 60, 0.6)';
+      Renderer.roundRect(ctx, barX, barY, barW, barH, 4);
+      ctx.fill();
+
+      // 进度条填充
+      if (progress > 0) {
+        const grad = ctx.createLinearGradient(barX, barY, barX + barW * progress, barY);
+        grad.addColorStop(0, '#6a4aaa');
+        grad.addColorStop(1, '#b090e0');
+        ctx.fillStyle = grad;
+        Renderer.roundRect(ctx, barX, barY, barW * progress, barH, 4);
+        ctx.fill();
+      }
+
+      // 进度文字
+      ctx.font = '10px "Noto Sans SC", sans-serif';
+      ctx.fillStyle = '#8080a0';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${completedCount}/${totalCount} 节点`, barX + barW + 10, barY + 7);
+    }
 
     // 返回按钮
-    drawFramedButton(ctx, W - 120, 20, 90, 38, '返回', { fontSize: 14 });
-    this._backBtn = { x: W - 120, y: 20, w: 90, h: 38 };
+    drawFramedButton(ctx, W - 120, 18, 90, 38, '返回', { fontSize: 14 });
+    this._backBtn = { x: W - 120, y: 18, w: 90, h: 38 };
+
+    // v0.17.0 章节切换按钮
+    this._renderChapterNav(ctx, W);
 
     if (!this.chapter) return;
 
-    // 绘制节点连接线
-    ctx.strokeStyle = '#3a3060';
-    ctx.lineWidth = 3;
+    // ===== 节点连接线（v0.17.0 增强） =====
+    this._renderConnections(ctx);
+
+    // ===== 装饰粒子 =====
+    this._renderNodeParticles(ctx);
+
+    // ===== 绘制节点 =====
+    for (const node of this.chapter.nodes) {
+      const x = Math.floor(node.position.x - this.scrollX);
+      const y = Math.floor(node.position.y);
+      const completed = this.storyManager.completedNodes.has(node.id);
+      const isCurrent = this.storyManager.currentNode?.id === node.id;
+      const isAccessible = this._isNodeAccessible(node);
+
+      const radius = 28;
+
+      // v0.17.0 当前节点脉冲光环
+      if (isCurrent) {
+        const pulse = Math.sin(this._animTime * 3) * 0.3 + 0.7;
+        const glowRadius = radius + 8 + Math.sin(this._animTime * 2) * 4;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(138, 92, 191, ${pulse * 0.25})`;
+        ctx.fill();
+
+        // 外圈发光
+        ctx.beginPath();
+        ctx.arc(x, y, radius + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(138, 92, 191, ${pulse * 0.6})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 节点主体
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+
+      if (completed) {
+        // 已完成：绿色渐变
+        const grad = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, radius);
+        grad.addColorStop(0, '#3a6a3a');
+        grad.addColorStop(1, '#1a3a1a');
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = '#4a9a4a';
+      } else if (isCurrent) {
+        // 当前节点：紫色渐变
+        const grad = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, radius);
+        grad.addColorStop(0, '#5a3a8a');
+        grad.addColorStop(1, '#2a1a4a');
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = '#8a5cbf';
+      } else if (isAccessible) {
+        // 可达但未到达
+        ctx.fillStyle = '#2a2a3e';
+        ctx.strokeStyle = '#4a4070';
+      } else {
+        // 未解锁
+        ctx.fillStyle = '#1a1a2a';
+        ctx.strokeStyle = '#2a2040';
+      }
+
+      ctx.fill();
+      ctx.lineWidth = completed ? 2.5 : 3;
+      ctx.stroke();
+
+      // 节点图标
+      const icons = { dialogue: '💬', battle: '⚔️', choice: '❓' };
+      const icon = icons[node.type] || '📍';
+      ctx.font = completed ? '18px serif' : '20px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (completed) {
+        ctx.globalAlpha = 0.7;
+      }
+      ctx.fillText(icon, x, y);
+      ctx.globalAlpha = 1;
+
+      // v0.17.0 已完成节点打勾
+      if (completed) {
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#5cbf5c';
+        ctx.fillText('✓', x + 18, y - 18);
+      }
+
+      // 节点标题
+      const titleColor = completed ? '#6a9a6a' :
+                         isCurrent ? '#d4b8ff' :
+                         isAccessible ? '#8080a0' : '#404060';
+      Renderer.drawText(ctx, node.title, x, y + 45, {
+        fontSize: 13,
+        color: titleColor,
+        align: 'center'
+      });
+
+      // v0.17.0 节点类型标签
+      if (isCurrent) {
+        const typeLabels = { dialogue: '剧情', battle: '战斗', choice: '抉择' };
+        const label = typeLabels[node.type] || '';
+        if (label) {
+          ctx.font = '10px "Noto Sans SC", sans-serif';
+          const tw = ctx.measureText(label).width + 10;
+          ctx.fillStyle = 'rgba(90, 70, 140, 0.8)';
+          Renderer.roundRect(ctx, x - tw / 2, y - 45, tw, 16, 3);
+          ctx.fill();
+          ctx.fillStyle = '#d4b8ff';
+          ctx.textAlign = 'center';
+          ctx.fillText(label, x, y - 37);
+        }
+      }
+
+      // 存储区域（点击检测）
+      node._rect = { x: x - radius, y: y - radius, w: radius * 2, h: radius * 2 };
+    }
+
+    // v0.17.0 滚动指示器
+    this._renderScrollIndicator(ctx, W, H);
+  }
+
+  /** v0.17.0 绘制增强连接线（含动画虚线流动效果） */
+  _renderConnections(ctx) {
+    const connections = [];
+
+    // 收集所有连接
     for (const node of this.chapter.nodes) {
       if (node.next) {
         const nextNode = this.chapter.nodes.find(n => n.id === node.next);
         if (nextNode) {
-          ctx.beginPath();
-          ctx.moveTo(node.position.x - this.scrollX, node.position.y);
-          ctx.lineTo(nextNode.position.x - this.scrollX, nextNode.position.y);
-          ctx.stroke();
+          connections.push({
+            from: node, to: nextNode,
+            completed: this.storyManager.completedNodes.has(node.id) &&
+                       this.storyManager.completedNodes.has(nextNode.id)
+          });
         }
       }
-    }
-
-    // 处理分支选择节点的连接线
-    for (const node of this.chapter.nodes) {
+      // 分支选择连线
       if (node.type === 'choice' && node.choices) {
         for (const choice of node.choices) {
           const targetNode = this.chapter.nodes.find(n => n.id === choice.next);
           if (targetNode) {
-            ctx.beginPath();
-            ctx.moveTo(node.position.x - this.scrollX, node.position.y);
-            ctx.lineTo(targetNode.position.x - this.scrollX, targetNode.position.y);
-            ctx.stroke();
+            connections.push({
+              from: node, to: targetNode,
+              completed: this.storyManager.completedNodes.has(node.id) &&
+                         this.storyManager.completedNodes.has(targetNode.id),
+              isBranch: true
+            });
           }
         }
       }
     }
 
-    // 绘制节点
-    for (const node of this.chapter.nodes) {
-      const x = node.position.x - this.scrollX;
-      const y = node.position.y;
-      const completed = this.storyManager.completedNodes.has(node.id);
-      const isCurrent = this.storyManager.currentNode?.id === node.id;
+    // 绘制连接线
+    for (const conn of connections) {
+      const x1 = Math.floor(conn.from.position.x - this.scrollX);
+      const y1 = Math.floor(conn.from.position.y);
+      const x2 = Math.floor(conn.to.position.x - this.scrollX);
+      const y2 = Math.floor(conn.to.position.y);
 
-      // 节点圆圈
-      const radius = 28;
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      // 跳过完全不在屏幕内的线
+      if ((x1 < -50 && x2 < -50) || (x1 > 1330 && x2 > 1330)) continue;
 
-      if (completed) {
-        ctx.fillStyle = '#2a4a2a';
-        ctx.strokeStyle = '#4a8a4a';
-      } else if (isCurrent) {
-        ctx.fillStyle = '#3a2a5a';
-        ctx.strokeStyle = '#8a5cbf';
+      ctx.save();
+
+      if (conn.completed) {
+        // 已完成路径：实线 + 淡绿色
+        ctx.strokeStyle = conn.isBranch ? 'rgba(74, 154, 74, 0.5)' : '#4a8a4a';
+        ctx.lineWidth = conn.isBranch ? 2 : 2.5;
+        ctx.setLineDash([]);
       } else {
-        ctx.fillStyle = '#1a1a2a';
-        ctx.strokeStyle = '#3a3060';
+        // 未完成路径：流动虚线
+        ctx.strokeStyle = conn.isBranch ? 'rgba(60, 50, 100, 0.4)' : '#3a3060';
+        ctx.lineWidth = conn.isBranch ? 1.5 : 2.5;
+        ctx.setLineDash([8, 6]);
+        ctx.lineDashOffset = -this._animTime * 20; // 流动效果
       }
 
-      ctx.fill();
-      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+
+      // 使用贝塞尔曲线使连线更自然
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      if (conn.isBranch && Math.abs(dy) > 30) {
+        // 分支用曲线
+        const cx = x1 + dx * 0.5;
+        const cy1 = y1 + dy * 0.15;
+        const cy2 = y1 + dy * 0.85;
+        ctx.bezierCurveTo(cx, cy1, cx, cy2, x2, y2);
+      } else {
+        ctx.lineTo(x2, y2);
+      }
+
       ctx.stroke();
 
-      // 节点图标
-      const icons = { dialogue: '💬', battle: '⚔️', choice: '❓' };
-      ctx.font = '20px serif';
+      // 已完成路径上的光点流动
+      if (conn.completed) {
+        const t = (this._animTime * 0.3) % 1;
+        const px = x1 + (x2 - x1) * t;
+        const py = y1 + (y2 - y1) * t;
+        ctx.beginPath();
+        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(74, 154, 74, 0.7)';
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  /** v0.17.0 节点装饰粒子 */
+  _renderNodeParticles(ctx) {
+    for (const p of this._particleSeeds) {
+      const node = this.chapter.nodes.find(n => n.id === p.nodeId);
+      if (!node) continue;
+
+      const x = Math.floor(node.position.x - this.scrollX + p.offsetX);
+      const y = Math.floor(node.position.y + p.offsetY + Math.sin(this._animTime * p.speed + p.phase) * 8);
+
+      // 跳过屏幕外的粒子
+      if (x < -10 || x > 1290) continue;
+
+      ctx.save();
+      ctx.globalAlpha = p.alpha * (0.5 + Math.sin(this._animTime * p.speed * 2 + p.phase) * 0.5);
+      ctx.fillStyle = this.storyManager.completedNodes.has(node.id) ? '#4a8a4a' : '#6a5a9a';
+      ctx.beginPath();
+      ctx.arc(x, y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  /** v0.17.0 背景星空 */
+  _renderBackgroundStars(ctx, W, H) {
+    // 使用固定种子避免每帧重算
+    if (!this._stars) {
+      this._stars = [];
+      for (let i = 0; i < 40; i++) {
+        this._stars.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          size: 0.5 + Math.random() * 1.5,
+          speed: 0.2 + Math.random() * 0.6,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    for (const star of this._stars) {
+      const alpha = 0.2 + Math.sin(this._animTime * star.speed + star.phase) * 0.15;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#8a7abf';
+      ctx.beginPath();
+      ctx.arc(Math.floor(star.x), Math.floor(star.y), star.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  /** v0.17.0 章节导航按钮 */
+  _renderChapterNav(ctx, W) {
+    const chapters = StoryData.chapters;
+    if (chapters.length <= 1) return;
+
+    const navY = 85;
+    const btnW = 100;
+    const btnH = 28;
+    const startX = 20;
+
+    this._chapterBtns = [];
+
+    for (let i = 0; i < chapters.length; i++) {
+      const ch = chapters[i];
+      const unlocked = this.storyManager.unlockedChapters.has(ch.id);
+      const isActive = i === this._currentChapterIdx;
+
+      const bx = startX + i * (btnW + 8);
+      this._chapterBtns.push({ x: bx, y: navY, w: btnW, h: btnH, chapterId: ch.id, unlocked });
+
+      ctx.save();
+
+      // 按钮背景
+      if (isActive) {
+        ctx.fillStyle = 'rgba(90, 70, 140, 0.8)';
+        ctx.strokeStyle = '#8a5cbf';
+      } else if (unlocked) {
+        ctx.fillStyle = 'rgba(30, 30, 50, 0.7)';
+        ctx.strokeStyle = '#4a4070';
+      } else {
+        ctx.fillStyle = 'rgba(20, 20, 35, 0.5)';
+        ctx.strokeStyle = '#2a2040';
+      }
+
+      Renderer.roundRect(ctx, bx, navY, btnW, btnH, 4);
+      ctx.fill();
+      ctx.lineWidth = isActive ? 2 : 1;
+      ctx.stroke();
+
+      // 文字
+      ctx.font = '11px "Noto Sans SC", sans-serif';
+      ctx.fillStyle = isActive ? '#d4b8ff' : (unlocked ? '#8080a0' : '#404060');
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(icons[node.type] || '📍', x, y);
+      ctx.fillText(unlocked ? ch.name.replace(/^(序章|第.+章)·/, '') : '???', bx + btnW / 2, navY + btnH / 2);
 
-      // 节点标题
-      Renderer.drawText(ctx, node.title, x, y + 45, {
-        fontSize: 13,
-        color: completed ? '#6a9a6a' : (isCurrent ? '#b090e0' : '#606080'),
-        align: 'center'
-      });
+      // 未解锁锁图标
+      if (!unlocked) {
+        ctx.font = '10px serif';
+        ctx.fillText('🔒', bx + btnW - 12, navY + btnH / 2);
+      }
 
-      // 存储区域
-      node._rect = { x: x - radius, y: y - radius, w: radius * 2, h: radius * 2 };
+      ctx.restore();
     }
+  }
+
+  /** v0.17.0 滚动指示器 */
+  _renderScrollIndicator(ctx, W, H) {
+    if (!this.chapter || this.chapter.nodes.length === 0) return;
+
+    // 计算地图总宽度
+    const maxX = Math.max(...this.chapter.nodes.map(n => n.position.x));
+    const totalWidth = maxX + 60;
+
+    if (totalWidth <= W) return;
+
+    // 底部滚动条
+    const barY = H - 25;
+    const barW = W - 80;
+    const barX = 40;
+    const barH = 6;
+    const scrollRatio = totalWidth > W ? this.scrollX / (totalWidth - W) : 0;
+    const thumbW = Math.max(30, barW * (W / totalWidth));
+
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+
+    // 轨道
+    ctx.fillStyle = 'rgba(40, 40, 60, 0.6)';
+    Renderer.roundRect(ctx, barX, barY, barW, barH, 3);
+    ctx.fill();
+
+    // 滑块
+    ctx.fillStyle = '#5c4d9a';
+    const thumbX = barX + scrollRatio * (barW - thumbW);
+    Renderer.roundRect(ctx, Math.floor(thumbX), barY, thumbW, barH, 3);
+    ctx.fill();
+
+    ctx.restore();
+
+    // 左右箭头提示
+    if (this.scrollX > 10) {
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.font = '18px sans-serif';
+      ctx.fillStyle = '#8a5cbf';
+      ctx.textAlign = 'center';
+      ctx.fillText('◀', 20, H / 2);
+      ctx.restore();
+    }
+    if (this.scrollX < totalWidth - W - 10) {
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.font = '18px sans-serif';
+      ctx.fillStyle = '#8a5cbf';
+      ctx.textAlign = 'center';
+      ctx.fillText('▶', W - 20, H / 2);
+      ctx.restore();
+    }
+  }
+
+  /** v0.17.0 判断节点是否可到达 */
+  _isNodeAccessible(node) {
+    if (this.storyManager.completedNodes.has(node.id)) return true;
+    if (this.storyManager.currentNode?.id === node.id) return true;
+
+    // 检查是否有已完成节点指向此节点
+    for (const n of this.chapter.nodes) {
+      if (!this.storyManager.completedNodes.has(n.id)) continue;
+      if (n.next === node.id) return true;
+      if (n.type === 'choice' && n.choices) {
+        for (const c of n.choices) {
+          if (c.next === node.id) return true;
+        }
+      }
+    }
+    return false;
   }
 
   handleClick(x, y) {
@@ -743,12 +1151,33 @@ class StoryMapScene {
       return;
     }
 
+    // v0.17.0 章节切换
+    if (this._chapterBtns) {
+      for (const btn of this._chapterBtns) {
+        if (Renderer.hitTest(x, y, btn)) {
+          if (btn.unlocked && btn.chapterId !== this.chapter?.id) {
+            this.chapter = StoryData.getChapter(btn.chapterId);
+            this._currentChapterIdx = StoryData.chapters.findIndex(ch => ch.id === btn.chapterId);
+            this.scrollX = 0;
+            this.targetScrollX = 0;
+            this._stars = null; // 重生成星空
+            this._particleSeeds = this._generateParticles();
+            if (window.bgmDirector) bgmDirector.enterScene('story', { chapterId: btn.chapterId });
+          }
+          return;
+        }
+      }
+    }
+
     // 节点点击
     if (!this.chapter) return;
     for (const node of this.chapter.nodes) {
       if (node._rect && Renderer.hitTest(x, y, node._rect)) {
         if (this.storyManager.completedNodes.has(node.id)) continue;
         if (this.storyManager.currentNode?.id !== node.id) continue;
+
+        // v0.17.0 点击音效
+        if (window.sfxPlayer) sfxPlayer.play('click');
 
         // 进入节点
         if (node.type === 'dialogue') {
@@ -766,6 +1195,19 @@ class StoryMapScene {
           this.sceneManager.switchTo('dialogue', { chapterId: this.chapter.id, nodeId: node.id });
         }
       }
+    }
+  }
+
+  /** v0.17.0 滑动支持 */
+  handleSwipe(direction, dist) {
+    if (!this.chapter) return;
+    const maxX = Math.max(...this.chapter.nodes.map(n => n.position.x));
+    const totalWidth = maxX + 60;
+
+    if (direction === 'left') {
+      this.targetScrollX = Math.min(this.targetScrollX + 150, Math.max(0, totalWidth - 1280));
+    } else if (direction === 'right') {
+      this.targetScrollX = Math.max(this.targetScrollX - 150, 0);
     }
   }
 }

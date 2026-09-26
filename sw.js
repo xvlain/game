@@ -1,9 +1,9 @@
 /**
  * Service Worker - 未定之旅 PWA
- * v0.16.0 - 剧情立绘系统 + 全局错误处理 + 性能监控
+ * v0.17.0 - 音频场景映射 + 战斗日志 + 加载画面背景 + 角色详情背景
  */
 
-const CACHE_VERSION = 'v0.16.0-r2';
+const CACHE_VERSION = 'v0.17.0-r2';
 const STATIC_CACHE = `game-static-${CACHE_VERSION}`;
 const ASSET_CACHE = `game-assets-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `game-dynamic-${CACHE_VERSION}`;
@@ -32,6 +32,8 @@ const STATIC_FILES = [
   './js/toast.js',
   './js/mail.js',
   './js/chibi-animator.js',
+  './js/audio-scene.js',
+  './js/battle-log.js',
   './js/main.js'
 ];
 

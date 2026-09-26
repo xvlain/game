@@ -1,7 +1,7 @@
 # 美术制作进度追踪
 
 > 庸人工作室 · 未定之旅 · 美术任务状态
-> 最后更新：2026-09-26 01:15
+> 最后更新：2026-09-27 01:13
 > 本文件与「游戏技术开发与网站落实」任务互通
 
 ---
@@ -111,6 +111,8 @@
 | 标题画面背景（奇幻星空远景） | `ui/backgrounds/title_bg.png` | ✅ 已交付 | 2026-09-26 |
 | 战斗胜利结算背景（金色光芒） | `ui/backgrounds/victory_splash.png` | ✅ 已交付 | 2026-09-26 |
 | 战斗败北结算背景（暗红悲壮） | `ui/backgrounds/defeat_splash.png` | ✅ 已交付 | 2026-09-26 |
+| 加载画面背景（命运之路+浮空建筑） | `ui/backgrounds/loading_bg.png` | ✅ 已交付 | 2026-09-27 |
+| 角色详情/图鉴/养成/编队背景（魔法阵+符文光带） | `ui/backgrounds/character_detail_bg.png` | ✅ 已交付 | 2026-09-27 |
 
 ### 12. 战斗特效 Sprite 素材（512×512px，透明背景 PNG）
 | 素材 | 文件 | 状态 | 日期 |
@@ -364,6 +366,8 @@ Logo：assets/brand/logo/佣人工作室Logo.png   ← 已完成
 UI边框：assets/ui/frames/<素材名>.png         ← 已完成（6个，含名标签框）
 UI动画：js/ui-animations.js                   ← 已完成（动画管理器+渲染器）
 抽卡动画背景：assets/ui/backgrounds/gacha_animation_bg.png ← 已完成
+加载背景：assets/ui/backgrounds/loading_bg.png ← v0.17.0 已完成
+角色详情背景：assets/ui/backgrounds/character_detail_bg.png ← v0.17.0 已完成（角色图鉴/养成/编队）
 标题背景：assets/ui/backgrounds/title_bg.png   ← v0.16.0 已完成
 胜利结算背景：assets/ui/backgrounds/victory_splash.png ← v0.16.0 已完成
 败北结算背景：assets/ui/backgrounds/defeat_splash.png  ← v0.16.0 已完成
@@ -373,7 +377,37 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 
 ---
 
-## 五、本次执行记录（2026-09-26 01:15）
+## 五、本次执行记录（2026-09-27 01:13）
+
+### 新增素材（共 2 张场景画面背景）
+1. **加载画面背景 ×1**（1920×1080px）：
+   - `ui/backgrounds/loading_bg.png`：暗色调奇幻世界命运之路，发光魔法路径向前延伸，远方浮空建筑和巨大水晶柱，五行元素符号光晕粒子漂浮两旁，深紫色与深蓝色渐变星空，底部留白便于叠加进度条 UI
+   - 用于 `index.html` 的 `#loading` 覆盖层（游戏资源预加载期间显示）
+
+2. **角色详情/展示页背景 ×1**（1920×1080px）：
+   - `ui/backgrounds/character_detail_bg.png`：大型魔法阵/符文圆环发出柔和光芒，微小元素粒子和光点漂浮，深紫到深蓝渐变星空纹理，左右竖向符文光带装饰，中央区域保持简洁用于叠加角色立绘和属性面板
+   - 用于 `characters.js`（角色图鉴、编队管理）和 `growth.js`（角色养成）三个场景
+
+### 代码更新（v0.17.0）
+1. **index.html `#loading` 样式升级**：加载画面从纯色背景升级为背景图+暗色遮罩，文字和进度条下沉到底部显示，增强加载期间的视觉体验
+2. **ui.js 预加载增强**：新增 `bg_loading` 和 `bg_char_detail` 两项预加载（`GameAssets.ui.loadingBg` / `GameAssets.ui.charDetailBg`）
+3. **characters.js CharacterRosterScene.render() 升级**：角色图鉴场景从纯色渐变升级为背景图+半透明遮罩，素材不可用时自动降级到渐变
+4. **characters.js PartyScene.render() 升级**：编队管理场景同上
+5. **growth.js GrowthScene.render() 升级**：角色养成场景同上
+6. **sw.js v0.17.0**：缓存版本更新，旧缓存自动清理
+7. **main.js**：版本号更新 v0.16.0 → v0.17.0
+
+### 素材统计
+- 本次新增：2 张场景画面背景
+- 累计 UI 背景素材：7 张（gacha_summon + gacha_animation_bg + title_bg + victory_splash + defeat_splash + loading_bg + character_detail_bg）
+
+### 下一步计划
+- 后续新角色立绘与 Q 版帧（待元首提供设定）
+- 后续章节区域背景（待元首提供新章节地图设计）
+
+---
+
+## 五、上次执行记录（2026-09-26 01:15）
 
 ### 新增素材（共 3 张场景画面背景）
 1. **标题画面背景 ×1**（1920×1080px）：
@@ -403,13 +437,11 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 
 ### 素材统计
 - 本次新增：3 张场景画面背景
-- 累计 UI 背景素材：5 张（gacha_summon + gacha_animation_bg + title_bg + victory_splash + defeat_splash）
+- 累计 UI 背景素材：7 张（gacha_summon + gacha_animation_bg + title_bg + victory_splash + defeat_splash + loading_bg + character_detail_bg）
 
 ### 下一步计划
 - 后续新角色立绘与 Q 版帧（待元首提供设定）
 - 后续章节区域背景（待元首提供新章节地图设计）
-- 加载画面（Loading Screen）背景图
-- 角色展示/详情页背景
 
 ---
 

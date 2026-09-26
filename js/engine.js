@@ -710,6 +710,29 @@ class GameEngine {
 
     this._setupResize();
     this._setupGlobalErrorHandlers();
+    this._setupVisibilityPause(); // v0.17.0 页面可见性暂停/恢复
+  }
+
+  /** v0.17.0 页面不可见时暂停游戏循环，可见时恢复 */
+  _setupVisibilityPause() {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // 页面隐藏：暂停循环，保存时间戳
+        this._wasRunning = this.running;
+        if (this.running) {
+          this.running = false;
+          this._pauseTime = performance.now();
+          console.log('[Engine] 页面不可见，暂停游戏');
+        }
+      } else {
+        // 页面恢复：重置时间戳避免跳帧
+        if (this._wasRunning) {
+          this.lastTime = performance.now();
+          this.running = true;
+          console.log('[Engine] 页面可见，恢复游戏');
+        }
+      }
+    });
   }
 
   /** v0.16.0 全局错误捕获 */
@@ -829,6 +852,8 @@ class GameEngine {
     if (typeof UIAnimations !== 'undefined') UIAnimations.update(dt * 1000);
     // 驱动 Toast 通知系统（v0.14.0）
     if (typeof ToastSystem !== 'undefined') ToastSystem.update(dt * 1000);
+    // v0.17.0 驱动战斗日志更新
+    if (typeof battleLogger !== 'undefined' && battleLogger) battleLogger.update(dt);
   }
 
   render() {
@@ -858,6 +883,11 @@ class GameEngine {
     // Toast 通知层（最顶层，v0.14.0）
     if (typeof ToastSystem !== 'undefined') {
       ToastSystem.render(ctx, this.canvas.width, this.canvas.height);
+    }
+
+    // v0.17.0 战斗日志覆盖层
+    if (typeof battleLogger !== 'undefined' && battleLogger) {
+      battleLogger.render(ctx, this.canvas.width, this.canvas.height);
     }
 
     // v0.16.0 调试信息覆盖层

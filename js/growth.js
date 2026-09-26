@@ -295,12 +295,18 @@ class GrowthScene {
   render(ctx) {
     const W = 1280, H = 720;
 
-    // 背景
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#0d0d1f');
-    grad.addColorStop(1, '#1a1030');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+    // v0.17.0 角色详情背景图（素材不可用时降级到渐变）
+    if (GameAssets.ui.charDetailBg) {
+      ctx.drawImage(GameAssets.ui.charDetailBg, 0, 0, W, H);
+      ctx.fillStyle = 'rgba(13, 13, 31, 0.55)';
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#0d0d1f');
+      grad.addColorStop(1, '#1a1030');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
 
     // 顶部栏
     Renderer.drawPanel(ctx, 20, 15, W - 40, 50, { bg: 'rgba(15, 15, 30, 0.8)', border: '#3a3060' });

@@ -2,7 +2,7 @@
   "name": "未定之旅",
   "short_name": "未定之旅",
   "description": "庸人工作室出品的网页二次元回合制RPG",
-  "version": "0.12.0",
+  "version": "0.17.0",
   "start_url": "/game/",
   "display": "fullscreen",
   "orientation": "landscape",

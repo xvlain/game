@@ -7,7 +7,7 @@
 
 - 游戏名：未定之旅（网页二次元回合制 RPG）
 - 工作室：庸人工作室
-- 当前版本：v0.16.0
+- 当前版本：v0.17.0
 - 仓库：https://github.com/xvlain/game（main 分支）
 - Pages 地址：https://xvlain.github.io/game/
 - Supabase 项目：`qvbywrfkpbiojncikdnw`（新加坡区，Free）
@@ -32,7 +32,7 @@ game-project/
 ├── sw.js                # Service Worker（v0.12.0 分类缓存策略）
 ├── fix_supabase_rpc.sql # Supabase RPC 修复脚本
 ├── js/
-│   ├── engine.js        # 引擎（场景管理、渲染、输入、资源加载、过渡特效）
+│   ├── engine.js        # 引擎（场景管理、渲染、输入、资源加载、过渡特效、页面可见性暂停）
 │   ├── character-art.js # 角色美术系统（立绘+Q版序列帧+表情）← v0.12.0
 │   ├── battle.js        # 回合制战斗（含共鸣/元素力/连击链/反击）
 │   ├── battle-chain.js  # 连击链/反击/元素连锁/破防系统 ← v0.13.0 NEW
@@ -50,6 +50,8 @@ game-project/
 │   ├── achievements.js  # 成就系统（含奖励领取）← v0.13.0 增强
 │   ├── toast.js         # 全局 Toast 通知系统 ← v0.14.0 NEW
 │   ├── mail.js          # 邮件/收件箱系统 ← v0.14.0 NEW
+│   ├── audio-scene.js   # 音频场景映射（BGM自动切换+音效预定义）← v0.17.0 NEW
+│   ├── battle-log.js    # 战斗日志系统（实时日志+伤害统计面板）← v0.17.0 NEW
 │   └── main.js          # 游戏入口
 ├── assets/              # 美术资源（后期填充）
 ├── game_schema.sql      # Supabase 建表脚本（幂等，可重跑）
@@ -106,6 +108,7 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 | 时间       | 问题                                | 状态       |
 |------------|-------------------------------------|------------|
+| 2026-09-27 | v0.17.0: 音频场景映射 + 战斗日志 + 增强地图渲染 + 页面可见性暂停 | ✅ 已完成  |
 | 2026-09-26 | v0.16.0: 剧情立绘系统 + 全局错误处理 + 性能监控 + 调试面板 | ✅ 已完成  |
 | 2026-09-25 | v0.15.0: Q版序列帧接入战斗渲染 + Canvas整数坐标优化 + 动画状态机 | ✅ 已完成  |
 | 2026-09-24 | v0.14.0: 邮件/收件箱系统 + Toast通知 + 邮箱场景 + 欢迎邮件 + SW缓存更新 | ✅ 已完成  |
@@ -129,6 +132,11 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 ## 6. 下一步（技术侧）
 
+- [x] 音频场景映射系统（BGM_MAP 16 场景 + BgmDirector 自动切换 + SFX_MAP 30+音效）→ audio-scene.js (v0.17.0)
+- [x] 战斗日志系统（BattleLogger 实时日志 + DamageTracker 伤害统计 + DPS面板）→ battle-log.js (v0.17.0)
+- [x] 剧情地图渲染增强（动画连线 + 节点脉冲 + 进度条 + 章节切换 + 星空粒子）→ ui.js StoryMapScene (v0.17.0)
+- [x] 页面可见性暂停/恢复（visibilitychange 暂停循环 + 重置时间戳）→ engine.js (v0.17.0)
+- [x] 场景切换自动触发 BGM → main.js switchTo 拦截 (v0.17.0)
 - [x] 角色立绘接入剧情对话（SPEAKER_CHAR_MAP + 渲染 + 淡入淡出 + 表情推断）→ ui.js DialogueScene (v0.16.0)
 - [x] 全局错误处理 + 性能监控 + 调试面板 → engine.js (v0.16.0)
 - [x] 邮件/收件箱系统 → mail.js + ui.js MailScene (v0.14.0)
