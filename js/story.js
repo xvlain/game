@@ -141,17 +141,17 @@ const StoryData = {
       name: '第二章·命运交汇',
       description: '离开觉醒之地，前方是更广阔的世界…',
       unlockCondition: { completedChapter: 'ch1' }, // 需完成序章
-      // 剧情背景映射（复用现有素材，后期可替换）
+      // 剧情背景映射（v0.18.0 第二章专属背景）
       backgrounds: {
-        'ch2_n1': 'assets/maps/story/ancient_path.png',
-        'ch2_n2': 'assets/maps/story/ancient_path.png',
+        'ch2_n1': 'assets/maps/story/morning_town.png',
+        'ch2_n2': 'assets/maps/story/ancient_crossroads.png',
         'ch2_n3': 'assets/maps/battle/forest_dark.png',
-        'ch2_n4': 'assets/maps/story/ancient_ruins.png',
+        'ch2_n4': 'assets/maps/story/fork_crossroads.png',
         'ch2_n5a': 'assets/maps/battle/crystal_cave.png',
         'ch2_n5b': 'assets/maps/battle/training_arena.png',
-        'ch2_n6': 'assets/maps/story/dark_forest.png',
+        'ch2_n6': 'assets/maps/story/moonlit_clearing.png',
         'ch2_n7': 'assets/maps/battle/arena_default.png',
-        'ch2_end': 'assets/maps/story/ancient_path.png'
+        'ch2_end': 'assets/maps/story/moonlit_clearing.png'
       },
       nodes: [
         {
@@ -281,6 +281,183 @@ const StoryData = {
           ],
           next: null,
           rewards: { items: { crystals: 800, coins: 1500 } }
+        }
+      ]
+    },
+    {
+      id: 'ch3',
+      name: '第三章·暗影之源',
+      description: '影的秘密逐渐揭开，暗影组织的阴谋浮出水面…',
+      unlockCondition: { completedChapter: 'ch2' },
+      // 剧情背景映射（复用现有素材，后期替换为第三章专用背景）
+      backgrounds: {
+        'ch3_n1': 'assets/maps/story/ancient_path.png',
+        'ch3_n2': 'assets/maps/battle/crystal_cave.png',
+        'ch3_n3': 'assets/maps/battle/crystal_cave.png',
+        'ch3_n4': 'assets/maps/story/ancient_ruins.png',
+        'ch3_n5a': 'assets/maps/battle/star_abyss.png',
+        'ch3_n5b': 'assets/maps/battle/holy_sanctuary.png',
+        'ch3_n6': 'assets/maps/battle/chaos_void.png',
+        'ch3_n7': 'assets/maps/battle/chaos_void.png',
+        'ch3_end': 'assets/maps/story/ancient_path.png'
+      },
+      nodes: [
+        {
+          id: 'ch3_n1',
+          type: 'dialogue',
+          title: '影的告白',
+          position: { x: 100, y: 360 },
+          content: [
+            { speaker: '旁白', text: '离开小镇后，影突然停下了脚步。' },
+            { speaker: '影', text: '我有件事必须告诉你们…关于我的真实身份。' },
+            { speaker: '织星', text: '（终于要说了吗…）' },
+            { speaker: '影', text: '我其实是"暗影组织"的逃亡者。他们…在进行某种危险的实验。' },
+            { speaker: '影', text: '我在寻找他们隐藏的"暗影之源"——那是一切暗影生物的力量根基。' },
+            { speaker: '织星', text: '暗影组织…我听说过。据说他们试图掌控世界的元素之力。' },
+            { speaker: '影', text: '没错。而且他们已经成功了…一部分。' }
+          ],
+          next: 'ch3_n2',
+          rewards: null
+        },
+        {
+          id: 'ch3_n2',
+          type: 'dialogue',
+          title: '追踪线索',
+          position: { x: 280, y: 300 },
+          content: [
+            { speaker: '影', text: '暗影之源的入口…应该就在这片区域附近。' },
+            { speaker: '织星', text: '这些水晶…散发着不寻常的能量。' },
+            { speaker: '旁白', text: '你们来到了一片被暗影侵蚀的水晶矿洞。' },
+            { speaker: '影', text: '没错，这些水晶被暗影污染了。顺着它们就能找到源头。' },
+            { speaker: '织星', text: '小心，有守卫。' }
+          ],
+          next: 'ch3_n3',
+          rewards: { items: { crystals: 200 } }
+        },
+        {
+          id: 'ch3_n3',
+          type: 'battle',
+          title: '暗影精锐',
+          position: { x: 460, y: 360 },
+          description: '暗影组织的精锐部队出现了！',
+          enemyConfig: [
+            { id: 'shadow_elite_1', name: '暗影刺客', hp: 1200, atk: 160, def: 70, spd: 120, element: 'water' },
+            { id: 'shadow_elite_2', name: '暗影术士', hp: 1000, atk: 200, def: 50, spd: 100, element: 'fire' },
+            { id: 'shadow_elite_3', name: '暗影盾卫', hp: 1800, atk: 100, def: 130, spd: 75, element: 'earth' }
+          ],
+          requiredParty: ['warrior', 'healer', 'mage', 'guard'],
+          next: 'ch3_n4',
+          rewards: { items: { coins: 600, crystals: 100, asc_stone_2: 2 } }
+        },
+        {
+          id: 'ch3_n4',
+          type: 'dialogue',
+          title: '遗迹中的秘密',
+          position: { x: 640, y: 360 },
+          content: [
+            { speaker: '旁白', text: '击败暗影精锐后，你们在矿洞深处发现了一座古老的遗迹。' },
+            { speaker: '织星', text: '这些符文…是上古文明的记载。' },
+            { speaker: '织星', text: '上面说…暗影之源其实是被封印的"混沌之力"。' },
+            { speaker: '影', text: '混沌之力…难怪暗影组织如此执着。' },
+            { speaker: '织星', text: '如果让暗影组织完全掌控这股力量，整个世界都会陷入混沌。' },
+            { speaker: '影', text: '我们必须阻止他们。' }
+          ],
+          next: 'ch3_n5a',
+          rewards: { characters: ['ssr_03'], items: { exp_book_3: 1 } }
+        },
+        {
+          id: 'ch3_n5a',
+          type: 'choice',
+          title: '命运的抉择',
+          position: { x: 820, y: 360 },
+          content: [
+            { speaker: '影', text: '前方有两条路。左边通往暗影组织的核心实验室，右边是他们的能量供给站。' },
+            { speaker: '织星', text: '摧毁实验室可以直接削弱他们的战力，但供给站也很重要。' },
+            { speaker: '影', text: '你来决定吧。' }
+          ],
+          choices: [
+            { text: '突袭核心实验室', next: 'ch3_n5b' },
+            { text: '摧毁能量供给站', next: 'ch3_n5c' }
+          ]
+        },
+        {
+          id: 'ch3_n5b',
+          type: 'dialogue',
+          title: '核心实验室',
+          position: { x: 1000, y: 260 },
+          content: [
+            { speaker: '旁白', text: '你们潜入了暗影组织的核心实验室。' },
+            { speaker: '影', text: '这里…比我想象的还要恐怖。' },
+            { speaker: '织星', text: '他们在用活人做实验…把人类转化为暗影生物。' },
+            { speaker: '影', text: '…我必须摧毁这一切。' },
+            { speaker: '旁白', text: '影的眼中闪过坚定的光芒。' }
+          ],
+          next: 'ch3_n6',
+          rewards: { items: { crystals: 300, asc_stone_3: 1 } }
+        },
+        {
+          id: 'ch3_n5c',
+          type: 'dialogue',
+          title: '能量供给站',
+          position: { x: 1000, y: 460 },
+          content: [
+            { speaker: '旁白', text: '你们来到了暗影组织的能量供给站。' },
+            { speaker: '织星', text: '这些巨大的水晶柱…在源源不断地向某处输送能量。' },
+            { speaker: '影', text: '如果切断供给，暗影之源的力量会大幅削弱。' },
+            { speaker: '织星', text: '但也一定会惊动他们的首领。' },
+            { speaker: '影', text: '无所谓。反正迟早要面对的。' }
+          ],
+          next: 'ch3_n6',
+          rewards: { items: { crystals: 300, asc_stone_2: 3 } }
+        },
+        {
+          id: 'ch3_n6',
+          type: 'battle',
+          title: '暗影首领',
+          position: { x: 1160, y: 360 },
+          description: '暗影组织的首领亲自出现了！',
+          enemyConfig: [
+            { id: 'shadow_lord', name: '暗影领主·墨', hp: 4000, atk: 250, def: 120, spd: 95, element: 'water' },
+            { id: 'shadow_bodyguard_1', name: '暗影近卫', hp: 2000, atk: 180, def: 110, spd: 90, element: 'metal' },
+            { id: 'shadow_bodyguard_2', name: '暗影近卫', hp: 2000, atk: 180, def: 110, spd: 90, element: 'fire' }
+          ],
+          next: 'ch3_n7',
+          rewards: { items: { crystals: 500, coins: 1200 } }
+        },
+        {
+          id: 'ch3_n7',
+          type: 'dialogue',
+          title: '真相大白',
+          position: { x: 1340, y: 360 },
+          content: [
+            { speaker: '暗影领主·墨', text: '呵…你以为摧毁这里就结束了吗？' },
+            { speaker: '暗影领主·墨', text: '暗影之源…早已被我转移到了别处。' },
+            { speaker: '影', text: '什么！？' },
+            { speaker: '暗影领主·墨', text: '而且…你以为你是逃亡者？不，你只是我放出去的棋子。' },
+            { speaker: '暗影领主·墨', text: '是你把我们引到了混沌之力的封印之地。哈哈哈…' },
+            { speaker: '影', text: '……！' },
+            { speaker: '织星', text: '别听他的！影，你不是棋子。你选择了站在我们这边。' },
+            { speaker: '旁白', text: '暗影领主在狂笑中化作黑烟消散。' },
+            { speaker: '影', text: '…谢谢你们。不管怎样，我一定会找到暗影之源，亲手摧毁它。' }
+          ],
+          next: 'ch3_end',
+          rewards: null
+        },
+        {
+          id: 'ch3_end',
+          type: 'dialogue',
+          title: '第三章结束',
+          position: { x: 1520, y: 360 },
+          content: [
+            { speaker: '织星', text: '暗影之源被转移了…看来我们的旅途还很长。' },
+            { speaker: '影', text: '不管它在哪里，我都会找到它。这是我的责任。' },
+            { speaker: '织星', text: '不是"你的"责任——是"我们"的责任。' },
+            { speaker: '旁白', text: '三人相视而笑，踏上了新的征程。' },
+            { speaker: '旁白', text: '暗影的阴谋远未终结，但旅者们不再迷茫。' },
+            { speaker: '旁白', text: '第三章·完' }
+          ],
+          next: null,
+          rewards: { items: { crystals: 1200, coins: 2500 } }
         }
       ]
     }
@@ -427,7 +604,14 @@ class StoryManager {
     // 推进到下一节点
     const nextId = this.currentNode.next;
     if (!nextId) {
-      // 章节结束
+      // 章节结束 - 检查并解锁后续章节
+      const currentChapterId = this.currentChapter.id;
+      for (const ch of StoryData.chapters) {
+        if (ch.unlockCondition && ch.unlockCondition.completedChapter === currentChapterId) {
+          this.unlockedChapters.add(ch.id);
+          console.log(`[Story] 已解锁章节: ${ch.name}`);
+        }
+      }
       return { type: 'chapter_end', chapter: this.currentChapter };
     }
 

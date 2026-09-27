@@ -1,6 +1,6 @@
 # 未定之旅
 
-> 网页二次元回合制 RPG · 技术预览版 v0.17.0
+> 网页二次元回合制 RPG · 技术预览版 v0.18.0
 
 ## 技术栈
 
@@ -137,6 +137,19 @@ https://xvlain.github.io/game/
 - 游戏设计：三人团队
 - 剧情 & 地图：元首
 - 技术实现 & 美术：AI 辅助
+
+## v0.18.0 更新日志
+
+- **第二章专属剧情背景（4 张 1920×1080px 场景图）**：替换第二章复用序章的占位背景
+  - `maps/story/morning_town.png`：清晨薄雾中的远方小镇，古道蜿蜒通向小镇，黎明天空充满旅途期待感 → 用于 ch2_n1「旅途的开始」
+  - `maps/story/ancient_crossroads.png`：发光古树矗立的十字路口，紫蓝色荧光粒子，黄昏橙紫天空 → 用于 ch2_n2「神秘的旅者」（影登场）
+  - `maps/story/fork_crossroads.png`：奇幻分岔路口，左侧水晶矿洞/右侧修炼场石阶路，深蓝紫星空 → 用于 ch2_n4「分歧的路」
+  - `maps/story/moonlit_clearing.png`：月光森林空地，蘑菇发光环，暗影生物红眼，紫色记忆碎片 → 用于 ch2_n6「真相初现」+ ch2_end
+- **story.js 第二章背景映射更新**：5 个节点从复用序章素材升级为专属背景
+- **ui.js 预加载增强**：新增 4 张第二章剧情背景预加载（story_morning_town / story_ancient_crossroads / story_fork_crossroads / story_moonlit_clearing）
+- **Service Worker v0.18.0-r1**：缓存版本更新，旧缓存自动清理
+- 版本号统一升级至 v0.18.0
+
 
 ## v0.17.0 更新日志
 

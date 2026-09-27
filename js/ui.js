@@ -90,12 +90,16 @@ async function preloadAssets() {
     });
   }
 
-  // 剧情地图背景（序章 4 张）
+  // 剧情地图背景（序章 4 张 + 第二章 4 张）
   const storyBgs = {
     story_awakening: 'assets/maps/story/awakening_void.png',
     story_ancient_path: 'assets/maps/story/ancient_path.png',
     story_ancient_ruins: 'assets/maps/story/ancient_ruins.png',
-    story_dark_forest: 'assets/maps/story/dark_forest.png'
+    story_dark_forest: 'assets/maps/story/dark_forest.png',
+    story_morning_town: 'assets/maps/story/morning_town.png',
+    story_ancient_crossroads: 'assets/maps/story/ancient_crossroads.png',
+    story_fork_crossroads: 'assets/maps/story/fork_crossroads.png',
+    story_moonlit_clearing: 'assets/maps/story/moonlit_clearing.png'
   };
   for (const [key, src] of Object.entries(storyBgs)) {
     await loader.loadImage(key, src).then(img => {

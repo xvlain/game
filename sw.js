@@ -1,9 +1,9 @@
 /**
  * Service Worker - 未定之旅 PWA
- * v0.17.0 - 音频场景映射 + 战斗日志 + 加载画面背景 + 角色详情背景
+ * v0.18.0 - 第二章专属剧情背景
  */
 
-const CACHE_VERSION = 'v0.17.0-r2';
+const CACHE_VERSION = 'v0.18.0-r1';
 const STATIC_CACHE = `game-static-${CACHE_VERSION}`;
 const ASSET_CACHE = `game-assets-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `game-dynamic-${CACHE_VERSION}`;

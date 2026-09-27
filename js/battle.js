@@ -169,6 +169,132 @@ const CharacterStats = {
         resonance: { name: '磐石共鸣', type: 'buff_party', multiplier: 0, desc: '消耗元素力为全体增防' },
         ultimate: { name: '绝对防御', type: 'buff_party', multiplier: 0, energyCost: 100, desc: '全体友方减伤30%，持续2回合' }
       }
+    },
+
+    // ===== v0.18.0 新增角色 =====
+
+    // 金元素 - 坦克/辅助（填补五行体系空缺）
+    guard: {
+      id: 'guard_01', name: '示例·金卫', role: '坦克', element: 'metal',
+      hp: 1600, atk: 130, def: 140, spd: 90,
+      crit_rate: 0.08, crit_dmg: 1.5,
+      skills: {
+        normal: { name: '金刃', type: 'single', multiplier: 1.0, desc: '对单体造成攻击力100%的金属性伤害' },
+        skill: { name: '金钟罩', type: 'buff_party', multiplier: 0, energyCost: 25, desc: '为全体友方施加金甲护盾，吸收伤害=防御力×200%，持续2回合' },
+        resonance: { name: '金刚共鸣', type: 'single', multiplier: 1.6, desc: '消耗元素力释放的共鸣技，破甲效果降低目标防御20%' },
+        ultimate: { name: '天罚圣盾', type: 'buff_party', multiplier: 0, energyCost: 100, desc: '全体友方获得反弹护盾（受到伤害的30%反弹给攻击者），持续2回合' }
+      }
+    },
+
+    // SSR 角色完整战斗数据
+    ssr_lilith: {
+      id: 'ssr_01', name: '星辰·莉莉丝', role: '输出', element: 'water',
+      hp: 1100, atk: 260, def: 70, spd: 105,
+      crit_rate: 0.25, crit_dmg: 1.8,
+      skills: {
+        normal: { name: '星潮', type: 'single', multiplier: 1.1, desc: '对单体造成攻击力110%的水属性伤害' },
+        skill: { name: '银河倾泻', type: 'aoe', multiplier: 0.9, energyCost: 30, desc: '对全体造成攻击力90%的水属性伤害，30%概率冰冻' },
+        resonance: { name: '星海共鸣', type: 'aoe', multiplier: 1.5, desc: '消耗元素力释放的共鸣技，对全体造成大量伤害' },
+        ultimate: { name: '星辰陨落', type: 'aoe', multiplier: 3.2, energyCost: 100, desc: '召唤星辰之力，对全体造成攻击力320%的水属性伤害' }
+      }
+    },
+
+    ssr_yan: {
+      id: 'ssr_02', name: '炎帝·焰', role: '输出', element: 'fire',
+      hp: 1050, atk: 280, def: 60, spd: 110,
+      crit_rate: 0.30, crit_dmg: 2.0,
+      skills: {
+        normal: { name: '灼拳', type: 'single', multiplier: 1.1, desc: '对单体造成攻击力110%的火属性伤害' },
+        skill: { name: '炼狱火海', type: 'aoe', multiplier: 0.85, energyCost: 30, desc: '对全体造成攻击力85%的火属性伤害，附带灼烧（每回合损失5%HP，2回合）' },
+        resonance: { name: '炎帝共鸣', type: 'single', multiplier: 2.0, desc: '消耗元素力释放的共鸣技，超高单体爆发' },
+        ultimate: { name: '红莲天照', type: 'single', multiplier: 4.0, energyCost: 100, desc: '对单体造成攻击力400%的火属性伤害，击杀后额外行动一次' }
+      }
+    },
+
+    ssr_lein: {
+      id: 'ssr_03', name: '天罚·雷恩', role: '输出', element: 'metal',
+      hp: 1200, atk: 250, def: 90, spd: 100,
+      crit_rate: 0.22, crit_dmg: 1.7,
+      skills: {
+        normal: { name: '雷刃', type: 'single', multiplier: 1.1, desc: '对单体造成攻击力110%的金属性伤害' },
+        skill: { name: '天罚裁决', type: 'single', multiplier: 1.6, energyCost: 30, desc: '对单体造成攻击力160%的金属性伤害，无视目标20%防御' },
+        resonance: { name: '天罚共鸣', type: 'aoe', multiplier: 1.3, desc: '消耗元素力释放的共鸣技，对全体附带破甲效果' },
+        ultimate: { name: '万剑归宗', type: 'aoe', multiplier: 3.0, energyCost: 100, desc: '召唤万剑，对全体造成攻击力300%的金属性伤害，降低目标防御15%' }
+      }
+    },
+
+    // SR 角色完整战斗数据（补充抽卡池）
+    sr_aileen: {
+      id: 'sr_01', name: '翠风·艾琳', role: '治疗', element: 'wood',
+      hp: 1000, atk: 140, def: 90, spd: 100,
+      crit_rate: 0.08, crit_dmg: 1.5,
+      skills: {
+        normal: { name: '叶刃', type: 'single', multiplier: 0.85, desc: '对单体造成攻击力85%的木属性伤害' },
+        skill: { name: '翠风治愈', type: 'heal_ally', multiplier: 1.3, energyCost: 25, desc: '治疗全体友方，治疗量=攻击力×130%' },
+        resonance: { name: '翠风共鸣', type: 'heal_ally', multiplier: 1.8, desc: '消耗元素力释放的共鸣治疗' },
+        ultimate: { name: '自然之恩', type: 'heal_ally', multiplier: 2.8, energyCost: 100, desc: '大量治疗全体友方并回复20%元素力' }
+      }
+    },
+
+    sr_gordon: {
+      id: 'sr_02', name: '岩壁·戈登', role: '坦克', element: 'earth',
+      hp: 1700, atk: 110, def: 135, spd: 80,
+      crit_rate: 0.05, crit_dmg: 1.5,
+      skills: {
+        normal: { name: '岩石投掷', type: 'single', multiplier: 0.9, desc: '对单体造成攻击力90%的土属性伤害' },
+        skill: { name: '岩壁守护', type: 'buff_party', multiplier: 0, energyCost: 20, desc: '为全体友方施加护盾，吸收伤害=防御力×150%' },
+        resonance: { name: '岩壁共鸣', type: 'buff_party', multiplier: 0, desc: '消耗元素力强化全体防御' },
+        ultimate: { name: '大地之墙', type: 'buff_party', multiplier: 0, energyCost: 100, desc: '全体友方减伤40%，持续2回合，并回复10%HP' }
+      }
+    },
+
+    sr_marco: {
+      id: 'sr_03', name: '赤炎·马可', role: '输出', element: 'fire',
+      hp: 950, atk: 200, def: 65, spd: 105,
+      crit_rate: 0.18, crit_dmg: 1.6,
+      skills: {
+        normal: { name: '火拳', type: 'single', multiplier: 1.0, desc: '对单体造成攻击力100%的火属性伤害' },
+        skill: { name: '烈焰连击', type: 'single', multiplier: 1.5, energyCost: 25, desc: '对单体造成2次攻击力75%的火属性伤害' },
+        resonance: { name: '赤炎共鸣', type: 'single', multiplier: 1.8, desc: '消耗元素力释放的共鸣技' },
+        ultimate: { name: '凤凰涅槃', type: 'aoe', multiplier: 2.5, energyCost: 100, desc: '对全体造成攻击力250%的火属性伤害，自身回复20%HP' }
+      }
+    },
+
+    sr_anna: {
+      id: 'sr_04', name: '冰霜·安娜', role: '辅助', element: 'water',
+      hp: 1050, atk: 160, def: 85, spd: 95,
+      crit_rate: 0.12, crit_dmg: 1.5,
+      skills: {
+        normal: { name: '冰刺', type: 'single', multiplier: 0.95, desc: '对单体造成攻击力95%的水属性伤害' },
+        skill: { name: '霜冻领域', type: 'debuff_enemy', multiplier: 0.6, energyCost: 25, desc: '对全体造成攻击力60%的水属性伤害，降低速度20%持续2回合' },
+        resonance: { name: '冰霜共鸣', type: 'debuff_enemy', multiplier: 0.8, desc: '消耗元素力释放的共鸣技，大幅降低敌方攻击' },
+        ultimate: { name: '极冻冰棺', type: 'single', multiplier: 2.2, energyCost: 100, desc: '对单体造成攻击力220%的水属性伤害，50%概率冰冻1回合' }
+      }
+    },
+
+    // v0.18.0 新增 SR 角色
+    sr_jinwu: {
+      id: 'sr_05', name: '金乌·辰', role: '输出', element: 'metal',
+      hp: 1000, atk: 190, def: 80, spd: 100,
+      crit_rate: 0.18, crit_dmg: 1.6,
+      skills: {
+        normal: { name: '金刃斩', type: 'single', multiplier: 1.0, desc: '对单体造成攻击力100%的金属性伤害' },
+        skill: { name: '金乌烈焰', type: 'single', multiplier: 1.4, energyCost: 25, desc: '对单体造成攻击力140%的金属性伤害，降低目标防御10%' },
+        resonance: { name: '金乌共鸣', type: 'aoe', multiplier: 1.1, desc: '消耗元素力释放的共鸣技' },
+        ultimate: { name: '日轮天照', type: 'aoe', multiplier: 2.8, energyCost: 100, desc: '召唤金乌之力，对全体造成攻击力280%的金属性伤害' }
+      }
+    },
+
+    sr_lingmu: {
+      id: 'sr_06', name: '灵木·苏', role: '辅助', element: 'wood',
+      hp: 1100, atk: 130, def: 95, spd: 95,
+      crit_rate: 0.08, crit_dmg: 1.5,
+      skills: {
+        normal: { name: '藤蔓抽击', type: 'single', multiplier: 0.85, desc: '对单体造成攻击力85%的木属性伤害' },
+        skill: { name: '灵木滋养', type: 'heal_single', multiplier: 2.0, energyCost: 20, desc: '治疗HP最低的友方，治疗量=攻击力×200%' },
+        resonance: { name: '灵木共鸣', type: 'heal_ally', multiplier: 1.5, desc: '消耗元素力释放的共鸣治疗，并增加元素力回复' },
+        ultimate: { name: '万木回春', type: 'heal_ally', multiplier: 2.5, energyCost: 100, desc: '全体友方回复大量HP并增加20%攻击力，持续2回合' }
+      }
     }
   },
 

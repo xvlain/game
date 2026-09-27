@@ -38,24 +38,28 @@ const GachaConfig = {
     }
   },
 
-  // 角色稀有度池（占位角色，后期替换）
+  // 角色稀有度池（v0.18.0 扩充，关联 CharacterStats.templates）
   characters: {
     ssr: [
-      { id: 'ssr_01', name: '星辰·莉莉丝', element: 'water', role: '输出' },
-      { id: 'ssr_02', name: '炎帝·焰', element: 'fire', role: '输出' },
-      { id: 'ssr_03', name: '天罚·雷恩', element: 'metal', role: '输出' }
+      { id: 'ssr_01', name: '星辰·莉莉丝', element: 'water', role: '输出', template: 'ssr_lilith' },
+      { id: 'ssr_02', name: '炎帝·焰', element: 'fire', role: '输出', template: 'ssr_yan' },
+      { id: 'ssr_03', name: '天罚·雷恩', element: 'metal', role: '输出', template: 'ssr_lein' }
     ],
     sr: [
-      { id: 'sr_01', name: '翠风·艾琳', element: 'wood', role: '治疗' },
-      { id: 'sr_02', name: '岩壁·戈登', element: 'earth', role: '坦克' },
-      { id: 'sr_03', name: '赤炎·马可', element: 'fire', role: '输出' },
-      { id: 'sr_04', name: '冰霜·安娜', element: 'water', role: '辅助' }
+      { id: 'sr_01', name: '翠风·艾琳', element: 'wood', role: '治疗', template: 'sr_aileen' },
+      { id: 'sr_02', name: '岩壁·戈登', element: 'earth', role: '坦克', template: 'sr_gordon' },
+      { id: 'sr_03', name: '赤炎·马可', element: 'fire', role: '输出', template: 'sr_marco' },
+      { id: 'sr_04', name: '冰霜·安娜', element: 'water', role: '辅助', template: 'sr_anna' },
+      { id: 'sr_05', name: '金乌·辰', element: 'metal', role: '输出', template: 'sr_jinwu' },
+      { id: 'sr_06', name: '灵木·苏', element: 'wood', role: '辅助', template: 'sr_lingmu' }
     ],
     r: [
-      { id: 'r_01', name: '见习剑士', element: 'none', role: '输出' },
-      { id: 'r_02', name: '学徒法师', element: 'none', role: '输出' },
-      { id: 'r_03', name: '新兵弓手', element: 'none', role: '输出' },
-      { id: 'r_04', name: '初级治疗师', element: 'none', role: '治疗' }
+      { id: 'r_01', name: '见习剑士', element: 'fire', role: '输出' },
+      { id: 'r_02', name: '学徒法师', element: 'water', role: '输出' },
+      { id: 'r_03', name: '新兵弓手', element: 'wood', role: '输出' },
+      { id: 'r_04', name: '初级治疗师', element: 'wood', role: '治疗' },
+      { id: 'r_05', name: '铁甲新兵', element: 'earth', role: '坦克' },
+      { id: 'r_06', name: '金刃学徒', element: 'metal', role: '输出' }
     ]
   }
 };
@@ -118,7 +122,22 @@ class GachaEngine {
 
       // 从对应稀有度池随机选一个角色
       const charPool = GachaConfig.characters[rarity];
-      const char = charPool[Math.floor(Math.random() * charPool.length)];
+      const char = { ...charPool[Math.floor(Math.random() * charPool.length)] };
+
+      // v0.18.0 关联战斗模板（自动填充技能和属性）
+      if (char.template && typeof CharacterStats !== 'undefined') {
+        const tpl = CharacterStats.templates[char.template];
+        if (tpl) {
+          char.skills = tpl.skills;
+          char.hp = tpl.hp;
+          char.atk = tpl.atk;
+          char.def = tpl.def;
+          char.spd = tpl.spd;
+          char.crit_rate = tpl.crit_rate;
+          char.crit_dmg = tpl.crit_dmg;
+        }
+        delete char.template; // 不需要存入存档
+      }
 
       const result = {
         ...char,

@@ -1,7 +1,7 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.17.0 - 音频场景映射 + 战斗日志系统 + 增强地图渲染
+ * v0.18.0 - 第二章专属剧情背景
  */
 
 let game = null;
@@ -142,7 +142,7 @@ function buildDefaultState() {
       { id: 'warrior', level: 1 },
       { id: 'healer', level: 1 },
       { id: 'mage', level: 1 },
-      { id: 'tank', level: 1 }
+      { id: 'guard', level: 1 }
     ],
     roster: [
       { id: 'warrior', name: '示例·战士', level: 1, element: 'fire', role: '输出', rarity: 'sr',
@@ -151,8 +151,8 @@ function buildDefaultState() {
         skills: CharacterStats.templates.healer.skills, growth: defaultGrowth() },
       { id: 'mage', name: '示例·法师', level: 1, element: 'water', role: '输出', rarity: 'sr',
         skills: CharacterStats.templates.mage.skills, growth: defaultGrowth() },
-      { id: 'tank', name: '示例·守护', level: 1, element: 'earth', role: '坦克', rarity: 'sr',
-        skills: CharacterStats.templates.tank.skills, growth: defaultGrowth() }
+      { id: 'guard', name: '示例·金卫', level: 1, element: 'metal', role: '坦克', rarity: 'sr',
+        skills: CharacterStats.templates.guard.skills, growth: defaultGrowth() }
     ],
     storyProgress: { completedNodes: [], unlockedChapters: ['ch1'] },
     inventory: {
