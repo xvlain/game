@@ -289,16 +289,17 @@ const StoryData = {
       name: '第三章·暗影之源',
       description: '影的秘密逐渐揭开，暗影组织的阴谋浮出水面…',
       unlockCondition: { completedChapter: 'ch2' },
-      // 剧情背景映射（复用现有素材，后期替换为第三章专用背景）
+      // 剧情背景映射（v0.18.0 含第三章专用背景）
       backgrounds: {
         'ch3_n1': 'assets/maps/story/ancient_path.png',
-        'ch3_n2': 'assets/maps/battle/crystal_cave.png',
-        'ch3_n3': 'assets/maps/battle/crystal_cave.png',
+        'ch3_n2': 'assets/maps/story/shadow_base.png',
+        'ch3_n3': 'assets/maps/story/shadow_base.png',
         'ch3_n4': 'assets/maps/story/ancient_ruins.png',
         'ch3_n5a': 'assets/maps/battle/star_abyss.png',
-        'ch3_n5b': 'assets/maps/battle/holy_sanctuary.png',
-        'ch3_n6': 'assets/maps/battle/chaos_void.png',
-        'ch3_n7': 'assets/maps/battle/chaos_void.png',
+        'ch3_n5b': 'assets/maps/story/shadow_base.png',
+        'ch3_n5c': 'assets/maps/story/shadow_base.png',
+        'ch3_n6': 'assets/maps/story/shadow_realm.png',
+        'ch3_n7': 'assets/maps/story/shadow_realm.png',
         'ch3_end': 'assets/maps/story/ancient_path.png'
       },
       nodes: [

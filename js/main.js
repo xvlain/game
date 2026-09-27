@@ -130,7 +130,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.17.0 初始化完成');
+  console.log('[Game] v0.18.0 初始化完成');
 }
 
 function buildDefaultState() {
