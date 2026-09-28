@@ -2,7 +2,7 @@
  * battle.js - 回合制战斗系统
  * 速度条驱动，四人编队，大招不插队
  * 含共鸣系统 + 元素力系统
- * v0.3.0 - 修复共鸣增益计算 bug，添加共鸣技能消耗逻辑
+ * v0.19.0 - 战斗速度倍率集成 + 命中顿帧(hit-stop)效果
  */
 
 // ============ 元素系统（五行：金木水火土） ============
@@ -340,6 +340,9 @@ class BattleEngine {
     this.chainManager = (typeof BattleChainManager !== 'undefined') ? new BattleChainManager() : null;
     this.critCount = 0;   // 本场暴击次数
     this.comboCount = 0;  // 本场连击链次数
+    // v0.19.0 战斗速度 & 命中顿帧
+    this.speedMultiplier = 1;       // 战斗速度倍率（1 / 1.5 / 2）
+    this.hitStopSignal = null;      // 命中顿帧信号 { duration, type }
   }
 
   init(partyTemplates, enemyConfigs) {
@@ -431,8 +434,8 @@ class BattleEngine {
         if (d.type === 'stun') return { ...d, turns: d.turns - 1 };
         return d;
       }).filter(d => d.turns > 0);
-      // 直接跳到下一个角色
-      setTimeout(() => this._nextTurn(), 400);
+      // 直接跳到下一个角色（v0.19.0 应用速度倍率）
+      setTimeout(() => this._nextTurn(), Math.floor(400 / this.speedMultiplier));
       if (this.onStateChange) this.onStateChange('stunned', nextActor);
       return;
     }
@@ -603,10 +606,28 @@ class BattleEngine {
       this.onActionComplete(actor, skill, results);
     }
 
+    // v0.19.0 命中顿帧信号：暴击和大招触发短暂停顿，增强打击感
+    const hasCrit = results.some(r => r.crit);
+    const isUltimate = skillKey === 'ultimate';
+    const isResonance = skillKey === 'resonance';
+    if (hasCrit || isUltimate || isResonance) {
+      this.hitStopSignal = {
+        duration: isUltimate ? 120 : (hasCrit ? 80 : 60), // ms
+        type: isUltimate ? 'ultimate' : (hasCrit ? 'crit' : 'resonance'),
+        timestamp: Date.now()
+      };
+    }
+
     // v0.13.0 回合结束重置连击链
     if (this.chainManager) this.chainManager.onTurnEnd();
 
-    setTimeout(() => this._nextTurn(), 600);
+    // v0.19.0 应用速度倍率：基础 600ms / 速度倍率
+    setTimeout(() => this._nextTurn(), Math.floor(600 / this.speedMultiplier));
+  }
+
+  // v0.19.0 设置战斗速度倍率
+  setSpeed(multiplier) {
+    this.speedMultiplier = Math.max(0.5, Math.min(3, multiplier));
   }
 
   _calcDamage(attacker, defender, skill) {

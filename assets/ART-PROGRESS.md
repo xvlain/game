@@ -1,7 +1,7 @@
 # 美术制作进度追踪
 
 > 庸人工作室 · 未定之旅 · 美术任务状态
-> 最后更新：2026-09-28 01:15
+> 最后更新：2026-09-29 01:15
 > 本文件与「游戏技术开发与网站落实」任务互通
 
 ---
@@ -123,6 +123,9 @@
 | 角色详情/图鉴/养成/编队背景（魔法阵+符文光带） | `ui/backgrounds/character_detail_bg.png` | ✅ 已交付 | 2026-09-27 |
 | 暗影水晶洞穴（第三章剧情背景） | `maps/story/shadow_base.png` | ✅ 已交付 | 2026-09-28 |
 | 暗影领域Boss竞技场（第三章Boss战背景） | `maps/story/shadow_realm.png` | ✅ 已交付 | 2026-09-28 |
+| 暗夜古道·影的告白（第三章 ch3_n1） | `maps/story/shadow_confession.png` | ✅ 已交付 | 2026-09-29 |
+| 深渊遗迹·混沌之秘（第三章 ch3_n4） | `maps/story/shadow_ruins.png` | ✅ 已交付 | 2026-09-29 |
+| 破晓征程·第三章落幕（第三章 ch3_end） | `maps/story/shadow_dawn.png` | ✅ 已交付 | 2026-09-29 |
 
 ### 12. 战斗特效 Sprite 素材（512×512px，透明背景 PNG）
 | 素材 | 文件 | 状态 | 日期 |
@@ -299,7 +302,8 @@
 - [x] ~~古老遗迹（遗迹探索路线）~~ → 已完成 ancient_ruins.png
 - [x] ~~幽暗森林深处（森林路线）~~ → 已完成 dark_forest.png
 - [x] ~~第二章专属背景（4张）~~ → 已完成 morning_town/ancient_crossroads/fork_crossroads/moonlit_clearing（2026-09-28）
-- [ ] 后续章节区域背景（第三章及以后，待元首提供新章节地图设计）
+- [x] ~~第三章专属背景（5张）~~ → 已完成 shadow_confession/shadow_base/shadow_ruins/shadow_realm/shadow_dawn（2026-09-29）
+- [ ] 后续章节区域背景（第四章及以后，待元首提供新章节地图设计）
 - 路径规范：`maps/story/<区域名>.png`
 
 #### 战斗特效序列帧
@@ -372,7 +376,7 @@ Q版：assets/characters/chibi/<角色id>/<动作>_<帧号>.png  ← 全部 7 �
 元素：assets/battle/elements/<元素id>.png    ← 已完成
 Logo：assets/brand/logo/佣人工作室Logo.png   ← 已完成
 战斗背景：assets/maps/battle/<场景名>.png     ← 已完成（7张）
-剧情背景：assets/maps/story/<区域名>.png     ← 已完成（10张，含第三章shadow_base + shadow_realm）
+剧情背景：assets/maps/story/<区域名>.png     ← 已完成（13张，含第三章shadow_confession/base/ruins/realm/dawn）
 道具图标：assets/ui/icons/<道具id>.png        ← 已完成（10个）
 UI边框：assets/ui/frames/<素材名>.png         ← 已完成（6个，含名标签框）
 UI动画：js/ui-animations.js                   ← 已完成（动画管理器+渲染器）
@@ -388,7 +392,62 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 
 ---
 
-## 五、本次执行记录（2026-09-28 01:15 · v0.18.0 技术推进）
+## 五、本次执行记录（2026-09-29 01:15 · v0.19.0 美术补全）
+
+### 新增素材（共 3 张第三章专属剧情背景）
+1. **暗夜古道·影的告白 ×1**（1920×1080px）：
+   - `maps/story/shadow_confession.png`：夜晚荒野古道，月光洒在蜿蜒石板路上，斗篷身影停步转身面对同行者，远处小镇微弱灯火，深蓝到深紫星空，薄雾弥漫地面
+   - 用于 ch3_n1「影的告白」
+
+2. **深渊遗迹·混沌之秘 ×1**（1920×1080px）：
+   - `maps/story/shadow_ruins.png`：幽深洞穴内部古代遗迹大厅，巨型石壁刻满发光紫蓝色符文铭文，中央暗紫色光芒水晶祭坛，钟乳石、碎石和暗影结晶，火把与荧光苔藓照明
+   - 用于 ch3_n4「遗迹中的秘密」
+
+3. **破晓征程·第三章落幕 ×1**（1920×1080px）：
+   - `maps/story/shadow_dawn.png`：暗影基地废墟外山丘上，三位旅者并肩站立望向远方，身后暗影废墟残骸消散，前方黎明破晓天空从深紫过渡到金色晨曦，光线穿透黑暗
+   - 用于 ch3_end「第三章结束」
+
+### 代码更新（v0.19.0）
+- story.js：第三章背景映射更新，ch3_n1/ch3_n4/ch3_end 从复用序章素材升级为专属背景
+- ui.js：预加载增强，新增 5 张第三章剧情背景预加载（shadow_confession / shadow_base / shadow_ruins / shadow_realm / shadow_dawn）
+- sw.js：缓存版本 v0.18.0-r2 → v0.19.0-r2
+- main.js：版本号升级 v0.18.0 → v0.19.0
+- manifest.json：版本号更新至 0.19.0
+- README.md：新增 v0.19.0 更新日志
+
+### 技术优化（v0.19.0-r2 · 2026-09-29）
+1. **战斗速度倍率系统（battle.js + ui.js）**：
+   - `BattleEngine.speedMultiplier` 属性 + `setSpeed()` 接口
+   - 回合间隔 `setTimeout` 按速度倍率缩放（基础 600ms / speed）
+   - 战斗场景右上角新增速度切换按钮（1× → 1.5× → 2× 循环）
+   - 自动战斗计时器同步受速度倍率加速
+   - 设置中的战斗速度进入战斗时自动应用并持久化
+
+2. **命中顿帧效果（battle.js + ui.js）**：
+   - `BattleEngine.hitStopSignal` 信号机制
+   - 暴击命中冻结 80ms / 大招命中冻结 120ms / 共鸣技命中冻结 60ms
+   - 顿帧期间叠加白色闪光（大招使用金色闪光 + 径向线条）
+   - `BattleScene.update()` 检测信号并冻结所有动画更新
+
+3. **粒子对象池优化（battle-effects.js v1.3.0）**：
+   - `ParticleSystem._pool` 回收池（上限 100），死亡粒子自动回收
+   - `_acquireParticle()` 优先池取用，减少 `new Particle()` 调用
+   - `Particle.reset(config)` + `_initFromConfig()` 方法实现属性重置
+   - `clear()` 全量回收到池而非丢弃
+   - 预期减少 60-80% 的粒子对象 GC 压力
+
+### 素材统计
+- 本次新增：3 张第三章专属剧情背景
+- 累计剧情地图背景：13 张（序章 4 + 第二章 4 + 第三章 5）
+- 第三章所有 11 个节点现已全部拥有专属或匹配的剧情背景
+
+### 下一步计划
+- 后续新角色立绘与 Q 版帧（待元首提供设定）
+- 音频资源制作与加载
+
+---
+
+## 六、上次执行记录（2026-09-28 01:15 · v0.18.0 技术推进）
 
 ### 新增素材（共 2 张第三章剧情背景）
 1. **暗影水晶洞穴背景 ×1**（1920×1080px）：
@@ -409,11 +468,6 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 ### 素材统计
 - 本次新增：2 张第三章剧情背景
 - 累计剧情地图背景：10 张（序章 4 + 第二章 4 + 第三章 2）
-
-### 下一步计划
-- 后续新角色立绘与 Q 版帧（待元首提供设定）
-- 第三章专属背景替换（ch3_n1/ch3_n4/ch3_end 目前复用序章素材）
-- 音频资源制作与加载
 
 ---
 

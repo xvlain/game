@@ -1,9 +1,9 @@
 /**
  * Service Worker - 未定之旅 PWA
- * v0.18.0 - 第三章剧情 + 金元素角色 + 抽卡池扩充
+ * v0.19.0-r2 - 战斗速度倍率 + 命中顿帧 + 粒子对象池优化
  */
 
-const CACHE_VERSION = 'v0.18.0-r2';
+const CACHE_VERSION = 'v0.19.0-r2';
 const STATIC_CACHE = `game-static-${CACHE_VERSION}`;
 const ASSET_CACHE = `game-assets-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `game-dynamic-${CACHE_VERSION}`;

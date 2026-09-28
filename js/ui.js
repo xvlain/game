@@ -90,7 +90,7 @@ async function preloadAssets() {
     });
   }
 
-  // 剧情地图背景（序章 4 张 + 第二章 4 张）
+  // 剧情地图背景（序章 4 张 + 第二章 4 张 + 第三章 5 张）
   const storyBgs = {
     story_awakening: 'assets/maps/story/awakening_void.png',
     story_ancient_path: 'assets/maps/story/ancient_path.png',
@@ -99,7 +99,12 @@ async function preloadAssets() {
     story_morning_town: 'assets/maps/story/morning_town.png',
     story_ancient_crossroads: 'assets/maps/story/ancient_crossroads.png',
     story_fork_crossroads: 'assets/maps/story/fork_crossroads.png',
-    story_moonlit_clearing: 'assets/maps/story/moonlit_clearing.png'
+    story_moonlit_clearing: 'assets/maps/story/moonlit_clearing.png',
+    story_shadow_confession: 'assets/maps/story/shadow_confession.png',
+    story_shadow_base: 'assets/maps/story/shadow_base.png',
+    story_shadow_ruins: 'assets/maps/story/shadow_ruins.png',
+    story_shadow_realm: 'assets/maps/story/shadow_realm.png',
+    story_shadow_dawn: 'assets/maps/story/shadow_dawn.png'
   };
   for (const [key, src] of Object.entries(storyBgs)) {
     await loader.loadImage(key, src).then(img => {
@@ -1766,10 +1771,38 @@ class BattleScene {
     // v0.15.0 Q版动画状态追踪
     this._chibiStates = {};     // charId → { action, startTime, duration }
     this._battleResultTimer = 0;
+    // v0.19.0 战斗速度 & 命中顿帧
+    this._battleSpeed = 1;      // 当前战斗速度倍率
+    this._hitStopTimer = 0;     // 命中顿帧剩余时间（ms）
+    this._hitStopType = null;   // 当前顿帧类型（crit/ultimate/resonance）
+    this._speedBtnRect = null;  // 速度切换按钮区域
   }
 
   /** v0.15.0 每帧更新 Q版动画状态 */
   update(dt) {
+    // v0.19.0 命中顿帧处理：短暂冻结画面，增强打击感
+    if (this._hitStopTimer > 0) {
+      this._hitStopTimer -= dt * 1000;
+      if (this._hitStopTimer <= 0) {
+        this._hitStopTimer = 0;
+        this._hitStopType = null;
+      }
+      // 顿帧期间跳过所有更新（画面冻结）
+      return;
+    }
+
+    // v0.19.0 检测 battle engine 的命中顿帧信号
+    if (this.battle?.hitStopSignal) {
+      const sig = this.battle.hitStopSignal;
+      this._hitStopTimer = sig.duration;
+      this._hitStopType = sig.type;
+      this.battle.hitStopSignal = null; // 消费信号
+      return; // 本帧冻结
+    }
+
+    // v0.19.0 应用速度倍率到 dt
+    const speedDt = dt * this._battleSpeed;
+
     const now = performance.now();
     for (const [charId, state] of Object.entries(this._chibiStates)) {
       if (state.action !== 'idle' && state.startTime) {
@@ -1834,6 +1867,12 @@ class BattleScene {
     ];
 
     this.battle.init(partyTemplates, data.enemies);
+
+    // v0.19.0 应用设置中的战斗速度倍率
+    if (window.game?.state?.settings?.battleSpeed) {
+      this._battleSpeed = window.game.state.settings.battleSpeed;
+    }
+    this.battle.setSpeed(this._battleSpeed);
 
     // 初始化 HP/能量条渲染器
     this._partyHpBars = [];
@@ -2109,7 +2148,8 @@ class BattleScene {
 
     // 自动战斗逻辑（仅 Farm 关卡）
     if (this._autoBattle && this.battle && this.phase !== 'result') {
-      this._autoTimer += dt;
+      // v0.19.0 自动战斗也受速度倍率影响
+      this._autoTimer += dt * this._battleSpeed;
 
       if (this.phase === 'select_skill' && this._autoTimer >= 0.5) {
         this._autoTimer = 0;
@@ -2447,6 +2487,45 @@ class BattleScene {
           fallbackBorder: this._autoBattle ? '#4a8a4a' : '#5c4d9a'
         });
     }
+
+    // v0.19.0 战斗速度切换按钮（右上角，始终可见）
+    if (this.phase !== 'result') {
+      const speedBtnW = 60, speedBtnH = 28;
+      const speedBtnX = W - speedBtnW - 20, speedBtnY = 50;
+      this._speedBtnRect = { x: speedBtnX, y: speedBtnY, w: speedBtnW, h: speedBtnH };
+      const speedLabel = this._battleSpeed === 2 ? '2×速' : (this._battleSpeed === 1.5 ? '1.5×' : '1×速');
+      const speedActive = this._battleSpeed > 1;
+      drawFramedButton(ctx, speedBtnX, speedBtnY, speedBtnW, speedBtnH, speedLabel, {
+        fontSize: 12,
+        fallbackBg: speedActive ? '#3a2a1a' : '#1a1a2e',
+        fallbackBorder: speedActive ? '#d4a030' : '#4a4070'
+      });
+    }
+
+    // v0.19.0 命中顿帧视觉反馈（短暂闪白 + 径向模糊）
+    if (this._hitStopTimer > 0) {
+      ctx.save();
+      const intensity = Math.min(this._hitStopTimer / 100, 1);
+      // 白色闪光覆盖
+      ctx.globalAlpha = 0.15 * intensity;
+      ctx.fillStyle = this._hitStopType === 'ultimate' ? '#ffcc00' : '#ffffff';
+      ctx.fillRect(0, 0, W, H);
+      // 径向线条（简化版径向模糊）
+      if (this._hitStopType === 'ultimate') {
+        ctx.globalAlpha = 0.1 * intensity;
+        ctx.strokeStyle = '#ffcc00';
+        ctx.lineWidth = 2;
+        const cx = W / 2, cy = H / 2;
+        for (let i = 0; i < 12; i++) {
+          const angle = (Math.PI * 2 / 12) * i;
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(angle) * 100, cy + Math.sin(angle) * 100);
+          ctx.lineTo(cx + Math.cos(angle) * 500, cy + Math.sin(angle) * 500);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
   }
 
   _renderLog(ctx) {
@@ -2533,6 +2612,24 @@ class BattleScene {
   }
 
   handleClick(x, y) {
+    // v0.19.0 战斗速度切换按钮
+    if (this._speedBtnRect && Renderer.hitTest(x, y, this._speedBtnRect) && this.phase !== 'result') {
+      // 循环切换：1× → 1.5× → 2× → 1×
+      if (this._battleSpeed === 1) {
+        this._battleSpeed = 1.5;
+      } else if (this._battleSpeed === 1.5) {
+        this._battleSpeed = 2;
+      } else {
+        this._battleSpeed = 1;
+      }
+      // 同步到 battle engine 和设置
+      if (this.battle) this.battle.setSpeed(this._battleSpeed);
+      if (window.game?.state?.settings) {
+        window.game.state.settings.battleSpeed = this._battleSpeed;
+      }
+      return;
+    }
+
     // 自动战斗切换按钮
     if (this._autoBattleBtn && Renderer.hitTest(x, y, this._autoBattleBtn)) {
       this._autoBattle = !this._autoBattle;

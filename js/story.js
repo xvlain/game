@@ -291,16 +291,16 @@ const StoryData = {
       unlockCondition: { completedChapter: 'ch2' },
       // 剧情背景映射（v0.18.0 含第三章专用背景）
       backgrounds: {
-        'ch3_n1': 'assets/maps/story/ancient_path.png',
+        'ch3_n1': 'assets/maps/story/shadow_confession.png',
         'ch3_n2': 'assets/maps/story/shadow_base.png',
         'ch3_n3': 'assets/maps/story/shadow_base.png',
-        'ch3_n4': 'assets/maps/story/ancient_ruins.png',
+        'ch3_n4': 'assets/maps/story/shadow_ruins.png',
         'ch3_n5a': 'assets/maps/battle/star_abyss.png',
         'ch3_n5b': 'assets/maps/story/shadow_base.png',
         'ch3_n5c': 'assets/maps/story/shadow_base.png',
         'ch3_n6': 'assets/maps/story/shadow_realm.png',
         'ch3_n7': 'assets/maps/story/shadow_realm.png',
-        'ch3_end': 'assets/maps/story/ancient_path.png'
+        'ch3_end': 'assets/maps/story/shadow_dawn.png'
       },
       nodes: [
         {

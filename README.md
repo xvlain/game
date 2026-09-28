@@ -1,6 +1,6 @@
 # 未定之旅
 
-> 网页二次元回合制 RPG · 技术预览版 v0.18.0
+> 网页二次元回合制 RPG · 技术预览版 v0.19.0
 
 ## 技术栈
 
@@ -143,6 +143,36 @@ https://xvlain.github.io/game/
 - 游戏设计：三人团队
 - 剧情 & 地图：元首
 - 技术实现 & 美术：AI 辅助
+
+## v0.19.0 更新日志
+
+- **战斗速度倍率系统（battle.js + ui.js）**：战斗中实时切换速度，提升 Farm 效率
+  - 战斗场景右上角新增速度切换按钮（1× → 1.5× → 2× 循环切换）
+  - `BattleEngine.setSpeed(multiplier)` 接口，速度倍率实时生效
+  - 回合间隔 `setTimeout` 按速度倍率缩放（600ms / speed）
+  - 自动战斗计时器同步受速度倍率加速
+  - 设置中的战斗速度选项（1×/1.5×/2×）进入战斗时自动应用
+  - 速度设置持久化到 `game.state.settings.battleSpeed`
+- **命中顿帧效果（hit-stop）**：暴击、大招、共鸣技命中时短暂冻结画面，增强打击感
+  - `BattleEngine.hitStopSignal` 信号机制：暴击 80ms / 大招 120ms / 共鸣技 60ms
+  - `BattleScene.update()` 检测信号并冻结所有动画更新
+  - 顿帧期间叠加白色闪光（大招使用金色闪光）
+  - 大招顿帧附带径向线条视觉效果（简化版径向模糊）
+- **粒子对象池优化（battle-effects.js v1.3.0）**：减少移动端 GC 压力
+  - `ParticleSystem._pool` 回收池：死亡粒子自动回收到池中（上限 100）
+  - `_acquireParticle()` 优先从池中取用，无可用实例时新建
+  - `Particle.reset(config)` 方法：复用粒子时重新初始化所有属性
+  - `clear()` 时全部回收到池而非丢弃
+  - `poolSize` 调试属性，可查看当前池大小
+- **第三章专属剧情背景补全（3 张 1920×1080px 场景图）**：替换第三章中仍复用序章素材的节点背景
+  - `maps/story/shadow_confession.png`：暗夜古道，月光石板路，影停下脚步转身告白，远处小镇灯火 → 用于 ch3_n1「影的告白」
+  - `maps/story/shadow_ruins.png`：深渊遗迹大厅，发光紫蓝符文石壁，水晶祭坛，火把荧光苔藓 → 用于 ch3_n4「遗迹中的秘密」
+  - `maps/story/shadow_dawn.png`：破晓山丘，三位旅者并肩望向远方，暗影废墟消散，金色黎明天空 → 用于 ch3_end「第三章结束」
+- **story.js 第三章背景映射更新**：3 个节点从复用序章素材升级为专属背景
+- **ui.js 预加载增强**：新增 5 张第三章剧情背景预加载（shadow_confession / shadow_base / shadow_ruins / shadow_realm / shadow_dawn）
+- **Service Worker v0.19.0-r2**：缓存版本更新，旧缓存自动清理
+- **manifest.json**：版本号更新至 0.19.0
+- 版本号统一升级至 v0.19.0
 
 ## v0.18.0 更新日志
 

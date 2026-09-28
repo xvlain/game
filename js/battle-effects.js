@@ -1,7 +1,7 @@
 /**
  * battle-effects.js - 五行元素战斗特效系统
  * Canvas 粒子特效 + Sprite 图片素材，用于战斗动画表现
- * v1.2.0 - 新增战技/大招/通用特效sprite支持（skill/ultimate/critical/heal/resonance）
+ * v1.3.0 - 粒子对象池优化（减少 GC 压力，提升移动端性能）
  * 
  * 依赖：engine.js (Renderer)
  * 素材路径：assets/battle/effects/<元素>_attack.png
@@ -9,16 +9,38 @@
  */
 
 // ============ 粒子系统核心 ============
+// v0.19.0 对象池优化：复用粒子实例，减少 GC 压力
 class ParticleSystem {
   constructor() {
     this.particles = [];
     this.maxParticles = 200;
+    this._pool = [];        // v0.19.0 对象池：回收的粒子实例
+    this._poolMax = 100;    // 池上限，避免无限增长
+  }
+
+  // v0.19.0 从对象池获取或新建粒子
+  _acquireParticle(config) {
+    let p;
+    if (this._pool.length > 0) {
+      p = this._pool.pop();
+      p.reset(config);
+    } else {
+      p = new Particle(config);
+    }
+    return p;
+  }
+
+  // v0.19.0 回收粒子到对象池
+  _releaseParticle(p) {
+    if (this._pool.length < this._poolMax) {
+      this._pool.push(p);
+    }
   }
 
   emit(config) {
     const count = config.count || 10;
     for (let i = 0; i < count && this.particles.length < this.maxParticles; i++) {
-      this.particles.push(new Particle(config));
+      this.particles.push(this._acquireParticle(config));
     }
   }
 
@@ -27,6 +49,8 @@ class ParticleSystem {
       const p = this.particles[i];
       p.update(dt);
       if (p.dead) {
+        // v0.19.0 回收而非丢弃
+        this._releaseParticle(p);
         this.particles.splice(i, 1);
       }
     }
@@ -39,16 +63,35 @@ class ParticleSystem {
   }
 
   clear() {
+    // v0.19.0 清空时回收到池
+    for (const p of this.particles) {
+      this._releaseParticle(p);
+    }
     this.particles = [];
   }
 
   get active() {
     return this.particles.length > 0;
   }
+
+  // v0.19.0 池状态（调试用）
+  get poolSize() {
+    return this._pool.length;
+  }
 }
 
 class Particle {
   constructor(config) {
+    this._initFromConfig(config);
+  }
+
+  // v0.19.0 对象池复用：重新初始化粒子属性
+  reset(config) {
+    this._initFromConfig(config);
+    this.dead = false;
+  }
+
+  _initFromConfig(config) {
     this.x = config.x + (Math.random() - 0.5) * (config.spread || 20);
     this.y = config.y + (Math.random() - 0.5) * (config.spread || 20);
     this.vx = (config.vx || 0) + (Math.random() - 0.5) * (config.vxSpread || 2);
