@@ -295,6 +295,18 @@ const CharacterStats = {
         resonance: { name: '灵木共鸣', type: 'heal_ally', multiplier: 1.5, desc: '消耗元素力释放的共鸣治疗，并增加元素力回复' },
         ultimate: { name: '万木回春', type: 'heal_ally', multiplier: 2.5, energyCost: 100, desc: '全体友方回复大量HP并增加20%攻击力，持续2回合' }
       }
+    },
+    // v0.20.0 新角色 — 曦（光之圣女）
+    sr_xi: {
+      id: 'sr_07', name: '曙光·曦', role: '辅助', element: 'fire',
+      hp: 1050, atk: 140, def: 85, spd: 100,
+      crit_rate: 0.10, crit_dmg: 1.5,
+      skills: {
+        normal: { name: '圣光弹', type: 'single', multiplier: 0.9, desc: '对单体造成攻击力90%的火属性伤害' },
+        skill: { name: '净化之光', type: 'heal_all', multiplier: 1.2, energyCost: 25, desc: '治疗全体友方并清除一个负面状态' },
+        resonance: { name: '光之庇护', type: 'heal_ally', multiplier: 1.8, desc: '共鸣治疗并附加护盾，持续1回合' },
+        ultimate: { name: '黎明圣裁', type: 'all', multiplier: 2.8, energyCost: 100, desc: '对全体敌方造成攻击力280%的伤害，同时治疗全体友方' }
+      }
     }
   },
 

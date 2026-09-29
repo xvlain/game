@@ -104,7 +104,12 @@ async function preloadAssets() {
     story_shadow_base: 'assets/maps/story/shadow_base.png',
     story_shadow_ruins: 'assets/maps/story/shadow_ruins.png',
     story_shadow_realm: 'assets/maps/story/shadow_realm.png',
-    story_shadow_dawn: 'assets/maps/story/shadow_dawn.png'
+    story_shadow_dawn: 'assets/maps/story/shadow_dawn.png',
+    // v0.20.0 第四章背景
+    light_ruins_entrance: 'assets/maps/story/light_ruins_entrance.png',
+    light_sanctuary: 'assets/maps/story/light_sanctuary.png',
+    light_nexus: 'assets/maps/story/light_nexus.png',
+    light_dawn: 'assets/maps/story/light_dawn.png'
   };
   for (const [key, src] of Object.entries(storyBgs)) {
     await loader.loadImage(key, src).then(img => {
@@ -655,17 +660,34 @@ class StoryMapScene {
     this._animTime = 0;
     this._particleSeeds = this._generateParticles();
 
+    // v0.20.0 氛围粒子初始化（根据章节设定效果类型）
+    if (window.ambientParticles) {
+      const chapterEffects = {
+        'ch1': 'dust_motes',    // 觉醒之地 - 浮尘光粒
+        'ch2': 'fireflies',     // 命运交汇 - 萤火
+        'ch3': 'crystal_glow'   // 暗影之源 - 晶体微光
+      };
+      const effectType = chapterEffects[targetChapter] || 'dust_motes';
+      window.ambientParticles.setEffect(effectType);
+    }
+
     // v0.17.0 场景 BGM
     if (window.bgmDirector) {
       bgmDirector.enterScene('story', { chapterId: targetChapter });
     }
   }
 
-  onExit() {}
+  onExit() {
+    // v0.20.0 停止氛围粒子
+    if (window.ambientParticles) window.ambientParticles.stop();
+  }
 
   /** v0.17.0 更新动画 */
   update(dt) {
     this._animTime += dt;
+
+    // v0.20.0 更新氛围粒子
+    if (window.ambientParticles) window.ambientParticles.update(dt);
 
     // 平滑滚动
     const scrollDiff = this.targetScrollX - this.scrollX;
@@ -711,6 +733,9 @@ class StoryMapScene {
 
     // v0.17.0 背景星空粒子
     this._renderBackgroundStars(ctx, W, H);
+
+    // v0.20.0 氛围粒子层
+    if (window.ambientParticles) window.ambientParticles.render(ctx);
 
     // ===== 顶部信息栏 =====
     drawFramedPanel(ctx, 20, 12, W - 40, 55, 'panel', {
@@ -1306,6 +1331,12 @@ class DialogueScene {
       }
     }
 
+    // v0.20.0 氛围粒子初始化
+    if (window.ambientParticles) {
+      const bgKey = bgPath ? bgPath.split('/').pop().replace('.png', '') : null;
+      window.ambientParticles.setBackground(bgKey ? `story_${bgKey}` : null);
+    }
+
     // v0.16.0 重置立绘状态
     this._portraits = {};
     this._prevSpeaker = '';
@@ -1355,6 +1386,8 @@ class DialogueScene {
   }
 
   onExit() {
+    // v0.20.0 停止氛围粒子
+    if (window.ambientParticles) window.ambientParticles.stop();
     // v0.16.0 清理立绘状态
     this._portraits = {};
     this._slotAssignment = {};
@@ -1364,6 +1397,9 @@ class DialogueScene {
     this.displayTimer += dt;
     const charsPerSecond = this._autoSkip ? 200 : 30;
     this.displayedChars = Math.min(this.text.length, Math.floor(this.displayTimer * charsPerSecond));
+
+    // v0.20.0 更新氛围粒子
+    if (window.ambientParticles) window.ambientParticles.update(dt);
 
     // v0.16.0 更新立绘过渡动画
     this._updatePortraitTransition(dt);
@@ -1493,6 +1529,9 @@ class DialogueScene {
     // v0.16.0 角色立绘渲染（在对话框之上、背景之下）
     this._renderPortraits(ctx, W, H);
 
+    // v0.20.0 氛围粒子渲染（在立绘之上、对话框之下）
+    if (window.ambientParticles) window.ambientParticles.render(ctx);
+
     // 对话框（优先使用边框素材）
     const boxY = H - 200;
     const boxH = 170;
@@ -1593,12 +1632,25 @@ class DialogueScene {
     const portraitH = Math.min(boxY - 20, 420); // 立绘最大高度（不超过对话框）
     const portraitW = Math.floor(portraitH * 0.6); // 宽高比 3:5
 
+    // v0.20.0 呼吸动画计时
+    const breathTime = performance.now() / 1000;
+
     for (const [slot, portrait] of Object.entries(this._portraits)) {
       if (portrait.alpha <= 0.01) continue;
 
-      const x = slot === 'left' ? W * 0.25 : W * 0.75;
-      const y = boxY - 10; // 立绘底部对齐到对话框上方
+      const baseX = slot === 'left' ? W * 0.25 : W * 0.75;
+      const baseY = boxY - 10; // 立绘底部对齐到对话框上方
       const flip = slot === 'right'; // 右侧角色翻转
+
+      // v0.20.0 呼吸动画：垂直微移 + 微缩放
+      const breathPhase = breathTime * 1.2 + (slot === 'left' ? 0 : Math.PI * 0.7); // 左右角色错开相位
+      const breathOffsetY = Math.sin(breathPhase) * 2; // ±2px 垂直呼吸
+      const breathScale = 1 + Math.sin(breathPhase) * 0.003; // ±0.3% 缩放
+
+      const x = baseX;
+      const y = baseY + breathOffsetY;
+      const scaledW = Math.floor(portraitW * breathScale);
+      const scaledH = Math.floor(portraitH * breathScale);
 
       // 说话人呼吸光效
       const glowColor = portrait.speaking ? this._getElementGlow(portrait.charId) : null;
@@ -1607,21 +1659,30 @@ class DialogueScene {
       ctx.globalAlpha = portrait.alpha;
 
       window.characterArt.drawPortrait(ctx, portrait.charId, x, y, {
-        width: portraitW,
-        height: portraitH,
+        width: scaledW,
+        height: scaledH,
         expression: portrait.expression || 'default',
         flip,
         glow: glowColor
       });
 
-      // 说话人指示光圈
+      // 说话人指示光圈（v0.20.0 增强脉冲效果）
       if (portrait.speaking && portrait.alpha > 0.7) {
-        const pulseAlpha = 0.3 + Math.sin(performance.now() / 400) * 0.15;
+        const pulseAlpha = 0.3 + Math.sin(breathTime * 3) * 0.2;
+        const pulseSize = 1 + Math.sin(breathTime * 2.5) * 0.1;
         ctx.globalAlpha = pulseAlpha * portrait.alpha;
         ctx.beginPath();
-        ctx.ellipse(x, y - portraitH * 0.05, portraitW * 0.45, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y - scaledH * 0.05, portraitW * 0.45 * pulseSize, 8, 0, 0, Math.PI * 2);
         ctx.fillStyle = glowColor || '#7c5cbf';
         ctx.fill();
+
+        // v0.20.0 说话人元素色外环
+        ctx.globalAlpha = pulseAlpha * portrait.alpha * 0.3;
+        ctx.beginPath();
+        ctx.ellipse(x, y - scaledH * 0.05, portraitW * 0.55 * pulseSize, 12, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = glowColor || '#7c5cbf';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
       }
 
       ctx.restore();

@@ -1,9 +1,9 @@
 /**
  * Service Worker - 未定之旅 PWA
- * v0.19.0-r2 - 战斗速度倍率 + 命中顿帧 + 粒子对象池优化
+ * v0.20.0 - 合成 BGM 引擎 + 第四章「光之残响」
  */
 
-const CACHE_VERSION = 'v0.19.0-r2';
+const CACHE_VERSION = 'v0.20.0';
 const STATIC_CACHE = `game-static-${CACHE_VERSION}`;
 const ASSET_CACHE = `game-assets-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `game-dynamic-${CACHE_VERSION}`;
@@ -32,6 +32,8 @@ const STATIC_FILES = [
   './js/toast.js',
   './js/mail.js',
   './js/chibi-animator.js',
+  './js/ambient-effects.js',
+  './js/synth-bgm.js',
   './js/audio-scene.js',
   './js/battle-log.js',
   './js/main.js'

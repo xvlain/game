@@ -194,6 +194,35 @@ class CutsceneInstance {
       ctx.globalAlpha = 0.3 + p * 0.4;
       ctx.stroke();
       ctx.globalAlpha = 1;
+
+      // v0.20.0 蓄力汇聚线（从外向内收束，模拟能量集中）
+      const convergeLines = 12;
+      ctx.save();
+      ctx.globalAlpha = p * 0.25;
+      ctx.strokeStyle = elemColor;
+      ctx.lineWidth = 1;
+      for (let i = 0; i < convergeLines; i++) {
+        const angle = (Math.PI * 2 / convergeLines) * i + t * 5;
+        const outerDist = 350 - p * 100;
+        const innerDist = 50 + (1 - p) * 100;
+        const cx = portraitX, cy = H * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(angle) * outerDist, cy + Math.sin(angle) * outerDist);
+        ctx.lineTo(cx + Math.cos(angle) * innerDist, cy + Math.sin(angle) * innerDist);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // v0.20.0 蓄力脉冲光环（每0.15秒脉冲一次）
+      const pulsePhase = (t * 6.67) % 1; // ~0.15s 周期
+      const pulseRadius = 60 + pulsePhase * 100;
+      ctx.beginPath();
+      ctx.arc(portraitX, H * 0.5, pulseRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = elemColor;
+      ctx.lineWidth = 2 * (1 - pulsePhase);
+      ctx.globalAlpha = (1 - pulsePhase) * 0.3 * p;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
 
     // Phase 2 (0.3~0.5): 技能名展示 + 闪光
@@ -247,13 +276,54 @@ class CutsceneInstance {
       }
     }
 
-    // Phase 3 (0.5~0.75): 攻击演出（粒子爆发 + 屏幕震动）
+    // Phase 3 (0.5~0.75): 攻击演出（粒子爆发 + 屏幕震动 + 径向速度线）
     else if (t < 0.75) {
       const p = (t - 0.5) / 0.25;
 
       // 背景闪白后恢复
       ctx.fillStyle = `rgba(0, 0, 0, ${0.8 - p * 0.6})`;
       ctx.fillRect(0, 0, W, H);
+
+      // v0.20.0 径向速度线（从冲击中心向外辐射）
+      const impactX = W * 0.6, impactY = H * 0.5;
+      const speedLineCount = 24;
+      const lineAlpha = (1 - p) * 0.4;
+      ctx.save();
+      ctx.globalAlpha = lineAlpha;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < speedLineCount; i++) {
+        const angle = (Math.PI * 2 / speedLineCount) * i + i * 0.17;
+        const innerDist = p * 100 + 30;
+        const outerDist = innerDist + 80 + p * 200;
+        const x1 = impactX + Math.cos(angle) * innerDist;
+        const y1 = impactY + Math.sin(angle) * innerDist;
+        const x2 = impactX + Math.cos(angle) * outerDist;
+        const y2 = impactY + Math.sin(angle) * outerDist;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // v0.20.0 元素色径向速度线（交替白色，更密）
+      const elemLineCount = 16;
+      const elemLineAlpha = (1 - p) * 0.3;
+      ctx.save();
+      ctx.globalAlpha = elemLineAlpha;
+      ctx.strokeStyle = elemColor;
+      ctx.lineWidth = 2;
+      for (let i = 0; i < elemLineCount; i++) {
+        const angle = (Math.PI * 2 / elemLineCount) * i + 0.2;
+        const innerDist = p * 80 + 50;
+        const outerDist = innerDist + 120 + p * 150;
+        ctx.beginPath();
+        ctx.moveTo(impactX + Math.cos(angle) * innerDist, impactY + Math.sin(angle) * innerDist);
+        ctx.lineTo(impactX + Math.cos(angle) * outerDist, impactY + Math.sin(angle) * outerDist);
+        ctx.stroke();
+      }
+      ctx.restore();
 
       // 粒子爆发
       const burstCount = 40;
@@ -281,6 +351,17 @@ class CutsceneInstance {
       ctx.lineWidth = 4 * (1 - p);
       ctx.globalAlpha = (1 - p) * 0.7;
       ctx.stroke();
+
+      // v0.20.0 第二冲击波环（延迟 + 白色）
+      if (p > 0.15) {
+        const p2 = (p - 0.15) / 0.85;
+        ctx.beginPath();
+        ctx.arc(W * 0.6, H * 0.5, p2 * 300, 0, Math.PI * 2);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2 * (1 - p2);
+        ctx.globalAlpha = (1 - p2) * 0.3;
+        ctx.stroke();
+      }
       ctx.globalAlpha = 1;
 
       // 触发屏幕震动
@@ -364,6 +445,33 @@ class CutsceneInstance {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+
+    // v0.20.0 技能冲击径向速度线（t=0.25~0.65 期间爆发）
+    if (t > 0.25 && t < 0.65) {
+      const burstP = (t - 0.25) / 0.4;
+      const lineCount = isResonance ? 16 : 10;
+      const lineAlpha = (1 - burstP) * 0.25;
+      ctx.save();
+      ctx.globalAlpha = lineAlpha;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < lineCount; i++) {
+        const angle = (Math.PI * 2 / lineCount) * i;
+        const innerDist = burstP * 60 + 20;
+        const outerDist = innerDist + 60 + burstP * 120;
+        ctx.beginPath();
+        ctx.moveTo(W / 2 + Math.cos(angle) * innerDist, H / 2 + Math.sin(angle) * innerDist);
+        ctx.lineTo(W / 2 + Math.cos(angle) * outerDist, H / 2 + Math.sin(angle) * outerDist);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 冲击闪光（短暂白闪）
+      if (burstP < 0.15) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${(1 - burstP / 0.15) * 0.15})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
   }
 
   // ========== 战斗开场演出 ==========

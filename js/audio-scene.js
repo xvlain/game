@@ -21,6 +21,8 @@ const BGM_MAP = {
   story:      { file: 'assets/audio/bgm/story.mp3',      label: '剧情',   fadeIn: 1.5 },
   story_ch1:  { file: 'assets/audio/bgm/story_ch1.mp3',  label: '序章',   fadeIn: 1.5 },
   story_ch2:  { file: 'assets/audio/bgm/story_ch2.mp3',  label: '第二章', fadeIn: 1.5 },
+  story_ch3:  { file: 'assets/audio/bgm/story_ch3.mp3',  label: '第三章', fadeIn: 1.5 },
+  story_ch4:  { file: 'assets/audio/bgm/story_ch4.mp3',  label: '第四章', fadeIn: 1.5 },
 
   // 战斗场景
   battle:       { file: 'assets/audio/bgm/battle.mp3',       label: '普通战斗', fadeIn: 0.5 },
@@ -135,9 +137,19 @@ class BgmDirector {
     if (!game || !game.audio) return;
 
     const url = config.file;
-    const fadeIn = config.fadeIn || 1.0;
 
-    // 通过引擎的 AudioManager 播放
+    // v0.20.0: 优先使用合成 BGM 引擎（无需外部音频文件）
+    if (window.synthBGM && window.synthBGM._enabled) {
+      // 停止引擎自带的 BGM（如果有的话）
+      try { game.audio.stopBgm(); } catch (_) {}
+      // 使用合成 BGM
+      window.synthBGM.play(key);
+      this._currentScene = key;
+      console.log(`[BgmDirector] ♪ ${config.label} (${key}) [synth]`);
+      return;
+    }
+
+    // 回退：通过引擎的 AudioManager 播放（需要外部音频文件）
     game.audio.playBgm(key, url);
 
     this._currentScene = key;
@@ -148,6 +160,7 @@ class BgmDirector {
   stop() {
     const game = window.game;
     if (game && game.audio) game.audio.stopBgm();
+    if (window.synthBGM) window.synthBGM.stop();
     this._currentScene = '';
   }
 
@@ -156,11 +169,13 @@ class BgmDirector {
     this._volume = v;
     const game = window.game;
     if (game && game.audio) game.audio.setBgmVolume(v);
+    if (window.synthBGM) window.synthBGM.setVolume(v * 0.35);
   }
 
   /** 开关 */
   setEnabled(enabled) {
     this._enabled = enabled;
+    if (window.synthBGM) window.synthBGM.setEnabled(enabled);
     if (!enabled) this.stop();
   }
 

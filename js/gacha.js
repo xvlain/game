@@ -51,7 +51,8 @@ const GachaConfig = {
       { id: 'sr_03', name: '赤炎·马可', element: 'fire', role: '输出', template: 'sr_marco' },
       { id: 'sr_04', name: '冰霜·安娜', element: 'water', role: '辅助', template: 'sr_anna' },
       { id: 'sr_05', name: '金乌·辰', element: 'metal', role: '输出', template: 'sr_jinwu' },
-      { id: 'sr_06', name: '灵木·苏', element: 'wood', role: '辅助', template: 'sr_lingmu' }
+      { id: 'sr_06', name: '灵木·苏', element: 'wood', role: '辅助', template: 'sr_lingmu' },
+      { id: 'sr_07', name: '曙光·曦', element: 'fire', role: '辅助', template: 'sr_xi' }
     ],
     r: [
       { id: 'r_01', name: '见习剑士', element: 'fire', role: '输出' },

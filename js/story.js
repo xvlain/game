@@ -461,6 +461,240 @@ const StoryData = {
           rewards: { items: { crystals: 1200, coins: 2500 } }
         }
       ]
+    },
+    {
+      id: 'ch4',
+      name: '第四章·光之残响',
+      description: '暗影之源的去向指向了古代光之文明的遗迹，追寻光明的残响…',
+      unlockCondition: { completedChapter: 'ch3' },
+      // 剧情背景映射（v0.20.0 第四章专属背景）
+      backgrounds: {
+        'ch4_n1': 'assets/maps/story/light_ruins_entrance.png',
+        'ch4_n2': 'assets/maps/story/light_ruins_entrance.png',
+        'ch4_n3': 'assets/maps/battle/holy_sanctuary.png',
+        'ch4_n4': 'assets/maps/story/light_sanctuary.png',
+        'ch4_n5': 'assets/maps/story/light_sanctuary.png',
+        'ch4_n6': 'assets/maps/battle/star_abyss.png',
+        'ch4_n7': 'assets/maps/story/light_sanctuary.png',
+        'ch4_n8a': 'assets/maps/battle/holy_sanctuary.png',
+        'ch4_n8b': 'assets/maps/battle/star_abyss.png',
+        'ch4_n9': 'assets/maps/story/light_nexus.png',
+        'ch4_n10': 'assets/maps/story/light_nexus.png',
+        'ch4_end': 'assets/maps/story/light_dawn.png'
+      },
+      nodes: [
+        {
+          id: 'ch4_n1',
+          type: 'dialogue',
+          title: '古卷的指引',
+          position: { x: 100, y: 360 },
+          content: [
+            { speaker: '旁白', text: '击败暗影领主后，你们在遗迹深处发现了一卷古老卷轴。' },
+            { speaker: '织星', text: '这上面记载的是…上古"光之文明"的文字。' },
+            { speaker: '织星', text: '让我看看…上面写着："当暗影笼罩大地，唯有光之残响能驱散混沌。"' },
+            { speaker: '影', text: '光之残响？那是什么？' },
+            { speaker: '织星', text: '传说中，远古有一个文明掌握了纯粹的光之力量。他们在一场大灾变中消亡，但力量被封印在各地的遗迹中。' },
+            { speaker: '织星', text: '卷轴指向了最近的遗迹——就在北方的"辉光高原"上。' },
+            { speaker: '影', text: '如果能找到对抗暗影的力量…我们走。' }
+          ],
+          next: 'ch4_n2',
+          rewards: null
+        },
+        {
+          id: 'ch4_n2',
+          type: 'dialogue',
+          title: '辉光遗迹',
+          position: { x: 280, y: 300 },
+          content: [
+            { speaker: '旁白', text: '经过长途跋涉，你们终于来到了辉光高原。' },
+            { speaker: '旁白', text: '巨大的白色石柱从地面延伸到天空，表面刻满了发光的符文。空气中弥漫着温暖而微弱的光芒。' },
+            { speaker: '影', text: '这里…感觉和暗影基地完全相反。空气都不一样。' },
+            { speaker: '织星', text: '光之力量虽然已经衰微，但残响依然存在。' },
+            { speaker: '织星', text: '不过…这些封印好像在被什么东西侵蚀。' },
+            { speaker: '旁白', text: '你注意到白色石柱的根部有暗紫色的裂纹在蔓延。' }
+          ],
+          next: 'ch4_n3',
+          rewards: { items: { crystals: 200 } }
+        },
+        {
+          id: 'ch4_n3',
+          type: 'battle',
+          title: '遗迹守卫',
+          position: { x: 460, y: 360 },
+          description: '古代光之守卫将你们误认为入侵者！',
+          enemyConfig: [
+            { id: 'light_guardian_1', name: '光之哨兵', hp: 1800, atk: 140, def: 120, spd: 85, element: 'metal' },
+            { id: 'light_guardian_2', name: '光之哨兵', hp: 1800, atk: 140, def: 120, spd: 85, element: 'metal' },
+            { id: 'light_golem', name: '辉光石像', hp: 2500, atk: 120, def: 160, spd: 65, element: 'earth' }
+          ],
+          requiredParty: ['warrior', 'healer', 'mage', 'guard'],
+          next: 'ch4_n4',
+          rewards: { items: { coins: 800, crystals: 150, asc_stone_3: 1 } }
+        },
+        {
+          id: 'ch4_n4',
+          type: 'dialogue',
+          title: '光之圣女',
+          position: { x: 640, y: 300 },
+          content: [
+            { speaker: '旁白', text: '击败守卫后，圣殿深处传来一道柔和的声音。' },
+            { speaker: '???', text: '请…不要伤害它们。它们只是在执行守护的职责。' },
+            { speaker: '旁白', text: '一位身着白色长袍的少女从光芒中走出。她的银色长发泛着淡金色的光泽，眼眸中仿佛盛满了星辰。' },
+            { speaker: '光之少女', text: '我叫"曦"。是这座遗迹最后的守护者。' },
+            { speaker: '曦', text: '你们…是旅者？已经很久没有人类能走到这里了。' },
+            { speaker: '织星', text: '我们在寻找"光之残响"——用来对抗暗影之源的力量。' },
+            { speaker: '曦', text: '…光之残响。你说的是"光之枢纽"吧。' },
+            { speaker: '曦', text: '它就在圣殿最深处。但…它已经沉睡了很久。' }
+          ],
+          next: 'ch4_n5',
+          rewards: { characters: ['sr_xi'], items: { crystals: 300 } }
+        },
+        {
+          id: 'ch4_n5',
+          type: 'dialogue',
+          title: '沉睡的枢纽',
+          position: { x: 820, y: 360 },
+          content: [
+            { speaker: '旁白', text: '曦带领你们穿过层层封印的走廊，来到圣殿核心。' },
+            { speaker: '旁白', text: '一个巨大的水晶球悬浮在祭坛上方，表面黯淡无光，只有偶尔闪过的微弱光芒证明它还没有完全死去。' },
+            { speaker: '曦', text: '这就是"光之枢纽"——上古文明留下的最后遗产。' },
+            { speaker: '曦', text: '它曾经连接着世界各地的光之遗迹，形成一个巨大的防护网络。' },
+            { speaker: '影', text: '暗影之源…会不会就是这个网络的对立面？' },
+            { speaker: '曦', text: '没错。光与暗，本就是世界的一体两面。但当暗影之源被人为激活后，光之枢纽就因力量失衡而沉睡了。' },
+            { speaker: '织星', text: '能重新唤醒它吗？' },
+            { speaker: '曦', text: '理论上…可以。但需要收集四散的光之碎片，还要…付出代价。' }
+          ],
+          next: 'ch4_n6',
+          rewards: { items: { exp_book_3: 2, asc_stone_3: 1 } }
+        },
+        {
+          id: 'ch4_n6',
+          type: 'battle',
+          title: '暗影追兵',
+          position: { x: 1000, y: 360 },
+          description: '暗影组织的追兵追踪你们来到了遗迹！',
+          enemyConfig: [
+            { id: 'shadow_tracker_1', name: '暗影猎手', hp: 1500, atk: 200, def: 80, spd: 115, element: 'fire' },
+            { id: 'shadow_tracker_2', name: '暗影猎手', hp: 1500, atk: 200, def: 80, spd: 115, element: 'water' },
+            { id: 'shadow_commander', name: '暗影指挥官', hp: 2800, atk: 220, def: 130, spd: 95, element: 'metal' }
+          ],
+          next: 'ch4_n7',
+          rewards: { items: { coins: 1000, crystals: 200 } }
+        },
+        {
+          id: 'ch4_n7',
+          type: 'dialogue',
+          title: '碎片与真相',
+          position: { x: 1180, y: 300 },
+          content: [
+            { speaker: '旁白', text: '击退暗影追兵后，战斗的冲击意外激活了光之枢纽的一部分。' },
+            { speaker: '曦', text: '看！枢纽…它在回应你们的战斗。' },
+            { speaker: '旁白', text: '水晶球表面裂开了一道缝隙，从中飞出了几颗光之碎片，飘散到远方。' },
+            { speaker: '织星', text: '光之碎片飞走了…我们需要把它们收集回来。' },
+            { speaker: '曦', text: '等一下…我感受到了什么。' },
+            { speaker: '曦', text: '这些碎片…它们不是随意飞散的。它们在飞向其他光之遗迹。' },
+            { speaker: '影', text: '也就是说，还有其他像这里一样的遗迹？' },
+            { speaker: '曦', text: '是的。而且…暗影之源就在其中一座被暗影侵蚀的遗迹中。' },
+            { speaker: '曦', text: '暗影领主说的没错——他把暗影之源转移了。转移到了…光之文明的心脏。' }
+          ],
+          next: 'ch4_n8a',
+          rewards: null
+        },
+        {
+          id: 'ch4_n8a',
+          type: 'choice',
+          title: '追寻之路',
+          position: { x: 1360, y: 360 },
+          content: [
+            { speaker: '织星', text: '我们现在面临一个选择。' },
+            { speaker: '织星', text: '是先收集光之碎片增强力量，还是直接追击暗影之源？' },
+            { speaker: '曦', text: '收集碎片更安全，但需要时间。直接追击…很危险但能打他们措手不及。' },
+            { speaker: '影', text: '你来决定。不管选哪条路，我都跟你走。' }
+          ],
+          choices: [
+            { text: '收集光之碎片', next: 'ch4_n8b_frag' },
+            { text: '直接追击暗影之源', next: 'ch4_n8b_rush' }
+          ]
+        },
+        {
+          id: 'ch4_n8b_frag',
+          type: 'dialogue',
+          title: '碎片收集',
+          position: { x: 1540, y: 260 },
+          content: [
+            { speaker: '旁白', text: '你决定先收集光之碎片，稳步前进。' },
+            { speaker: '曦', text: '明智的选择。有了碎片的力量，我们才能正面对抗暗影之源。' },
+            { speaker: '织星', text: '碎片散落在各地的光之遗迹中…看来我们的旅途还要继续。' },
+            { speaker: '影', text: '至少我们知道方向了。' },
+            { speaker: '曦', text: '我跟你们一起走。作为光之守护者，找回碎片也是我的责任。' }
+          ],
+          next: 'ch4_n9',
+          rewards: { items: { crystals: 500, asc_stone_4: 1 } }
+        },
+        {
+          id: 'ch4_n8b_rush',
+          type: 'dialogue',
+          title: '闪电突袭',
+          position: { x: 1540, y: 460 },
+          content: [
+            { speaker: '旁白', text: '你决定直接追击暗影之源，不给敌人更多准备时间。' },
+            { speaker: '影', text: '好！趁他们还没反应过来，直接冲进去。' },
+            { speaker: '曦', text: '…很冒险。但有时候，勇气本身就是最好的武器。' },
+            { speaker: '织星', text: '那我们需要尽快出发。暗影领主不会坐以待毙的。' },
+            { speaker: '曦', text: '我知道一条近路…跟我来。' }
+          ],
+          next: 'ch4_n9',
+          rewards: { items: { crystals: 500, asc_stone_3: 2 } }
+        },
+        {
+          id: 'ch4_n9',
+          type: 'battle',
+          title: '暗影先锋',
+          position: { x: 1720, y: 360 },
+          description: '暗影组织的先锋部队挡住了去路！',
+          enemyConfig: [
+            { id: 'shadow_vanguard_1', name: '暗影先锋·炎', hp: 2200, atk: 230, def: 100, spd: 105, element: 'fire' },
+            { id: 'shadow_vanguard_2', name: '暗影先锋·冰', hp: 2000, atk: 210, def: 110, spd: 100, element: 'water' },
+            { id: 'shadow_vanguard_3', name: '暗影先锋·钢', hp: 2500, atk: 180, def: 150, spd: 85, element: 'metal' },
+            { id: 'shadow_vanguard_4', name: '暗影先锋·木', hp: 2000, atk: 190, def: 100, spd: 95, element: 'wood' }
+          ],
+          next: 'ch4_n10',
+          rewards: { items: { coins: 1500, crystals: 400, asc_stone_4: 1 } }
+        },
+        {
+          id: 'ch4_n10',
+          type: 'dialogue',
+          title: '旅途继续',
+          position: { x: 1900, y: 360 },
+          content: [
+            { speaker: '旁白', text: '击退暗影先锋后，你们终于迎来了短暂的平静。' },
+            { speaker: '曦', text: '前方的路还很长…但我相信，只要我们一起走，就一定能到达终点。' },
+            { speaker: '织星', text: '现在我们有了明确的目标——找到光之碎片，摧毁暗影之源。' },
+            { speaker: '影', text: '而且不再是一个人了。' },
+            { speaker: '旁白', text: '影看向身旁的同伴们，嘴角露出罕见的微笑。' },
+            { speaker: '织星', text: '暗影之源…不管它藏在哪里，我们都会找到它。' },
+            { speaker: '曦', text: '光之残响会为我们指引方向。' },
+            { speaker: '旁白', text: '四位旅者并肩而立，望着远方的天际线。新的冒险，正在前方等待着他们。' }
+          ],
+          next: 'ch4_end',
+          rewards: null
+        },
+        {
+          id: 'ch4_end',
+          type: 'dialogue',
+          title: '第四章结束',
+          position: { x: 2080, y: 360 },
+          content: [
+            { speaker: '旁白', text: '从觉醒之地的迷茫，到辉光遗迹的觉醒。' },
+            { speaker: '旁白', text: '从一个人的逃亡，到四个人的并肩。' },
+            { speaker: '旁白', text: '光与暗的战争已经延续了千年，而现在——' },
+            { speaker: '旁白', text: '命运的齿轮终于开始转动了。' },
+            { speaker: '旁白', text: '第四章·完' }
+          ],
+          next: null,
+          rewards: { items: { crystals: 2000, coins: 4000, asc_stone_4: 2 } }
+        }
+      ]
     }
   ],
 
