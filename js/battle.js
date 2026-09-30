@@ -359,9 +359,19 @@ class BattleEngine {
 
   init(partyTemplates, enemyConfigs) {
     this.party = partyTemplates.map(t => {
-      const char = CharacterStats.create(t.id, t.level || 1);
+      let char = CharacterStats.create(t.id, t.level || 1);
       char.isEnemy = false;
       char.team = 'player';
+
+      // v0.21.0 应用装备加成
+      if (typeof applyEquipmentStats === 'function') {
+        char = applyEquipmentStats(char, t.id);
+      }
+      // v0.21.0 应用羁绊加成
+      if (typeof applyBondStats === 'function') {
+        char = applyBondStats(char, t.id);
+      }
+
       return char;
     });
 
@@ -719,12 +729,27 @@ class BattleEngine {
     if (enemyAlive === 0) {
       this.state = 'victory';
       this._log('战斗胜利！');
+
+      // v0.21.0 战斗胜利时增加羁绊经验
+      if (window.bondManager) {
+        const partyIds = this.party.map(c => c.id);
+        const isBoss = this.enemies.some(e => e.hp >= 3000);
+        const bondResults = window.bondManager.onBattleEnd(partyIds, isBoss, false);
+        for (const br of bondResults) {
+          if (br.leveledUp) {
+            this._log(`💞 羁绊升级！${br.newLevel}级`);
+          }
+        }
+        this._bondResults = bondResults;
+      }
+
       if (this.onBattleEnd) {
         const chainStats = this.chainManager ? this.chainManager.getSummary() : { maxChain: 0, totalChains: 0 };
         this.onBattleEnd('victory', {
           critCount: this.critCount,
           comboCount: this.comboCount,
-          chainStats
+          chainStats,
+          bondResults: this._bondResults || []
         });
       }
       return true;

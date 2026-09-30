@@ -1,9 +1,9 @@
 /**
  * Service Worker - 未定之旅 PWA
- * v0.20.0 - 合成 BGM 引擎 + 第四章「光之残响」
+ * v0.21.0 - 装备系统 + 羁绊系统
  */
 
-const CACHE_VERSION = 'v0.20.0';
+const CACHE_VERSION = 'v0.21.0';
 const STATIC_CACHE = `game-static-${CACHE_VERSION}`;
 const ASSET_CACHE = `game-assets-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `game-dynamic-${CACHE_VERSION}`;
@@ -24,6 +24,8 @@ const STATIC_FILES = [
   './js/gacha.js',
   './js/growth.js',
   './js/stages.js',
+  './js/equipment.js',
+  './js/bond.js',
   './js/quests.js',
   './js/characters.js',
   './js/ui.js',

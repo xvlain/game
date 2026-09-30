@@ -42,6 +42,8 @@ game-project/
 │   ├── growth.js        # 角色养成（升级/突破/技能升级）
 │   ├── stages.js        # 材料掉落关卡 / 每日挑战 / 体力系统 / 签到
 │   ├── quests.js        # 每日委托/周常任务/活跃度系统 ← v0.13.0 NEW
+│   ├── equipment.js     # 装备系统（装备定义/穿戴/强化/分解）← v0.21.0 NEW
+│   ├── bond.js          # 羁绊系统（角色羁绊/战斗经验/加成）← v0.21.0 NEW
 │   ├── characters.js    # 角色图鉴 & 编队
 │   ├── ui.js            # 所有场景 UI 渲染
 │   ├── ui-animations.js # UI 动画系统（HP条/伤害弹出/屏幕震动）
@@ -134,65 +136,13 @@ curl -s  https://xvlain.github.io/game/js/save.js | sed -n '7,10p'  # 检查 SUP
 
 ## 6. 下一步（技术侧）
 
-- [x] 战斗速度倍率系统（1×/1.5×/2× 实时切换 + 自动战斗同步加速）→ battle.js + ui.js (v0.19.0)
-- [x] 命中顿帧效果（暴击80ms / 大招120ms / 共鸣技60ms 冻结 + 视觉闪光）→ battle.js + ui.js (v0.19.0)
-- [x] 粒子对象池优化（回收池上限100 + reset() 复用 + 减少 GC）→ battle-effects.js (v0.19.0)
-- [x] 第三章剧情「暗影之源」（11节点+Boss战+分支+章节解锁）→ story.js (v0.18.0)
-- [x] 金元素角色模板 + SSR/SR 完整战斗数据（8个新模板）→ battle.js (v0.18.0)
-- [x] 抽卡角色池扩充（SSR×3 + SR×6 + R×6 + 模板关联）→ gacha.js (v0.18.0)
-- [x] 章节自动解锁系统 → story.js _completeNode() (v0.18.0)
-- [x] 第三章地图背景（shadow_base + shadow_realm）→ assets/maps/story/ (v0.18.0)
-- [x] 初始阵容更新（金元素角色替代土元素）→ main.js (v0.18.0)
-- [x] 音频场景映射系统（BGM_MAP 16 场景 + BgmDirector 自动切换 + SFX_MAP 30+音效）→ audio-scene.js (v0.17.0)
-- [x] 战斗日志系统（BattleLogger 实时日志 + DamageTracker 伤害统计 + DPS面板）→ battle-log.js (v0.17.0)
-- [x] 剧情地图渲染增强（动画连线 + 节点脉冲 + 进度条 + 章节切换 + 星空粒子）→ ui.js StoryMapScene (v0.17.0)
-- [x] 页面可见性暂停/恢复（visibilitychange 暂停循环 + 重置时间戳）→ engine.js (v0.17.0)
-- [x] 场景切换自动触发 BGM → main.js switchTo 拦截 (v0.17.0)
-- [x] 角色立绘接入剧情对话（SPEAKER_CHAR_MAP + 渲染 + 淡入淡出 + 表情推断）→ ui.js DialogueScene (v0.16.0)
-- [x] 全局错误处理 + 性能监控 + 调试面板 → engine.js (v0.16.0)
-- [x] 邮件/收件箱系统 → mail.js + ui.js MailScene (v0.14.0)
-- [x] 全局 Toast 通知系统 → toast.js + engine.js 集成 (v0.14.0)
-- [x] Q版序列帧接入战斗渲染（idle/attack/skill/ultimate/hit/victory/defeat 全7种动作）→ ui.js BattleScene (v0.15.0)
-- [x] Q版动画状态机 + 战斗事件驱动（攻击→attack/受击→hit/胜利→victory/败北→defeat）→ ui.js (v0.15.0)
-- [x] 角色立绘接入剧情对话 → ui.js DialogueScene (v0.16.0，说话人映射 + 渲染 + 过渡 + 表情)
-- [x] Q版 victory/defeat 序列帧素材 → 已交付 (2026-09-25, 6角色×5帧=30张)
-- [x] 每日委托/周常任务系统 → quests.js (v0.13.0)
-- [x] 连击链/反击/元素连锁/破防系统 → battle-chain.js (v0.13.0)
-- [x] 成就奖励领取 + Supabase 持久化 → achievements.js + game_schema.sql (v0.13.0)
-- [x] Service Worker 离线体验优化（离线提示页）→ sw.js (v0.13.0)
-- [x] 角色美术系统框架（立绘加载+Q版序列帧+表情切换）→ character-art.js
-- [x] 战斗演出系统（大招特写+技能演出+开场/胜利/失败）→ battle-cutscene.js
-- [x] 场景过渡特效增强（fade/iris/slide 三种过渡类型）→ engine.js
-- [x] Service Worker 分类缓存策略升级 → sw.js
-- [x] Supabase RPC 修复脚本 → fix_supabase_rpc.sql
+- [x] 装备系统（装备定义/穿戴/强化/分解/掉落/属性加成）→ equipment.js + ui.js EquipmentScene (v0.21.0)
+- [x] 羁绊系统（角色羁绊/战斗经验/等级加成/特殊效果/战斗应用）→ bond.js + ui.js BondScene (v0.21.0)
+- [x] 关卡装备掉落（farm/daily/story/boss 四种掉落表，自动入库）→ stages.js (v0.21.0)
+- [x] 装备 & 羁绊属性叠加到战斗（applyEquipmentStats / applyBondStats）→ battle.js (v0.21.0)
+- [x] 装备 & 羁绊存档（本地 + 云端）→ save.js + main.js (v0.21.0)
 - [ ] 剧情内容填充（元首提供）
 - [ ] 音频资源制作与加载（BGM/音效文件，管理器已就绪）
-- [x] PWA 支持（Service Worker + manifest.json，可添加到主屏幕）
-- [x] 自动战斗系统（Farm 关卡自动选择技能+目标）
-- [x] 剧情对话快进（已读自动跳过 + 手动切换）
-- [x] 玩家统计面板（冒险统计场景：总览/角色/背包）
-- [x] UI 边框素材集成（九宫格渲染：对话框/面板/按钮/HP条/能量条）→ ui.js
-- [x] UI 动画系统接入场景（HPBarRenderer/EnergyBarRenderer/伤害弹出/屏幕震动）→ ui.js + engine.js
-- [x] 音频管理器（Web Audio API + 合成音效 + BGM 框架）→ engine.js
-- [x] 道具图标集成（经验书/突破材料/货币图标替换 emoji）
-- [x] 战斗背景映射补全（虹彩圣域 + 混沌虚空）
-- [x] 抽卡结果展示优化（元素图标 + SSR 发光 + NEW 标签）
-- [x] 每日 Boss 动态背景（按星期匹配不同战场）
-- [x] 战斗背景图集成（竞技场 + 森林，按关卡自动匹配）
-- [x] 元素图标集成（五行图标替换战斗界面文字标签）
-- [x] 粒子特效集成战斗动画（攻击/暴击/治愈/元素技能）
-- [x] 抽卡背景图集成
-- [x] 设置场景完善（画质/帧率/存档/数据管理）
-- [x] 废弃元素素材清理（冰/风/雷）
-- [x] 材料掉落关卡（突破材料 + 经验书）→ stages.js
-- [x] 独立关卡模式（Farm 关卡 + 每日挑战）→ stages.js
-- [x] 每日签到奖励系统 → stages.js
-- [x] 体力系统（5分钟恢复1点，离线回复）→ stages.js
-- [x] 战斗胜利奖励结算（掉落自动入背包）→ stages.js + ui.js
-- [x] 抽卡系统接入 Supabase（抽卡记录同步 + 入图鉴）
-- [x] 登录/注册 UI 接入 SaveManager
-- [x] 云端存档（场景切换时自动同步 + 60 秒定时）
-- [x] 角色养成系统（升级/突破/技能升级）
 
 ## 7. 美术联动接口
 

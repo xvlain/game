@@ -253,8 +253,9 @@ const RewardCalculator = {
     const items = {};
     let coins = 0;
     const summary = [];
+    const equipmentDrops = []; // v0.21.0 装备掉落
 
-    if (!stageConfig || !stageConfig.drops) return { items, coins, summary };
+    if (!stageConfig || !stageConfig.drops) return { items, coins, summary, equipmentDrops };
 
     for (const drop of stageConfig.drops) {
       if (Math.random() > drop.chance) continue;
@@ -269,7 +270,26 @@ const RewardCalculator = {
       }
     }
 
-    return { items, coins, summary };
+    // v0.21.0 装备掉落（独立于道具掉落）
+    if (typeof EquipmentManager !== 'undefined') {
+      const stageType = stageConfig.type || 'farm';
+      const difficulty = stageConfig.difficulty || 1;
+      const equipDrops = EquipmentManager.generateDrops(stageType, difficulty);
+      for (const defId of equipDrops) {
+        const def = EquipmentDefs[defId];
+        if (!def) continue;
+        equipmentDrops.push(defId);
+        const rarityName = EquipRarity[def.rarity]?.name || '';
+        summary.push(`🗡️ ${rarityName} ${def.name}`);
+
+        // 自动加入装备背包
+        if (window.equipmentManager) {
+          window.equipmentManager.addEquipment(defId);
+        }
+      }
+    }
+
+    return { items, coins, summary, equipmentDrops };
   },
 
   /**

@@ -435,6 +435,8 @@ class MainMenuScene {
     this.menuItems = [
       { text: '剧情模式', desc: '推进主线剧情', action: 'story', icon: '📖' },
       { text: '角色养成', desc: '升级/突破/技能', action: 'growth', icon: '⬆️' },
+      { text: '装备', desc: '管理角色装备', action: 'equipment', icon: '🗡️' },
+      { text: '羁绊', desc: '角色关系加成', action: 'bond', icon: '🔗' },
       { text: '编队', desc: '调整战斗编队', action: 'party', icon: '⚔️' },
       { text: '召唤', desc: '抽取新角色', action: 'gacha', icon: '✨' },
       { text: '角色', desc: '查看角色详情', action: 'characters', icon: '👤' },
@@ -501,16 +503,16 @@ class MainMenuScene {
     }
     ctx.restore();
 
-    // 菜单网格（4+4 布局）
-    const cardW = 240, cardH = 140;
-    const gapX = 25, gapY = 20;
+    // 菜单网格（5+5 布局）
+    const cardW = 200, cardH = 130;
+    const gapX = 20, gapY = 18;
 
     for (let i = 0; i < this.menuItems.length; i++) {
       let col, row, cols;
-      if (i < 4) {
-        col = i; row = 0; cols = 4;
+      if (i < 5) {
+        col = i; row = 0; cols = 5;
       } else {
-        col = i - 4; row = 1; cols = 4;
+        col = i - 5; row = 1; cols = 5;
       }
 
       const totalW = cols * cardW + (cols - 1) * gapX;
@@ -554,7 +556,7 @@ class MainMenuScene {
     }
 
     // 底部
-    Renderer.drawText(ctx, 'v0.14.0 · 庸人工作室', W / 2, H - 25, {
+    Renderer.drawText(ctx, 'v0.21.0 · 庸人工作室', W / 2, H - 25, {
       fontSize: 12,
       color: '#404060',
       align: 'center'
@@ -619,6 +621,12 @@ class MainMenuScene {
             break;
           case 'settings':
             this.sceneManager.switchTo('settings');
+            break;
+          case 'equipment':
+            this.sceneManager.switchTo('equipment');
+            break;
+          case 'bond':
+            this.sceneManager.switchTo('bond');
             break;
         }
       }
@@ -4227,6 +4235,537 @@ class MailScene {
   }
 }
 
+// ============ 装备场景 (v0.21.0) ============
+class EquipmentScene {
+  constructor() {
+    this.sceneManager = null;
+    this.selectedChar = null;
+    this.selectedSlot = null;
+    this.selectedEquip = null;
+    this.tab = 'char'; // 'char' | 'inventory'
+    this.scrollY = 0;
+  }
+
+  onEnter() {
+    this.selectedChar = null;
+    this.selectedSlot = null;
+    this.selectedEquip = null;
+    this.tab = 'char';
+    this.scrollY = 0;
+  }
+
+  onExit() {}
+  update(dt) {}
+
+  render(ctx) {
+    const W = 1280, H = 720;
+
+    // 背景
+    if (GameAssets.ui.charDetailBg) {
+      ctx.drawImage(GameAssets.ui.charDetailBg, 0, 0, W, H);
+      ctx.fillStyle = 'rgba(13, 13, 31, 0.6)';
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#0d0d1f');
+      grad.addColorStop(1, '#1a1030');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // 顶栏
+    drawFramedPanel(ctx, 20, 15, W - 40, 50, 'panel', {
+      slice: 15, fallbackBg: 'rgba(15, 15, 30, 0.8)', fallbackBorder: '#3a3060'
+    });
+    Renderer.drawText(ctx, '🗡️ 装备管理', 50, 40, { fontSize: 20, color: '#d4b8ff' });
+    Renderer.drawButton(ctx, W - 120, 20, 90, 38, '返回', { fontSize: 14 });
+    this._backBtn = { x: W - 120, y: 20, w: 90, h: 38 };
+
+    // Tab 切换
+    const tabs = [
+      { id: 'char', label: '角色装备' },
+      { id: 'inventory', label: '背包' }
+    ];
+    this._tabBtns = [];
+    tabs.forEach((tab, i) => {
+      const tx = 40 + i * 130, ty = 75;
+      const isActive = this.tab === tab.id;
+      Renderer.drawButton(ctx, tx, ty, 110, 34, tab.label, {
+        bgColor: isActive ? '#3a2060' : '#1a1030',
+        borderColor: isActive ? '#7c5cbf' : '#3a3060',
+        fontSize: 14, color: isActive ? '#e0d0ff' : '#8080a0'
+      });
+      this._tabBtns.push({ x: tx, y: ty, w: 110, h: 34, id: tab.id });
+    });
+
+    const state = window.game?.state;
+    const roster = state?.roster || [];
+    const equipMgr = window.equipmentManager;
+
+    if (this.tab === 'char') {
+      this._renderCharTab(ctx, roster, equipMgr);
+    } else {
+      this._renderInventoryTab(ctx, equipMgr);
+    }
+  }
+
+  _renderCharTab(ctx, roster, equipMgr) {
+    const W = 1280, H = 720;
+
+    // 左侧角色列表
+    const listX = 40, listY = 120, listW = 280, itemH = 50;
+    Renderer.drawPanel(ctx, listX, listY, listW, H - 150, { bg: 'rgba(15, 15, 30, 0.7)', border: '#2a2a4a' });
+
+    this._charBtns = [];
+    roster.forEach((char, i) => {
+      const y = listY + 10 + i * (itemH + 8) - this.scrollY;
+      if (y + itemH < listY || y > listY + H - 160) return;
+      const isSelected = this.selectedChar?.id === char.id;
+      Renderer.drawButton(ctx, listX + 10, y, listW - 20, itemH, char.name, {
+        bgColor: isSelected ? '#2a1a50' : '#15152a',
+        borderColor: isSelected ? '#7c5cbf' : '#2a2a4a',
+        fontSize: 14, color: isSelected ? '#e0d0ff' : '#a0a0c0'
+      });
+      this._charBtns.push({ x: listX + 10, y, w: listW - 20, h: itemH, char });
+    });
+
+    // 右侧装备详情
+    if (!this.selectedChar) {
+      Renderer.drawText(ctx, '← 选择一位角色查看装备', 760, H / 2, {
+        fontSize: 18, color: '#505070', align: 'center'
+      });
+      return;
+    }
+
+    const char = this.selectedChar;
+    const equipment = equipMgr?.getCharacterEquipment(char.id) || {};
+
+    // 角色名称
+    Renderer.drawText(ctx, char.name, 380, 135, { fontSize: 22, color: '#e0d0ff' });
+    Renderer.drawText(ctx, `等级 ${char.level || 1} | ${char.element || '无'}元素`, 380, 160, {
+      fontSize: 13, color: '#8080a0'
+    });
+
+    // 三个装备槽
+    this._slotBtns = [];
+    const slots = ['weapon', 'armor', 'accessory'];
+    const slotNames = { weapon: '武器', armor: '护甲', accessory: '饰品' };
+    const slotIcons = { weapon: '⚔️', armor: '🛡️', accessory: '💎' };
+
+    slots.forEach((slot, i) => {
+      const sx = 380, sy = 185 + i * 160;
+      const sw = 500, sh = 140;
+      const equipped = equipment[slot];
+      const def = equipped ? EquipmentDefs[equipped.id] : null;
+
+      drawFramedPanel(ctx, sx, sy, sw, sh, 'panel', {
+        slice: 15,
+        fallbackBg: equipped ? 'rgba(30, 25, 50, 0.9)' : 'rgba(20, 18, 35, 0.7)',
+        fallbackBorder: equipped ? '#4a3a8a' : '#2a2a4a'
+      });
+
+      // 槽位标签
+      Renderer.drawText(ctx, `${slotIcons[slot]} ${slotNames[slot]}`, sx + 15, sy + 22, {
+        fontSize: 16, color: '#b0a0d0'
+      });
+
+      if (def) {
+        const rarityColor = EquipRarity[def.rarity]?.color || '#888';
+        Renderer.drawText(ctx, `${EquipRarity[def.rarity]?.name || ''} ${def.name} +${equipped.level}`, sx + 15, sy + 50, {
+          fontSize: 15, color: rarityColor
+        });
+
+        // 属性
+        const stats = equipMgr._calculateStats(equipped);
+        const statText = Object.entries(stats).map(([k, v]) => {
+          const names = { atk: '攻击', def: '防御', hp: '生命', spd: '速度', crit: '暴击', critDmg: '暴伤' };
+          return `${names[k] || k}+${v}`;
+        }).join('  ');
+        Renderer.drawText(ctx, statText, sx + 15, sy + 75, { fontSize: 13, color: '#88cc88' });
+
+        // 被动
+        if (def.passive) {
+          Renderer.drawText(ctx, def.desc, sx + 15, sy + 98, { fontSize: 11, color: '#a0a0c0' });
+        }
+
+        // 卸下按钮
+        Renderer.drawButton(ctx, sx + sw - 80, sy + 10, 65, 30, '卸下', {
+          bgColor: '#2a1a1a', borderColor: '#5a3030', fontSize: 12
+        });
+        this._slotBtns.push({
+          x: sx + sw - 80, y: sy + 10, w: 65, h: 30,
+          action: 'unequip', slot, charId: char.id
+        });
+      } else {
+        Renderer.drawText(ctx, '空槽位 - 点击装备', sx + 15, sy + 50, {
+          fontSize: 14, color: '#505070'
+        });
+      }
+
+      // 装备按钮
+      Renderer.drawButton(ctx, sx + sw - 80, sy + sh - 40, 65, 30, '装备', {
+        bgColor: '#1a2a1a', borderColor: '#305a30', fontSize: 12
+      });
+      this._slotBtns.push({
+        x: sx + sw - 80, y: sy + sh - 40, w: 65, h: 30,
+        action: 'equip', slot, charId: char.id
+      });
+    });
+
+    // 强化按钮区域
+    if (this.selectedEquip) {
+      const sx = 920, sy = 185;
+      drawFramedPanel(ctx, sx, sy, 320, 400, 'panel', {
+        slice: 15, fallbackBg: 'rgba(25, 20, 45, 0.95)', fallbackBorder: '#5a4a8a'
+      });
+      const inst = this.selectedEquip;
+      const def = EquipmentDefs[inst.id];
+      if (def) {
+        Renderer.drawText(ctx, `${def.name} +${inst.level}`, sx + 15, sy + 25, {
+          fontSize: 16, color: EquipRarity[def.rarity]?.color || '#ccc'
+        });
+        const cost = equipMgr._getEnhanceCost(inst);
+        Renderer.drawText(ctx, `强化费用: ${cost} 金币`, sx + 15, sy + 55, { fontSize: 13, color: '#ffcc44' });
+        Renderer.drawText(ctx, `等级上限: ${def.maxLevel}`, sx + 15, sy + 78, { fontSize: 12, color: '#8080a0' });
+
+        if (inst.level < def.maxLevel) {
+          Renderer.drawButton(ctx, sx + 15, sy + 100, 140, 40, `强化 (${cost}金)`, {
+            bgColor: '#1a3a1a', borderColor: '#4a8a4a', fontSize: 14
+          });
+          this._enhanceBtn = { x: sx + 15, y: sy + 100, w: 140, h: 40 };
+        } else {
+          Renderer.drawText(ctx, '已达最大等级', sx + 15, sy + 110, { fontSize: 14, color: '#ffd700' });
+          this._enhanceBtn = null;
+        }
+
+        // 分解按钮
+        Renderer.drawButton(ctx, sx + 170, sy + 100, 120, 40, '分解回收', {
+          bgColor: '#3a1a1a', borderColor: '#8a4a4a', fontSize: 13
+        });
+        this._salvageBtn = { x: sx + 170, y: sy + 100, w: 120, h: 40 };
+      }
+    } else {
+      this._enhanceBtn = null;
+      this._salvageBtn = null;
+    }
+  }
+
+  _renderInventoryTab(ctx, equipMgr) {
+    const W = 1280, H = 720;
+    const inv = equipMgr ? equipMgr.getUnequipped() : [];
+
+    Renderer.drawPanel(ctx, 40, 120, W - 80, H - 160, { bg: 'rgba(15, 15, 30, 0.7)', border: '#2a2a4a' });
+
+    if (inv.length === 0) {
+      Renderer.drawText(ctx, '背包空空如也，去关卡刷装备吧！', W / 2, H / 2, {
+        fontSize: 18, color: '#505070', align: 'center'
+      });
+      this._invBtns = [];
+      return;
+    }
+
+    Renderer.drawText(ctx, `未装备: ${inv.length} 件`, 60, 140, { fontSize: 14, color: '#8080a0' });
+
+    this._invBtns = [];
+    const cols = 5, itemW = 220, itemH = 80, gapX = 15, gapY = 10;
+    inv.forEach((inst, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const x = 55 + col * (itemW + gapX), y = 155 + row * (itemH + gapY) - this.scrollY;
+      if (y + itemH < 150 || y > H - 60) return;
+
+      const def = EquipmentDefs[inst.id];
+      if (!def) return;
+      const rarityColor = EquipRarity[def.rarity]?.color || '#888';
+      const equipped = inst.equippedTo ? ` [已装备]` : '';
+
+      drawFramedPanel(ctx, x, y, itemW, itemH, 'panel', {
+        slice: 10, fallbackBg: 'rgba(25, 20, 40, 0.85)', fallbackBorder: rarityColor + '44'
+      });
+      Renderer.drawText(ctx, `${EquipRarity[def.rarity]?.name} ${def.name} +${inst.level}${equipped}`, x + 10, y + 22, {
+        fontSize: 13, color: rarityColor
+      });
+      const stats = equipMgr._calculateStats(inst);
+      const statStr = Object.entries(stats).map(([k, v]) => `${k}+${v}`).join(' ');
+      Renderer.drawText(ctx, statStr, x + 10, y + 45, { fontSize: 11, color: '#88cc88' });
+      Renderer.drawText(ctx, EquipmentSlots[def.slot]?.name || '', x + 10, y + 65, { fontSize: 10, color: '#606080' });
+    });
+  }
+
+  handleClick(x, y) {
+    if (this._backBtn && Renderer.hitTest(x, y, this._backBtn)) {
+      this.sceneManager.switchTo('main_menu');
+      return;
+    }
+
+    // Tab 切换
+    for (const btn of (this._tabBtns || [])) {
+      if (Renderer.hitTest(x, y, btn)) {
+        this.tab = btn.id;
+        this.selectedChar = null;
+        this.selectedEquip = null;
+        return;
+      }
+    }
+
+    // 角色选择
+    for (const btn of (this._charBtns || [])) {
+      if (Renderer.hitTest(x, y, btn)) {
+        this.selectedChar = btn.char;
+        this.selectedEquip = null;
+        return;
+      }
+    }
+
+    // 槽位操作
+    const equipMgr = window.equipmentManager;
+    for (const btn of (this._slotBtns || [])) {
+      if (Renderer.hitTest(x, y, btn)) {
+        if (btn.action === 'unequip') {
+          equipMgr?.unequip(btn.charId, btn.slot);
+          if (window.toast) toast.show('已卸下装备', 'success');
+        } else if (btn.action === 'equip') {
+          // 自动选择背包中该槽位最佳未装备的装备
+          const candidates = equipMgr?.getInventoryBySlot(btn.slot).filter(e => !e.equippedTo) || [];
+          if (candidates.length > 0) {
+            const best = candidates[0]; // 已按稀有度排序
+            const result = equipMgr.equip(btn.charId, best.uid);
+            if (result.success) {
+              const def = EquipmentDefs[best.id];
+              if (window.toast) toast.show(`已装备 ${def?.name || '装备'}`, 'success');
+            }
+          } else {
+            if (window.toast) toast.show('没有可用的该类型装备', 'warning');
+          }
+        }
+        return;
+      }
+    }
+
+    // 强化
+    if (this._enhanceBtn && Renderer.hitTest(x, y, this._enhanceBtn) && this.selectedEquip) {
+      const result = equipMgr?.enhance(this.selectedEquip.uid);
+      if (result?.success) {
+        if (window.toast) toast.show(`强化成功！+${result.newLevel}`, 'success');
+      } else if (result?.error) {
+        if (window.toast) toast.show(result.error, 'warning');
+      }
+      return;
+    }
+
+    // 分解
+    if (this._salvageBtn && Renderer.hitTest(x, y, this._salvageBtn) && this.selectedEquip) {
+      const result = equipMgr?.salvage(this.selectedEquip.uid);
+      if (result?.success) {
+        const state = window.game?.state;
+        if (state) state.currency.coins = (state.currency.coins || 0) + result.coins;
+        this.selectedEquip = null;
+        if (window.toast) toast.show(`分解获得 ${result.coins} 金币`, 'success');
+      } else if (result?.error) {
+        if (window.toast) toast.show(result.error, 'warning');
+      }
+      return;
+    }
+  }
+
+  handleSwipe(dir, dist) {
+    if (dir === 'up') this.scrollY = Math.min(this.scrollY + 60, 500);
+    if (dir === 'down') this.scrollY = Math.max(0, this.scrollY - 60);
+  }
+}
+
+// ============ 羁绊场景 (v0.21.0) ============
+class BondScene {
+  constructor() {
+    this.sceneManager = null;
+    this.selectedChar = null;
+    this.scrollY = 0;
+  }
+
+  onEnter() {
+    this.selectedChar = null;
+    this.scrollY = 0;
+  }
+
+  onExit() {}
+  update(dt) {}
+
+  render(ctx) {
+    const W = 1280, H = 720;
+
+    // 背景
+    if (GameAssets.ui.charDetailBg) {
+      ctx.drawImage(GameAssets.ui.charDetailBg, 0, 0, W, H);
+      ctx.fillStyle = 'rgba(13, 13, 31, 0.6)';
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#0d0d1f');
+      grad.addColorStop(1, '#1a1030');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // 顶栏
+    drawFramedPanel(ctx, 20, 15, W - 40, 50, 'panel', {
+      slice: 15, fallbackBg: 'rgba(15, 15, 30, 0.8)', fallbackBorder: '#3a3060'
+    });
+    Renderer.drawText(ctx, '🔗 角色羁绊', 50, 40, { fontSize: 20, color: '#d4b8ff' });
+    Renderer.drawButton(ctx, W - 120, 20, 90, 38, '返回', { fontSize: 14 });
+    this._backBtn = { x: W - 120, y: 20, w: 90, h: 38 };
+
+    const state = window.game?.state;
+    const roster = state?.roster || [];
+    const bondMgr = window.bondManager;
+
+    if (!this.selectedChar) {
+      // 角色网格
+      Renderer.drawText(ctx, '选择一位角色查看羁绊关系', W / 2, 95, {
+        fontSize: 14, color: '#8080a0', align: 'center'
+      });
+
+      this._charBtns = [];
+      const cols = 4, cardW = 260, cardH = 120, gapX = 25, gapY = 20;
+      const totalW = cols * cardW + (cols - 1) * gapX;
+      const startX = (W - totalW) / 2;
+
+      roster.forEach((char, i) => {
+        const col = i % cols, row = Math.floor(i / cols);
+        const x = startX + col * (cardW + gapX);
+        const y = 120 + row * (cardH + gapY) - this.scrollY;
+        if (y + cardH < 110 || y > H - 40) return;
+
+        drawFramedPanel(ctx, x, y, cardW, cardH, 'panel', {
+          slice: 15, fallbackBg: 'rgba(25, 20, 45, 0.85)', fallbackBorder: '#4a3a8a'
+        });
+
+        // 头像占位
+        if (window.characterArt) {
+          window.characterArt.drawIcon(ctx, char.id, x + 30, y + 40, 25, {
+            element: char.element, isActive: true
+          });
+        }
+
+        Renderer.drawText(ctx, char.name, x + 70, y + 35, { fontSize: 16, color: '#e0d0ff' });
+        Renderer.drawText(ctx, `${char.element || '无'} | Lv.${char.level || 1}`, x + 70, y + 58, {
+          fontSize: 12, color: '#8080a0'
+        });
+
+        // 平均羁绊等级
+        const avgLevel = bondMgr ? bondMgr.getAverageBondLevel(char.id) : 0;
+        Renderer.drawText(ctx, `平均羁绊: Lv.${avgLevel.toFixed(1)}`, x + 70, y + 80, {
+          fontSize: 12, color: avgLevel > 5 ? '#ffd700' : '#606080'
+        });
+
+        this._charBtns.push({ x, y, w: cardW, h: cardH, char });
+      });
+    } else {
+      // 羁绊详情
+      const char = this.selectedChar;
+      Renderer.drawButton(ctx, 40, 80, 80, 30, '← 返回', {
+        bgColor: '#1a1a3a', borderColor: '#3a3060', fontSize: 13
+      });
+      this._backToListBtn = { x: 40, y: 80, w: 80, h: 30 };
+
+      Renderer.drawText(ctx, `${char.name} 的羁绊`, 150, 100, { fontSize: 20, color: '#e0d0ff' });
+
+      const bonds = bondMgr ? bondMgr.getCharacterBonds(char.id) : [];
+      this._bondBtns = [];
+
+      if (bonds.length === 0) {
+        Renderer.drawText(ctx, '暂无羁绊，与其他角色一起战斗吧！', W / 2, H / 2, {
+          fontSize: 16, color: '#505070', align: 'center'
+        });
+        return;
+      }
+
+      bonds.forEach((bondData, i) => {
+        const bx = 40, by = 130 + i * 110 - this.scrollY;
+        if (by + 95 < 125 || by > H - 40) return;
+
+        const bond = bondData.bond;
+        const config = bondData.config;
+        const expRequired = BondConfig.expTable[bond.level] || 9999;
+        const expPercent = Math.min(1, bond.exp / expRequired);
+
+        // 特殊羁绊
+        const specialBond = bondMgr?.getSpecialBondInfo(char.id, bondData.partnerId);
+
+        drawFramedPanel(ctx, bx, by, W - 80, 95, 'panel', {
+          slice: 15,
+          fallbackBg: specialBond ? 'rgba(40, 30, 55, 0.9)' : 'rgba(25, 20, 45, 0.85)',
+          fallbackBorder: specialBond ? '#7c5cbf' : '#3a3060'
+        });
+
+        // 头像
+        if (window.characterArt) {
+          window.characterArt.drawIcon(ctx, bondData.partnerId, bx + 35, by + 35, 25, { isActive: true });
+        }
+
+        // 名称 & 等级
+        Renderer.drawText(ctx, bondData.partnerName, bx + 75, by + 28, {
+          fontSize: 16, color: '#e0d0ff'
+        });
+        Renderer.drawText(ctx, `Lv.${bond.level} ${config?.name || ''}`, bx + 200, by + 28, {
+          fontSize: 14, color: bond.level >= 8 ? '#ffd700' : (bond.level >= 5 ? '#b388ff' : '#8080a0')
+        });
+
+        // 经验条
+        const barX = bx + 75, barY = by + 48, barW = 350, barH = 12;
+        ctx.fillStyle = '#1a1a3a';
+        ctx.fillRect(barX, barY, barW, barH);
+        const barGrad = ctx.createLinearGradient(barX, 0, barX + barW * expPercent, 0);
+        barGrad.addColorStop(0, '#4a3a8a');
+        barGrad.addColorStop(1, '#7c5cbf');
+        ctx.fillStyle = barGrad;
+        ctx.fillRect(barX, barY, barW * expPercent, barH);
+        ctx.strokeStyle = '#3a3060';
+        ctx.strokeRect(barX, barY, barW, barH);
+
+        Renderer.drawText(ctx, `${bond.exp}/${expRequired} EXP`, barX + barW + 10, by + 55, {
+          fontSize: 11, color: '#8080a0'
+        });
+
+        // 加成描述
+        Renderer.drawText(ctx, config?.desc || '', bx + 75, by + 75, {
+          fontSize: 12, color: '#88cc88'
+        });
+
+        // 特殊羁绊标签
+        if (specialBond) {
+          Renderer.drawText(ctx, `★ ${specialBond.title}`, bx + W - 200, by + 28, {
+            fontSize: 13, color: '#ffd700', align: 'right'
+          });
+        }
+      });
+    }
+  }
+
+  handleClick(x, y) {
+    if (this._backBtn && Renderer.hitTest(x, y, this._backBtn)) {
+      this.sceneManager.switchTo('main_menu');
+      return;
+    }
+
+    if (this._backToListBtn && Renderer.hitTest(x, y, this._backToListBtn)) {
+      this.selectedChar = null;
+      return;
+    }
+
+    for (const btn of (this._charBtns || [])) {
+      if (Renderer.hitTest(x, y, btn)) {
+        this.selectedChar = btn.char;
+        this.scrollY = 0;
+        return;
+      }
+    }
+  }
+
+  handleSwipe(dir, dist) {
+    if (dir === 'up') this.scrollY = Math.min(this.scrollY + 60, 600);
+    if (dir === 'down') this.scrollY = Math.max(0, this.scrollY - 60);
+  }
+}
+
 // 导出所有场景
 window.TitleScene = TitleScene;
 window.MainMenuScene = MainMenuScene;
@@ -4237,4 +4776,6 @@ window.GachaScene = GachaScene;
 window.StatsScene = StatsScene;
 window.SettingsScene = SettingsScene;
 window.MailScene = MailScene;
+window.EquipmentScene = EquipmentScene;
+window.BondScene = BondScene;
 window.SettingsStore = SettingsStore;

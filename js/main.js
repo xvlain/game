@@ -1,7 +1,7 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.20.0 - 合成 BGM 引擎 + 第四章「光之残响」+ 氛围粒子系统 + 战斗演出增强 + 立绘呼吸动画
+ * v0.21.0 - 装备系统 + 羁绊系统
  */
 
 let game = null;
@@ -48,6 +48,18 @@ async function initGame() {
     window.mailManager = mailManager;
   }
 
+  // v0.21.0 初始化装备管理器
+  if (typeof EquipmentManager !== 'undefined') {
+    const equipmentManager = new EquipmentManager();
+    window.equipmentManager = equipmentManager;
+  }
+
+  // v0.21.0 初始化羁绊管理器
+  if (typeof BondManager !== 'undefined') {
+    const bondManager = new BondManager();
+    window.bondManager = bondManager;
+  }
+
   // v0.17.0 初始化战斗日志
   battleLogger = new BattleLogger();
   window.battleLogger = battleLogger;
@@ -82,7 +94,9 @@ async function initGame() {
     stage_result: new StageResultScene(),
     stats: new StatsScene(),
     settings: new SettingsScene(),
-    mail: new MailScene()
+    mail: new MailScene(),
+    equipment: new EquipmentScene(),
+    bond: new BondScene()
   };
 
   for (const [name, scene] of Object.entries(scenes)) {
@@ -130,7 +144,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.20.0 初始化完成');
+  console.log('[Game] v0.21.0 初始化完成');
 }
 
 function buildDefaultState() {
@@ -349,6 +363,14 @@ function applySaveData(state, data) {
   if (data.mail && window.mailManager) {
     window.mailManager.importData(data.mail);
   }
+  // v0.21.0 恢复装备数据
+  if (data.equipment && window.equipmentManager) {
+    window.equipmentManager.importData(data.equipment);
+  }
+  // v0.21.0 恢复羁绊数据
+  if (data.bonds && window.bondManager) {
+    window.bondManager.importData(data.bonds);
+  }
 }
 
 async function autoSave() {
@@ -378,6 +400,14 @@ async function autoSave() {
   // v0.14.0 邮件系统存档
   if (window.mailManager) {
     localData.mail = window.mailManager.exportData();
+  }
+  // v0.21.0 装备系统存档
+  if (window.equipmentManager) {
+    localData.equipment = window.equipmentManager.exportData();
+  }
+  // v0.21.0 羁绊系统存档
+  if (window.bondManager) {
+    localData.bonds = window.bondManager.exportData();
   }
   localSave.save('main', localData);
 

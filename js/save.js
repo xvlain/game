@@ -92,7 +92,7 @@ class SaveManager {
   // 保存游戏进度
   async saveGame(gameState) {
     const saveData = {
-      version: 1,
+      version: 2,
       timestamp: new Date().toISOString(),
       storyProgress: gameState.storyProgress,
       party: gameState.party,
@@ -100,7 +100,10 @@ class SaveManager {
         id: c.id, level: c.level, name: c.name
       })),
       inventory: gameState.inventory,
-      currency: gameState.currency
+      currency: gameState.currency,
+      // v0.21.0 装备 & 羁绊数据
+      equipment: window.equipmentManager ? window.equipmentManager.exportData() : undefined,
+      bonds: window.bondManager ? window.bondManager.exportData() : undefined
     };
 
     // 本地备份
