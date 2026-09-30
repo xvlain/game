@@ -137,7 +137,7 @@ async function preloadAssets() {
   });
 
   // v0.15.0 角色头像图标 + Q版 idle 帧预加载
-  const charIds = ['zhixing', 'ying', 'warrior_01', 'mage_01', 'healer_01', 'tank_01'];
+  const charIds = ['zhixing', 'ying', 'warrior_01', 'mage_01', 'healer_01', 'tank_01', 'sr_xi'];
   for (const cid of charIds) {
     await loader.loadImage(`icon_${cid}`, `assets/characters/icons/${cid}.png`);
   }
@@ -1261,6 +1261,9 @@ const SPEAKER_CHAR_MAP = {
   '银发少女': 'zhixing',
   '影': 'ying',
   '神秘旅者': 'ying',
+  '曦': 'sr_xi',
+  '光之少女': 'sr_xi',
+  '曙光·曦': 'sr_xi',
   // 旁白 / ??? 不映射立绘
 };
 

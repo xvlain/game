@@ -416,7 +416,7 @@ class CharacterArtManager {
     };
 
     // 默认可用角色
-    const defaultChars = ['zhixing', 'ying', 'warrior_01', 'mage_01', 'healer_01', 'tank_01'];
+    const defaultChars = ['zhixing', 'ying', 'warrior_01', 'mage_01', 'healer_01', 'tank_01', 'sr_xi'];
     for (const id of defaultChars) {
       this.chibi.register(id, { ...defaultAnims });
     }
