@@ -1,7 +1,7 @@
 # 美术制作进度追踪
 
 > 庸人工作室 · 未定之旅 · 美术任务状态
-> 最后更新：2026-09-30 01:15
+> 最后更新：2026-10-02 01:25
 > 本文件与「游戏技术开发与网站落实」任务互通
 
 ---
@@ -263,6 +263,47 @@
 | 治疗 hit_00~01 | 2帧（受击/恢复） | ✅ 已交付 | 2026-09-24 |
 | 守护 hit_00~01 | 2帧（受击/恢复） | ✅ 已交付 | 2026-09-24 |
 
+### 24. 装备图标（64×64px，透明背景 PNG）
+| 装备 | 文件 | 槽位 | 稀有度 | 状态 | 日期 |
+|------|------|------|--------|------|------|
+| 铁剑 | `ui/equipment/wpn_r_sword_1.png` | 武器 | R | ✅ 已交付 | 2026-10-02 |
+| 木杖 | `ui/equipment/wpn_r_staff_1.png` | 武器 | R | ✅ 已交付 | 2026-10-02 |
+| 圆盾 | `ui/equipment/wpn_r_shield_1.png` | 武器 | R | ✅ 已交付 | 2026-10-02 |
+| 焰刃 | `ui/equipment/wpn_sr_flame_blade.png` | 武器 | SR | ✅ 已交付 | 2026-10-02 |
+| 水晶法杖 | `ui/equipment/wpn_sr_crystal_staff.png` | 武器 | SR | ✅ 已交付 | 2026-10-02 |
+| 金纹大剑 | `ui/equipment/wpn_sr_metal_greatsword.png` | 武器 | SR | ✅ 已交付 | 2026-10-02 |
+| 灵藤弓 | `ui/equipment/wpn_sr_vine_bow.png` | 武器 | SR | ✅ 已交付 | 2026-10-02 |
+| 岩锤 | `ui/equipment/wpn_sr_earth_hammer.png` | 武器 | SR | ✅ 已交付 | 2026-10-02 |
+| 星辰之刃 | `ui/equipment/wpn_ssr_stellar_blade.png` | 武器 | SSR | ✅ 已交付 | 2026-10-02 |
+| 深渊魔典 | `ui/equipment/wpn_ssr_abyss_tome.png` | 武器 | SSR | ✅ 已交付 | 2026-10-02 |
+| 曙光圣枪 | `ui/equipment/wpn_ssr_dawn_lance.png` | 武器 | SSR | ✅ 已交付 | 2026-10-02 |
+| 皮甲 | `ui/equipment/arm_r_leather.png` | 护甲 | R | ✅ 已交付 | 2026-10-02 |
+| 布衣 | `ui/equipment/arm_r_robe.png` | 护甲 | R | ✅ 已交付 | 2026-10-02 |
+| 焰纹法袍 | `ui/equipment/arm_sr_flame_robe.png` | 护甲 | SR | ✅ 已交付 | 2026-10-02 |
+| 水晶轻甲 | `ui/equipment/arm_sr_crystal_mail.png` | 护甲 | SR | ✅ 已交付 | 2026-10-02 |
+| 金纹战甲 | `ui/equipment/arm_sr_metal_plate.png` | 护甲 | SR | ✅ 已交付 | 2026-10-02 |
+| 暗影斗篷 | `ui/equipment/arm_ssr_shadow_cloak.png` | 护甲 | SSR | ✅ 已交付 | 2026-10-02 |
+| 曙光之壁 | `ui/equipment/arm_ssr_dawn_aegis.png` | 护甲 | SSR | ✅ 已交付 | 2026-10-02 |
+| 铜戒指 | `ui/equipment/acc_r_ring_1.png` | 饰品 | R | ✅ 已交付 | 2026-10-02 |
+| 护身符 | `ui/equipment/acc_r_amulet_1.png` | 饰品 | R | ✅ 已交付 | 2026-10-02 |
+| 火焰宝石 | `ui/equipment/acc_sr_fire_gem.png` | 饰品 | SR | ✅ 已交付 | 2026-10-02 |
+| 沧海珠 | `ui/equipment/acc_sr_water_pearl.png` | 饰品 | SR | ✅ 已交付 | 2026-10-02 |
+| 疾风靴 | `ui/equipment/acc_sr_wind_boots.png` | 饰品 | SR | ✅ 已交付 | 2026-10-02 |
+| 大地腰带 | `ui/equipment/acc_sr_earth_belt.png` | 饰品 | SR | ✅ 已交付 | 2026-10-02 |
+| 命运之环 | `ui/equipment/acc_ssr_fate_ring.png` | 饰品 | SSR | ✅ 已交付 | 2026-10-02 |
+| 共鸣宝珠 | `ui/equipment/acc_ssr_resonance_orb.png` | 饰品 | SSR | ✅ 已交付 | 2026-10-02 |
+
+### 25. 角色羁绊图标（64×64px，透明背景 PNG）
+| 角色 | 文件 | 元素色 | 状态 | 日期 |
+|------|------|--------|------|------|
+| 织星羁绊 | `ui/bond/zhixing_bond.png` | 紫色星光 | ✅ 已交付 | 2026-10-02 |
+| 影羁绊 | `ui/bond/ying_bond.png` | 暗紫暗影 | ✅ 已交付 | 2026-10-02 |
+| 战士羁绊 | `ui/bond/warrior_01_bond.png` | 红色火焰 | ✅ 已交付 | 2026-10-02 |
+| 法师羁绊 | `ui/bond/mage_01_bond.png` | 蓝色冰晶 | ✅ 已交付 | 2026-10-02 |
+| 治疗羁绊 | `ui/bond/healer_01_bond.png` | 绿色花瓣 | ✅ 已交付 | 2026-10-02 |
+| 守护羁绊 | `ui/bond/tank_01_bond.png` | 金色盾牌 | ✅ 已交付 | 2026-10-02 |
+| 曦羁绊 | `ui/bond/sr_xi_bond.png` | 暖金圣光 | ✅ 已交付 | 2026-10-02 |
+
 ---
 
 ## 二、待制作素材（按优先级排序）
@@ -395,6 +436,39 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 ```
 
 美术侧只需按规范产出文件放入对应目录，技术侧自动加载替换占位符。
+
+---
+
+## 五、本次执行记录（2026-10-02 01:13 · v0.22.0 装备&羁绊图标全量交付）
+
+### 新增素材（共 33 张图标）
+
+1. **装备图标 ×26**（64×64px，透明背景 PNG）：
+   - **武器类 ×10**：R（铁剑/木杖/圆盾）+ SR（焰刃/水晶法杖/金纹大剑/灵藤弓/岩锤）+ SSR（星辰之刃/深渊魔典/曙光圣枪）
+   - **护甲类 ×7**：R（皮甲/布衣）+ SR（焰纹法袍/水晶轻甲/金纹战甲）+ SSR（暗影斗篷/曙光之壁）
+   - **饰品类 ×9**：R（铜戒指/护身符）+ SR（火焰宝石/沧海珠/疾风靴/大地腰带）+ SSR（命运之环/共鸣宝珠）
+   - 稀有度视觉区分：R=灰色铁质边框 / SR=紫色发光边框 / SSR=金色华丽发光边框
+   - 路径规范：`assets/ui/equipment/<装备id>.png`
+
+2. **角色羁绊图标 ×7**（64×64px，透明背景 PNG）：
+   - 织星（紫色星光）、影（暗紫暗影）、战士（红色火焰）、法师（蓝色冰晶）、治疗（绿色花瓣）、守护（金色盾牌）、曦（暖金圣光）
+   - 设计：角色头像 + 元素化身 + 光芒连线的羁绊构图
+   - 路径规范：`assets/ui/bond/<角色id>_bond.png`
+
+### 与技术任务的接口
+- equipment.js 中定义的路径 `assets/ui/equipment/<装备id>.png` 现已全部有对应素材
+- bond.js 中定义的路径 `assets/ui/bond/<角色id>_bond.png` 现已全部有对应素材
+- 技术侧只需按现有命名规则加载，无需额外代码修改
+
+### 素材统计
+- 本次新增：33 张图标（26 装备 + 7 羁绊）
+- 项目累计图标素材：288 张（原有 255 + 新增 33）
+- 全部装备系统（3 槽位 × 3 稀有度 = 26 件）图标齐备
+- 全部 7 角色羁绊图标齐备
+
+### 下一步计划
+- 后续新角色装备/羁绊图标（待元首提供设定）
+- 音频资源制作与加载
 
 ---
 
