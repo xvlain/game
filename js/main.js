@@ -1,7 +1,7 @@
 /**
  * main.js - 游戏入口
  * 初始化引擎、注册场景、启动游戏循环
- * v0.21.0 - 装备系统 + 羁绊系统
+ * v0.23.0 - 场景视觉增强系统（视差/天气/转场/后处理/电影感标题）
  */
 
 let game = null;
@@ -63,6 +63,13 @@ async function initGame() {
   // v0.17.0 初始化战斗日志
   battleLogger = new BattleLogger();
   window.battleLogger = battleLogger;
+
+  // v0.23.0 初始化场景视觉增强系统
+  if (typeof SceneEffectsController !== 'undefined') {
+    const sceneEffects = new SceneEffectsController();
+    window.sceneEffects = sceneEffects;
+    game.sceneEffects = sceneEffects;
+  }
 
   // v0.17.0 初始化 BGM 导演
   if (typeof BgmDirector !== 'undefined') {
@@ -144,7 +151,7 @@ async function initGame() {
   // 自动存档（每 60 秒，仅已登录或游客模式时）
   setInterval(() => autoSave(), 60000);
 
-  console.log('[Game] v0.21.0 初始化完成');
+  console.log('[Game] v0.23.0 初始化完成');
 }
 
 function buildDefaultState() {

@@ -293,6 +293,12 @@ class TitleScene {
     this.elapsed = 0;
     this._initParticles();
 
+    // v0.23.0 启动电影感标题动画
+    if (window.sceneEffects) {
+      window.sceneEffects.cinematicTitle.start();
+      window.sceneEffects.screenFX.setPreset('title');
+    }
+
     // 检测本地是否有存档，决定是否显示"继续游戏"
     const hasSave = !!localStorage.getItem('game_offline_main');
     this.hasContinue = hasSave;
@@ -332,6 +338,12 @@ class TitleScene {
   render(ctx) {
     const W = 1280, H = 720;
 
+    // v0.23.0 电影感标题动画控制入场时机
+    const cinematic = window.sceneEffects?.cinematicTitle;
+    const titleAlpha = cinematic ? cinematic.getTitleAlpha() : this.titleAlpha;
+    const subtitleAlpha = cinematic ? cinematic.getSubtitleAlpha() : this.titleAlpha;
+    const buttonAlpha = cinematic ? cinematic.getButtonAlpha() : (this.titleAlpha > 0.8 ? 1 : 0);
+
     // v0.16.0 标题背景图（素材不可用时降级到渐变）
     if (GameAssets.ui.titleBg) {
       ctx.drawImage(GameAssets.ui.titleBg, 0, 0, W, H);
@@ -350,24 +362,40 @@ class TitleScene {
     // 粒子
     Renderer.drawParticles(ctx, this.particles);
 
-    // 标题
-    ctx.save();
-    ctx.globalAlpha = this.titleAlpha;
+    // v0.23.0 电影感标题光线与粒子覆盖层
+    if (cinematic && cinematic.active) {
+      cinematic.render(ctx, W, H);
+    }
 
     // 工作室 Logo 文字
+    ctx.save();
+    ctx.globalAlpha = titleAlpha;
     Renderer.drawText(ctx, '庸人工作室', W / 2, H / 2 - 160, {
       fontSize: 16,
       color: '#7070a0',
       align: 'center'
     });
+    ctx.restore();
 
+    // 标题（v0.23.0 使用电影感入场时序）
+    ctx.save();
+    ctx.globalAlpha = titleAlpha;
+
+    // v0.23.0 标题文字发光效果增强
+    ctx.shadowColor = '#d4b8ff';
+    ctx.shadowBlur = 15 * titleAlpha;
     Renderer.drawText(ctx, '未定之旅', W / 2, H / 2 - 80, {
       fontSize: 64,
       color: '#d4b8ff',
       align: 'center',
       font: '"Noto Serif SC", "SimSun", serif'
     });
+    ctx.shadowBlur = 0;
+    ctx.restore();
 
+    // 副标题（v0.23.0 延迟入场）
+    ctx.save();
+    ctx.globalAlpha = subtitleAlpha;
     Renderer.drawText(ctx, '— 命运的齿轮，已然转动 —', W / 2, H / 2 - 20, {
       fontSize: 18,
       color: '#9090b0',
@@ -375,8 +403,8 @@ class TitleScene {
     });
     ctx.restore();
 
-    // 按钮
-    if (this.titleAlpha > 0.8) {
+    // 按钮（v0.23.0 使用电影感入场时序）
+    if (buttonAlpha > 0.01) {
       const btnW = 220, btnH = 48;
       const btnX = W / 2 - btnW / 2;
 
@@ -390,15 +418,20 @@ class TitleScene {
         );
       }
 
+      ctx.save();
+      ctx.globalAlpha = buttonAlpha;
       for (const btn of this.buttons) {
         drawFramedButton(ctx, btn.x, btn.y, btn.w, btn.h, btn.text, {
           fontSize: 20
         });
       }
+      ctx.restore();
+    } else {
+      this.buttons = [];
     }
 
     // 底部信息
-    Renderer.drawText(ctx, 'v0.16.0 · 庸人工作室', W / 2, H - 30, {
+    Renderer.drawText(ctx, 'v0.23.0 · 庸人工作室', W / 2, H - 30, {
       fontSize: 12,
       color: '#505070',
       align: 'center'
@@ -673,10 +706,28 @@ class StoryMapScene {
       const chapterEffects = {
         'ch1': 'dust_motes',    // 觉醒之地 - 浮尘光粒
         'ch2': 'fireflies',     // 命运交汇 - 萤火
-        'ch3': 'crystal_glow'   // 暗影之源 - 晶体微光
+        'ch3': 'crystal_glow',  // 暗影之源 - 晶体微光
+        'ch4': 'star_sparkle'   // 光之残响 - 星辰微光
       };
       const effectType = chapterEffects[targetChapter] || 'dust_motes';
       window.ambientParticles.setEffect(effectType);
+    }
+
+    // v0.23.0 剧情地图天气氛围（按章节自动匹配）
+    if (window.sceneEffects) {
+      const chapterWeather = {
+        'ch1': { type: 'light_rays', config: { angle: -0.2, rayColor: 'rgba(200, 180, 255, 0.3)' } },
+        'ch2': { type: 'sakura', config: { intensity: 0.3, color: '#ffc8dd' } },
+        'ch3': { type: 'embers', config: { color: '#8844cc', intensity: 0.5 } },
+        'ch4': { type: 'light_rays', config: { angle: -0.15, rayColor: 'rgba(255, 220, 120, 0.4)' } }
+      };
+      const weatherConfig = chapterWeather[targetChapter];
+      if (weatherConfig) {
+        window.sceneEffects.weather.setWeather(weatherConfig.type, weatherConfig.config);
+      } else {
+        window.sceneEffects.weather.stop();
+      }
+      window.sceneEffects.screenFX.setPreset('story');
     }
 
     // v0.17.0 场景 BGM
@@ -1348,6 +1399,23 @@ class DialogueScene {
       window.ambientParticles.setBackground(bgKey ? `story_${bgKey}` : null);
     }
 
+    // v0.23.0 场景视觉增强：自动匹配天气与氛围预设
+    if (window.sceneEffects) {
+      const bgKey = bgPath ? bgPath.split('/').pop().replace('.png', '') : null;
+      window.sceneEffects.autoSetAtmosphere(bgKey);
+      // 初始化视差背景（基于当前剧情背景图）
+      if (this._dialogueBg) {
+        window.sceneEffects.parallax.initFromImage(this._dialogueBg, {
+          layers: 3,
+          depthFactors: [0.02, 0.05, 0.1],
+          alphas: [0.3, 0.5, 1.0],
+          scales: [1.12, 1.06, 1.0],
+          autoScroll: { x: 0.2, y: 0 },
+          wobbleAmp: 2
+        });
+      }
+    }
+
     // v0.16.0 重置立绘状态
     this._portraits = {};
     this._prevSpeaker = '';
@@ -1399,6 +1467,12 @@ class DialogueScene {
   onExit() {
     // v0.20.0 停止氛围粒子
     if (window.ambientParticles) window.ambientParticles.stop();
+    // v0.23.0 停止天气效果和视差
+    if (window.sceneEffects) {
+      window.sceneEffects.weather.stop();
+      window.sceneEffects.parallax.reset();
+      window.sceneEffects.dialogueFX.reset();
+    }
     // v0.16.0 清理立绘状态
     this._portraits = {};
     this._slotAssignment = {};
@@ -1411,6 +1485,11 @@ class DialogueScene {
 
     // v0.20.0 更新氛围粒子
     if (window.ambientParticles) window.ambientParticles.update(dt);
+
+    // v0.23.0 更新场景视觉增强
+    if (window.sceneEffects) {
+      window.sceneEffects.dialogueFX.update(dt);
+    }
 
     // v0.16.0 更新立绘过渡动画
     this._updatePortraitTransition(dt);
@@ -1582,9 +1661,16 @@ class DialogueScene {
 
     // 文本（逐字显示）
     const displayText = this.text.substring(0, this.displayedChars);
-    this._wrapText(ctx, displayText, 70, boxY + 30, W - 140, 28, {
+    // v0.23.0 台词震动/情绪特效偏移
+    let textOffsetX = 0, textOffsetY = 0;
+    if (window.sceneEffects) {
+      const offset = window.sceneEffects.dialogueFX.getTextOffset();
+      textOffsetX = offset.x;
+      textOffsetY = offset.y;
+    }
+    this._wrapText(ctx, displayText, 70 + textOffsetX, boxY + 30 + textOffsetY, W - 140, 28, {
       fontSize: 20,
-      color: '#e0e0e0'
+      color: window.sceneEffects?.dialogueFX?.textEffects?.color || '#e0e0e0'
     });
 
     // 点击提示
@@ -1797,6 +1883,10 @@ class DialogueScene {
         this.displayTimer = 0;
         // v0.16.0 更新立绘状态
         this._updatePortraitForSpeaker(this.speaker, this.text);
+        // v0.23.0 自动检测台词情绪并应用视觉特效
+        if (window.sceneEffects) {
+          window.sceneEffects.dialogueFX.autoDetectTextEffect(this.text, this.speaker);
+        }
         break;
 
       case 'choice':

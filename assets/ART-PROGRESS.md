@@ -1,7 +1,7 @@
 # 美术制作进度追踪
 
 > 庸人工作室 · 未定之旅 · 美术任务状态
-> 最后更新：2026-10-02 01:25
+> 最后更新：2026-10-03 01:20
 > 本文件与「游戏技术开发与网站落实」任务互通
 
 ---
@@ -304,6 +304,33 @@
 | 守护羁绊 | `ui/bond/tank_01_bond.png` | 金色盾牌 | ✅ 已交付 | 2026-10-02 |
 | 曦羁绊 | `ui/bond/sr_xi_bond.png` | 暖金圣光 | ✅ 已交付 | 2026-10-02 |
 
+### 26. 场景视觉增强系统（Canvas/JS，v0.23.0 新增）
+| 模块 | 文件 | 状态 | 日期 |
+|------|------|------|------|
+| 视差背景系统（多层深度+自动滚动+微动） | `js/scene-effects.js` ParallaxBackground | ✅ 已交付 | 2026-10-03 |
+| 高级场景转场（粒子擦除/水墨晕染/元素爆发/百叶窗/菱形/圆形揭幕） | `js/scene-effects.js` EnhancedTransitions | ✅ 已交付 | 2026-10-03 |
+| 动态天气系统（雨/雪/雾/光线/樱花/余烬/沙暴） | `js/scene-effects.js` WeatherSystem | ✅ 已交付 | 2026-10-03 |
+| 对话场景演出增强（屏幕闪光/情绪粒子/文字震动） | `js/scene-effects.js` DialogueFX | ✅ 已交付 | 2026-10-03 |
+| 电影感标题动画序列（光线+粒子+分阶段入场） | `js/scene-effects.js` CinematicTitle | ✅ 已交付 | 2026-10-03 |
+| 屏幕后处理特效（暗角/胶片颗粒/色彩叠加） | `js/scene-effects.js` ScreenFX | ✅ 已交付 | 2026-10-03 |
+| 场景氛围自动匹配（14张剧情背景→天气/后处理预设） | `js/scene-effects.js` autoSetAtmosphere | ✅ 已交付 | 2026-10-03 |
+
+### 27. 标题画面升级（v0.23.0）
+| 项目 | 位置 | 状态 | 日期 |
+|------|------|------|------|
+| 电影感标题入场序列（黑幕→光线→标题→副标题→按钮） | `js/ui.js` TitleScene.render() | ✅ 已交付 | 2026-10-03 |
+| 标题文字发光增强（shadowBlur 脉冲） | `js/ui.js` TitleScene.render() | ✅ 已交付 | 2026-10-03 |
+| 标题画面后处理预设（暗角+胶片颗粒） | `js/scene-effects.js` preset=title | ✅ 已交付 | 2026-10-03 |
+
+### 28. 对话场景视觉增强（v0.23.0）
+| 项目 | 位置 | 状态 | 日期 |
+|------|------|------|------|
+| 剧情对话自动天气匹配（14张背景→天气类型） | `js/ui.js` DialogueScene.onEnter() | ✅ 已交付 | 2026-10-03 |
+| 视差背景初始化（对话场景3层深度视差） | `js/ui.js` DialogueScene.onEnter() | ✅ 已交付 | 2026-10-03 |
+| 台词情绪自动检测（感叹/震惊/省略→视觉特效） | `js/ui.js` DialogueScene._handleResult() | ✅ 已交付 | 2026-10-03 |
+| 文字震动效果（冲击性台词画面抖动） | `js/ui.js` DialogueScene.render() | ✅ 已交付 | 2026-10-03 |
+| 剧情地图天气（序章光线/第二章樱花/第三章余烬/第四章光线） | `js/ui.js` StoryMapScene.onEnter() | ✅ 已交付 | 2026-10-03 |
+
 ---
 
 ## 二、待制作素材（按优先级排序）
@@ -439,7 +466,95 @@ UI动画：js/ui-animations.js                   ← 已完成（动画管理器
 
 ---
 
-## 五、本次执行记录（2026-10-02 01:13 · v0.22.0 装备&羁绊图标全量交付）
+## 五、本次执行记录（2026-10-03 01:20 · v0.23.0 场景视觉增强系统）
+
+### 新增模块（scene-effects.js，约 830 行）
+
+1. **ParallaxBackground - 多层视差背景系统**
+   - 从单张背景图自动生成 3 层深度视差（远景/中景/近景）
+   - 每层独立的深度因子、缩放、透明度、混合模式
+   - 自动慢速滚动 + 微动效果（模拟风吹/光线漂移）
+   - 平滑摄像机跟随（支持鼠标/触摸绑定）
+   - 对话场景自动启用 3 层视差（基于当前剧情背景图）
+
+2. **EnhancedTransitions - 高级场景转场系统**（6 种转场类型）
+   - `particle_wipe` - 粒子流擦除（元素色粒子从指定方向扫过）
+   - `ink_wash` - 水墨晕染（不规则边缘墨滴从多点扩散）
+   - `element_burst` - 元素光芒爆发（径向光芒 + 中心光球）
+   - `blinds` - 百叶窗式（8 条水平百叶依次展开/收起）
+   - `diamond` - 菱形擦除（从中心扩展的菱形遮罩）
+   - `circle_reveal` - 圆形揭幕（从中心扩展的圆形可视区域）
+
+3. **WeatherSystem - 动态天气与环境光效系统**（7 种天气类型）
+   - `rain` - 雨滴（150 颗粒子 + 风偏 + 地面水花）
+   - `snow` - 雪花（80 颗飘雪 + 横向摆动 + 发光）
+   - `fog` - 薄雾（6 团雾面片 + 脉冲透明度 + 缓慢漂移）
+   - `light_rays` - 光线（5 束体积光 + 脉冲明暗 + 角度可调）
+   - `sakura` - 樱花花瓣（40 片旋转飘落 + 风力 + 高光）
+   - `embers` - 余烬上升（30 颗火星 + 生命周期 + 重生循环）
+   - `dust_storm` - 沙尘暴（60 颗横向飞沙 + 整体色调叠加）
+   - 平滑淡入淡出过渡，支持中途切换天气类型
+
+4. **DialogueFX - 对话场景演出增强**
+   - 屏幕闪光（冲击性台词触发短暂白闪/元素色闪光）
+   - 情绪粒子（角色周围生成 12 颗情绪色粒子，7 种情绪映射）
+   - 文字震动效果（感叹号密集台词触发画面微抖）
+   - 台词自动情绪检测（根据标点/关键词自动应用视觉特效）
+
+5. **CinematicTitle - 电影感标题动画序列**
+   - 5 阶段入场：黑幕→光线穿透→标题→副标题→按钮
+   - 8 束紫色体积光 + 30 颗彩色粒子上浮
+   - 提供精确入场时序接口控制标题/副标题/按钮
+
+6. **ScreenFX - 屏幕级后处理特效**
+   - 暗角（径向渐变，缓存优化）
+   - 胶片颗粒（伪随机稀疏噪点，帧间变化）
+   - 色彩叠加（全局色调倾向）
+   - 5 种预设：battle / story / horror / dream / title
+
+### 代码集成
+
+1. **index.html**: 新增 `scene-effects.js` 脚本加载
+2. **engine.js**: update + render 管线接入（后处理层 + 转场覆盖层）
+3. **main.js**: 初始化 SceneEffectsController 单例
+4. **ui.js TitleScene**: 电影感标题动画 + 发光效果
+5. **ui.js DialogueScene**: 天气匹配 + 视差 + 情绪特效 + 文字震动
+6. **ui.js StoryMapScene**: 按章节自动天气（序章光线/第二章樱花/第三章余烬/第四章光线）
+
+### 场景氛围自动匹配映射
+
+| 背景 | 天气 | 后处理 |
+|------|------|--------|
+| awakening_void | light_rays (紫) | dream |
+| dark_forest | fog | story |
+| ancient_ruins | light_rays (暖) | story |
+| morning_town | light_rays (晨光) | story |
+| moonlit_clearing | light_rays (月光) | dream |
+| shadow_base | embers (暗紫) | horror |
+| shadow_realm | embers (亮紫) | horror |
+| shadow_confession | fog | story |
+| light_sanctuary | sakura (金) | dream |
+| light_dawn | light_rays (金) | story |
+| crystal_cave | light_rays (蓝) | story |
+| star_abyss | embers (蓝) | battle |
+| holy_sanctuary | sakura (暖金) | battle |
+| chaos_void | embers (红粉) | horror |
+
+### 素材统计
+- 本次新增：0 张图片素材（纯 Canvas/JS 动画增强）
+- 新增模块：scene-effects.js（6 个视觉子系统 + 1 个控制器，约 830 行）
+- 新增天气类型：7 种 / 转场类型：6 种 / 后处理预设：5 种
+- 新增氛围映射：14 张剧情背景自动匹配天气+后处理
+
+### 下一步计划
+- 后续新角色立绘与 Q 版帧（待元首提供设定）
+- 音频资源制作与加载
+- 高级转场效果接入 SceneManager.switchTo
+- 战斗场景天气系统
+
+---
+
+## 五、上次执行记录（2026-10-02 01:13 · v0.22.0 装备&羁绊图标全量交付）
 
 ### 新增素材（共 33 张图标）
 

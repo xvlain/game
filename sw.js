@@ -1,6 +1,6 @@
 /**
  * Service Worker - 未定之旅 PWA
- * v0.21.0 - 装备系统 + 羁绊系统
+ * v0.23.0 - 场景视觉增强系统（视差/天气/转场/后处理/电影感标题）
  */
 
 const CACHE_VERSION = 'v0.21.0';
@@ -35,6 +35,7 @@ const STATIC_FILES = [
   './js/mail.js',
   './js/chibi-animator.js',
   './js/ambient-effects.js',
+  './js/scene-effects.js',
   './js/synth-bgm.js',
   './js/audio-scene.js',
   './js/battle-log.js',

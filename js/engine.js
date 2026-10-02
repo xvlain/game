@@ -854,6 +854,8 @@ class GameEngine {
     if (typeof ToastSystem !== 'undefined') ToastSystem.update(dt * 1000);
     // v0.17.0 驱动战斗日志更新
     if (typeof battleLogger !== 'undefined' && battleLogger) battleLogger.update(dt);
+    // v0.23.0 驱动场景视觉增强系统
+    if (typeof window !== 'undefined' && window.sceneEffects) window.sceneEffects.update(dt);
   }
 
   render() {
@@ -873,6 +875,11 @@ class GameEngine {
     ctx.fillRect(-10, -10, this.canvas.width + 20, this.canvas.height + 20);
     this.sceneManager.render(ctx);
 
+    // v0.23.0 场景后处理（暗角/天气/粒子 — 在场景之上、UI 覆盖之下）
+    if (typeof window !== 'undefined' && window.sceneEffects) {
+      window.sceneEffects.renderPostProcess(ctx, this.canvas.width, this.canvas.height);
+    }
+
     ctx.restore();
 
     // 战斗演出覆盖层（在场景之上、转场之下渲染）
@@ -888,6 +895,11 @@ class GameEngine {
     // v0.17.0 战斗日志覆盖层
     if (typeof battleLogger !== 'undefined' && battleLogger) {
       battleLogger.render(ctx, this.canvas.width, this.canvas.height);
+    }
+
+    // v0.23.0 场景转场覆盖层（最顶层）
+    if (typeof window !== 'undefined' && window.sceneEffects) {
+      window.sceneEffects.renderTransition(ctx, this.canvas.width, this.canvas.height);
     }
 
     // v0.16.0 调试信息覆盖层
